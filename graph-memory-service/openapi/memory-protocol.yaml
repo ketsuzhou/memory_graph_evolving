@@ -1,0 +1,1065 @@
+openapi: 3.1.0
+info:
+  title: River2 Graph Memory Protocol
+  version: 1.0.0-tracer
+  description: Authoritative HTTP/JSON contract for the first greenfield tracer bullet.
+servers:
+  - url: http://localhost
+security:
+  - bearerAuth: []
+paths:
+  /v1/tenant:
+    put:
+      operationId: initializeTenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InitializeTenantRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/InitializeTenantOK'}
+        '201': {$ref: '#/components/responses/InitializeTenantCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/principals:
+    post:
+      operationId: registerPrincipal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterPrincipalRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/RegisterPrincipalOK'}
+        '201': {$ref: '#/components/responses/RegisterPrincipalCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/spaces:
+    post:
+      operationId: registerSpace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterSpaceRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/RegisterSpaceOK'}
+        '201': {$ref: '#/components/responses/RegisterSpaceCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/grants:
+    post:
+      operationId: registerGrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterGrantRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/RegisterGrantOK'}
+        '201': {$ref: '#/components/responses/RegisterGrantCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/evidence-batches:stage:
+    post:
+      operationId: stageEvidenceBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/StageEvidenceBatchRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/StageEvidenceBatchOK'}
+        '201': {$ref: '#/components/responses/StageEvidenceBatchCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/evidence-batches/{batch_id}:commit:
+    parameters:
+      - {$ref: '#/components/parameters/BatchID'}
+    post:
+      operationId: commitEvidenceBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CommitEvidenceBatchRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/CommitEvidenceBatchOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/evidence-batches/{batch_id}:
+    parameters:
+      - {$ref: '#/components/parameters/BatchID'}
+    get:
+      operationId: getEvidenceBatch
+      responses:
+        '200': {$ref: '#/components/responses/EvidenceBatchStatusOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/recalls:
+    post:
+      operationId: recall
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RecallRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/RecallOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations:
+    post:
+      operationId: startExploration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/StartExplorationRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/StartExplorationOK'}
+        '201': {$ref: '#/components/responses/StartExplorationCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations/{session_id}:explore:
+    parameters:
+      - {$ref: '#/components/parameters/SessionID'}
+    post:
+      operationId: explore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ExploreRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/ExploreOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/BudgetExhausted'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations/{session_id}:redirect:
+    parameters:
+      - {$ref: '#/components/parameters/SessionID'}
+    post:
+      operationId: redirectExploration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RedirectRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/RedirectOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/BudgetExhausted'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations/{session_id}:submit:
+    parameters:
+      - {$ref: '#/components/parameters/SessionID'}
+    post:
+      operationId: submitExploration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubmitRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/SubmitOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/BudgetExhausted'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations/{session_id}:navigate:
+    parameters:
+      - {$ref: '#/components/parameters/SessionID'}
+    post:
+      operationId: navigateExploration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NavigateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/NavigateOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '429': {$ref: '#/components/responses/BudgetExhausted'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/explorations/{session_id}/dive:
+    parameters:
+      - {$ref: '#/components/parameters/SessionID'}
+    get:
+      operationId: readExplorationDive
+      parameters:
+        - name: request_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+      responses:
+        '200': {$ref: '#/components/responses/DiveReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/patterns/{pattern_id}:
+    parameters:
+      - {$ref: '#/components/parameters/PatternID'}
+    get:
+      operationId: readPattern
+      parameters:
+        - name: space_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+        - name: request_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+      responses:
+        '200': {$ref: '#/components/responses/PatternReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/patterns/{pattern_id}:reject:
+    parameters:
+      - {$ref: '#/components/parameters/PatternID'}
+    post:
+      operationId: rejectPattern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RejectPatternRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/PatternRejectOK'}
+        '201': {$ref: '#/components/responses/PatternRejectCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/proposals/{proposal_id}:
+    parameters:
+      - {$ref: '#/components/parameters/ProposalID'}
+    get:
+      operationId: readProposal
+      parameters:
+        - name: space_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+        - name: request_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+      responses:
+        '200': {$ref: '#/components/responses/ProposalReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/candidates/{candidate_id}:
+    parameters:
+      - {$ref: '#/components/parameters/CandidateID'}
+    get:
+      operationId: readCandidate
+      parameters:
+        - name: space_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+        - name: request_id
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/OpaqueID'}
+      responses:
+        '200': {$ref: '#/components/responses/CandidateReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/candidates/{candidate_id}:decide:
+    parameters:
+      - {$ref: '#/components/parameters/CandidateID'}
+    post:
+      operationId: decideCandidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecideCandidateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/CandidateDecideOK'}
+        '201': {$ref: '#/components/responses/CandidateDecideCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /v1/candidates/{candidate_id}:activate:
+    parameters:
+      - {$ref: '#/components/parameters/CandidateID'}
+    post:
+      operationId: activateCandidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ActivateCandidateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/CandidateActivateOK'}
+        '201': {$ref: '#/components/responses/CandidateActivateCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    BatchID:
+      name: batch_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OpaqueID'}
+    SessionID:
+      name: session_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OpaqueID'}
+    PatternID:
+      name: pattern_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OpaqueID'}
+    ProposalID:
+      name: proposal_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OpaqueID'}
+    CandidateID:
+      name: candidate_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/OpaqueID'}
+  schemas:
+    OpaqueID:
+      type: string
+      minLength: 1
+      maxLength: 128
+    InitializeTenantRequest:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, display_name, bootstrap_principal_id]
+      properties:
+        tenant_id: {$ref: '#/components/schemas/OpaqueID'}
+        display_name: {type: string, minLength: 1, maxLength: 200}
+        bootstrap_principal_id: {$ref: '#/components/schemas/OpaqueID'}
+    InitializeTenantResponse:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, bootstrap_principal_id, duplicate]
+      properties:
+        tenant_id: {$ref: '#/components/schemas/OpaqueID'}
+        bootstrap_principal_id: {$ref: '#/components/schemas/OpaqueID'}
+        duplicate: {type: boolean}
+    RegisterPrincipalRequest:
+      type: object
+      additionalProperties: false
+      required: [principal_id, kind, display_name]
+      properties:
+        principal_id: {$ref: '#/components/schemas/OpaqueID'}
+        kind: {type: string, enum: [human, agent, service]}
+        display_name: {type: string, minLength: 1, maxLength: 200}
+    RegisterPrincipalResponse:
+      type: object
+      additionalProperties: false
+      required: [principal_id, kind, duplicate]
+      properties:
+        principal_id: {$ref: '#/components/schemas/OpaqueID'}
+        kind: {type: string, enum: [human, agent, service]}
+        duplicate: {type: boolean}
+    RegisterSpaceRequest:
+      type: object
+      additionalProperties: false
+      required: [space_id, scope, owner_principal_id, display_name]
+      properties:
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        scope: {type: string, enum: [shared, private]}
+        owner_principal_id:
+          oneOf:
+            - {$ref: '#/components/schemas/OpaqueID'}
+            - {type: 'null'}
+        display_name: {type: string, minLength: 1, maxLength: 200}
+    RegisterSpaceResponse:
+      type: object
+      additionalProperties: false
+      required: [space_id, scope, owner_principal_id, duplicate]
+      properties:
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        scope: {type: string, enum: [shared, private]}
+        owner_principal_id:
+          oneOf:
+            - {$ref: '#/components/schemas/OpaqueID'}
+            - {type: 'null'}
+        duplicate: {type: boolean}
+    GrantOperation:
+      type: string
+      enum: [evidence.stage, evidence.commit, recall, exploration.start, exploration.explore, exploration.redirect, exploration.submit, causal.trial.append, causal.estimate.append, causal.reward.append, causal.read, dive.read, pattern.read, pattern.reject, proposal.read, candidate.read, candidate.decide, candidate.activate]
+    RegisterGrantRequest:
+      type: object
+      additionalProperties: false
+      required: [grant_id, principal_id, space_ids, purpose, operations, expires_at]
+      properties:
+        grant_id: {$ref: '#/components/schemas/OpaqueID'}
+        principal_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        purpose: {type: string, enum: [lifecycle, tool_plane, curation]}
+        operations: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/GrantOperation'}}
+        expires_at: {type: string, format: date-time}
+    RegisterGrantResponse:
+      type: object
+      additionalProperties: false
+      required: [grant_id, principal_id, space_ids, purpose, operations, expires_at, duplicate]
+      properties:
+        grant_id: {$ref: '#/components/schemas/OpaqueID'}
+        principal_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        purpose: {type: string, enum: [lifecycle, tool_plane, curation]}
+        operations: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/GrantOperation'}}
+        expires_at: {type: string, format: date-time}
+        duplicate: {type: boolean}
+    Provenance:
+      type: object
+      additionalProperties: false
+      required: [host_type, host_instance_id, source_kind, captured_at, content_sha256]
+      properties:
+        host_type: {type: string, const: pi-group-chat-host}
+        host_instance_id: {$ref: '#/components/schemas/OpaqueID'}
+        source_kind: {type: string, enum: [room_shared, agent_private]}
+        captured_at: {type: string, format: date-time}
+        content_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+    EvidenceEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, sequence, kind, content, occurred_at]
+      properties:
+        event_id: {$ref: '#/components/schemas/OpaqueID'}
+        sequence: {type: integer, format: int64, minimum: 1}
+        kind: {type: string, enum: [room_message, room_tool_call, room_tool_result, pi_internal, segment_terminal]}
+        content: {type: string}
+        occurred_at: {type: string, format: date-time}
+    EvidenceLink:
+      type: object
+      additionalProperties: false
+      required: [link_id, from_event_id, to_event_id, relation]
+      properties:
+        link_id: {$ref: '#/components/schemas/OpaqueID'}
+        from_event_id: {$ref: '#/components/schemas/OpaqueID'}
+        to_event_id: {$ref: '#/components/schemas/OpaqueID'}
+        relation: {type: string, enum: [mentions, responds_to, continues, delegates_to]}
+    StageEvidenceBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [batch_id, idempotency_key, space_id, stream_id, source_segment_id, provenance, events, links, terminal_outcome]
+      properties:
+        batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        idempotency_key: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        stream_id: {$ref: '#/components/schemas/OpaqueID'}
+        source_segment_id: {$ref: '#/components/schemas/OpaqueID'}
+        provenance: {$ref: '#/components/schemas/Provenance'}
+        events: {type: array, minItems: 1, items: {$ref: '#/components/schemas/EvidenceEvent'}}
+        links: {type: array, items: {$ref: '#/components/schemas/EvidenceLink'}}
+        terminal_outcome: {type: string, enum: [settled, failed, aborted]}
+    StageEvidenceBatchResponse:
+      type: object
+      additionalProperties: false
+      required: [batch_id, idempotency_key, space_id, state, duplicate]
+      properties:
+        batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        idempotency_key: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, enum: [staged, committed]}
+        duplicate: {type: boolean}
+    CommitEvidenceBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [commit_id]
+      properties:
+        commit_id: {$ref: '#/components/schemas/OpaqueID'}
+    CommitEvidenceBatchResponse:
+      type: object
+      additionalProperties: false
+      required: [batch_id, commit_id, state, memory_version, committed_at, duplicate]
+      properties:
+        batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        commit_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, const: committed}
+        memory_version: {type: integer, format: int64, minimum: 1}
+        committed_at: {type: string, format: date-time}
+        duplicate: {type: boolean}
+    EvidenceBatchStatusResponse:
+      type: object
+      additionalProperties: false
+      required: [batch_id, idempotency_key, space_id, source_segment_id, state, memory_version, committed_at]
+      properties:
+        batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        idempotency_key: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        source_segment_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, enum: [staged, committed]}
+        memory_version: {type: [integer, 'null'], format: int64, minimum: 1}
+        committed_at: {type: [string, 'null'], format: date-time}
+    Citation:
+      type: object
+      additionalProperties: false
+      required: [citation_id, evidence_batch_id, event_ids]
+      properties:
+        citation_id: {$ref: '#/components/schemas/OpaqueID'}
+        evidence_batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        event_ids: {type: array, minItems: 1, items: {$ref: '#/components/schemas/OpaqueID'}}
+    TraversalMetadata:
+      type: object
+      additionalProperties: false
+      required: [projection_node_id, projection_version, projection_digest, route_kind, edge_id, edge_kind, relation, direction]
+      properties:
+        projection_node_id: {$ref: '#/components/schemas/OpaqueID'}
+        projection_version: {type: integer, format: int64, minimum: 1}
+        projection_digest: {type: string, minLength: 1, maxLength: 128}
+        route_kind: {type: string, enum: [hierarchy_parent, hierarchy_child, entity, relation, embedding]}
+        edge_id: {type: string, maxLength: 128}
+        edge_kind: {type: string, enum: [hierarchy, relation, '']}
+        relation: {type: string, maxLength: 128}
+        direction: {type: string, enum: [incoming, outgoing, undirected]}
+    RecallItem:
+      type: object
+      additionalProperties: false
+      required: [content, source_space_id, memory_version, citation, score]
+      properties:
+        content: {type: string}
+        source_space_id: {$ref: '#/components/schemas/OpaqueID'}
+        memory_version: {type: integer, format: int64, minimum: 1}
+        citation: {$ref: '#/components/schemas/Citation'}
+        score: {type: number, minimum: 0, maximum: 1}
+        traversal: {$ref: '#/components/schemas/TraversalMetadata'}
+    RecallDegradation:
+      type: object
+      additionalProperties: false
+      required: [state, reasons]
+      properties:
+        state: {type: string, enum: [complete, empty, partial, stale, timed_out, unavailable]}
+        reasons: {type: array, maxItems: 8, items: {type: string, minLength: 1, maxLength: 512}}
+    RecallRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, query, space_ids, max_results, deadline_ms]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        query: {type: string, minLength: 1, maxLength: 16000}
+        space_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        max_results: {type: integer, minimum: 1, maximum: 100}
+        deadline_ms: {type: integer, minimum: 1, maximum: 30000}
+    RecallResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, items, degradation]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/RecallItem'}}
+        degradation: {$ref: '#/components/schemas/RecallDegradation'}
+    PinnedSpace:
+      type: object
+      additionalProperties: false
+      required: [space_id, memory_version]
+      properties:
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        memory_version: {type: integer, format: int64, minimum: 0}
+    StartExplorationRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, idempotency_key, space_ids, query, max_steps, max_results]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        idempotency_key: {$ref: '#/components/schemas/OpaqueID'}
+        space_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        query: {type: string, minLength: 1, maxLength: 16000}
+        max_steps: {type: integer, minimum: 1, maximum: 20}
+        max_results: {type: integer, minimum: 1, maximum: 100}
+    StartExplorationResponse:
+      type: object
+      additionalProperties: false
+      required: [session_id, request_id, state, pinned_spaces, items, remaining_steps, duplicate]
+      properties:
+        session_id: {$ref: '#/components/schemas/OpaqueID'}
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, const: active}
+        pinned_spaces: {type: array, minItems: 1, items: {$ref: '#/components/schemas/PinnedSpace'}}
+        items: {type: array, items: {$ref: '#/components/schemas/RecallItem'}}
+        remaining_steps: {type: integer, minimum: 0}
+        duplicate: {type: boolean}
+    ExploreRequest:
+      type: object
+      additionalProperties: false
+      required: [operation_id, anchor_citation_id, relation, limit]
+      properties:
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        anchor_citation_id: {$ref: '#/components/schemas/OpaqueID'}
+        relation: {type: string, enum: [mentions, responds_to, continues, delegates_to, related]}
+        limit: {type: integer, minimum: 1, maximum: 100}
+    ExplorationStepResponse:
+      type: object
+      additionalProperties: false
+      required: [session_id, operation_id, state, items, remaining_steps, duplicate]
+      properties:
+        session_id: {$ref: '#/components/schemas/OpaqueID'}
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, const: active}
+        items: {type: array, items: {$ref: '#/components/schemas/RecallItem'}}
+        remaining_steps: {type: integer, minimum: 0}
+        duplicate: {type: boolean}
+    RedirectRequest:
+      type: object
+      additionalProperties: false
+      required: [operation_id, query, anchor_citation_ids, reason]
+      properties:
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        query: {type: string, minLength: 1, maxLength: 16000}
+        anchor_citation_ids: {type: array, items: {$ref: '#/components/schemas/OpaqueID'}}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+    SubmitRequest:
+      type: object
+      additionalProperties: false
+      required: [operation_id, found, summary, citation_ids]
+      properties:
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        found: {type: boolean}
+        summary: {type: string}
+        citation_ids: {type: array, items: {$ref: '#/components/schemas/OpaqueID'}}
+    SubmittedCitation:
+      type: object
+      additionalProperties: false
+      required: [citation_id, source_space_id, memory_version, evidence_batch_id]
+      properties:
+        citation_id: {$ref: '#/components/schemas/OpaqueID'}
+        source_space_id: {$ref: '#/components/schemas/OpaqueID'}
+        memory_version: {type: integer, format: int64, minimum: 1}
+        evidence_batch_id: {$ref: '#/components/schemas/OpaqueID'}
+    SubmitResponse:
+      type: object
+      additionalProperties: false
+      required: [session_id, operation_id, state, found, summary, citations, duplicate]
+      properties:
+        session_id: {$ref: '#/components/schemas/OpaqueID'}
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        state: {type: string, const: submitted}
+        found: {type: boolean}
+        summary: {type: string}
+        citations: {type: array, items: {$ref: '#/components/schemas/SubmittedCitation'}}
+        duplicate: {type: boolean}
+    NavigateRequest:
+      type: object
+      additionalProperties: false
+      required: [run_id, max_model_calls]
+      properties:
+        run_id: {$ref: '#/components/schemas/OpaqueID'}
+        max_model_calls: {type: integer, minimum: 1, maximum: 16}
+    NavigationModelUsage:
+      type: object
+      additionalProperties: false
+      required: [prompt_tokens, completion_tokens, total_tokens]
+      properties:
+        prompt_tokens: {type: integer, minimum: 0, maximum: 1000000}
+        completion_tokens: {type: integer, minimum: 0, maximum: 1000000}
+        total_tokens: {type: integer, minimum: 0, maximum: 1000000}
+    NavigationModelPolicy:
+      type: object
+      additionalProperties: false
+      required: [provider, model, prompt_policy]
+      properties:
+        provider: {type: string, enum: [openai-compatible, ''], maxLength: 64}
+        model: {type: string, maxLength: 256}
+        prompt_policy: {type: string, enum: [gms-navigation-v1, '']}
+    NavigationStep:
+      type: object
+      additionalProperties: false
+      required: [index, intent, action_id, operation_id, applied_policy, model_policy, usage]
+      properties:
+        index: {type: integer, minimum: 0}
+        intent: {type: string, enum: [explore, redirect, submit]}
+        action_id: {$ref: '#/components/schemas/OpaqueID'}
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        applied_policy: {type: string, enum: [llm, deterministic_fallback, server_clamp]}
+        degradation: {type: string, enum: [model_call_limit, token_limit, time_limit, selector_unconfigured, selector_error, selector_invalid]}
+        model_policy: {$ref: '#/components/schemas/NavigationModelPolicy'}
+        usage: {$ref: '#/components/schemas/NavigationModelUsage'}
+    NavigateResponse:
+      type: object
+      additionalProperties: false
+      required: [state, found, summary, citations, steps, applied_policy, degradation, duplicate]
+      properties:
+        state: {type: string, enum: [submitted, stopped]}
+        found: {type: boolean}
+        summary: {type: string, maxLength: 16000}
+        citations: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/SubmittedCitation'}}
+        steps: {type: array, minItems: 1, maxItems: 20, items: {$ref: '#/components/schemas/NavigationStep'}}
+        applied_policy: {type: string, enum: [llm, deterministic_fallback, server_clamp]}
+        degradation: {type: array, maxItems: 8, uniqueItems: true, items: {type: string, enum: [model_call_limit, token_limit, time_limit, selector_unconfigured, selector_error, selector_invalid]}}
+        duplicate: {type: boolean}
+    DiveScore:
+      type: object
+      additionalProperties: false
+      required: [relevance, groundedness, completeness, overall, rounds]
+      properties:
+        relevance: {type: number, minimum: 0, maximum: 1}
+        groundedness: {type: number, minimum: 0, maximum: 1}
+        completeness: {type: number, minimum: 0, maximum: 1}
+        overall: {type: number, minimum: 0, maximum: 1}
+        rounds: {type: integer, minimum: 0, maximum: 20}
+    DiveItem:
+      type: object
+      additionalProperties: false
+      required: [citation_id, statement, source_space_id, memory_version, evidence_batch_id, event_ids, retrieval_score, submitted, authoritative]
+      properties:
+        citation_id: {$ref: '#/components/schemas/OpaqueID'}
+        statement: {type: string, maxLength: 16000}
+        source_space_id: {$ref: '#/components/schemas/OpaqueID'}
+        memory_version: {type: integer, format: int64, minimum: 1}
+        evidence_batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        event_ids: {type: array, minItems: 1, maxItems: 1000, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        retrieval_score: {type: number, minimum: 0, maximum: 1}
+        submitted: {type: boolean}
+        authoritative: {type: boolean}
+    DiveResultResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, session_id, classification, score, items, incomplete, evaluated_at]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        session_id: {$ref: '#/components/schemas/OpaqueID'}
+        classification: {type: string, enum: [found, miss, error, budget_exhausted, timeout]}
+        score:
+          oneOf:
+            - {$ref: '#/components/schemas/DiveScore'}
+            - {type: 'null'}
+        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/DiveItem'}}
+        incomplete: {type: boolean}
+        evaluated_at: {type: string, format: date-time}
+    CausalEstimateRef:
+      type: object
+      additionalProperties: false
+      required: [estimate_id, revision]
+      properties:
+        estimate_id: {$ref: '#/components/schemas/OpaqueID'}
+        revision: {type: integer, format: int64, minimum: 1}
+    PatternEvidence:
+      type: object
+      additionalProperties: false
+      required: [evidence_batch_id, event_ids, source_space_id, lineage_id, strength, causal_estimate]
+      properties:
+        evidence_batch_id: {$ref: '#/components/schemas/OpaqueID'}
+        event_ids: {type: array, minItems: 1, maxItems: 1000, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        source_space_id: {$ref: '#/components/schemas/OpaqueID'}
+        lineage_id: {$ref: '#/components/schemas/OpaqueID'}
+        strength: {type: string, enum: [repeat, contrastive, causal]}
+        causal_estimate:
+          oneOf:
+            - {$ref: '#/components/schemas/CausalEstimateRef'}
+            - {type: 'null'}
+    PatternRevisionResponse:
+      type: object
+      additionalProperties: false
+      required: [pattern_id, space_id, revision, status, problem, applicability, recommended_action, evidence, policy_version, content_hash, rejection_reason, created_by, created_at]
+      properties:
+        pattern_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        revision: {type: integer, format: int64, minimum: 1}
+        status: {type: string, enum: [tentative, supported, proposal_eligible, rejected]}
+        problem: {type: string, maxLength: 16000}
+        applicability: {type: string, maxLength: 16000}
+        recommended_action: {type: string, maxLength: 16000}
+        evidence: {type: array, maxItems: 1000, items: {$ref: '#/components/schemas/PatternEvidence'}}
+        policy_version: {type: string, maxLength: 128}
+        content_hash: {type: string, maxLength: 128}
+        rejection_reason: {type: string, maxLength: 1000}
+        created_by: {type: string, maxLength: 128}
+        created_at: {type: string, format: date-time}
+    PatternRejectResponse:
+      type: object
+      additionalProperties: false
+      required: [pattern, duplicate]
+      properties:
+        pattern: {$ref: '#/components/schemas/PatternRevisionResponse'}
+        duplicate: {type: boolean}
+    PatternRef:
+      type: object
+      additionalProperties: false
+      required: [pattern_id, revision]
+      properties:
+        pattern_id: {$ref: '#/components/schemas/OpaqueID'}
+        revision: {type: integer, format: int64, minimum: 1}
+    SkillProposalResponse:
+      type: object
+      additionalProperties: false
+      required: [proposal_id, round_id, fingerprint, pattern_refs, candidate_id, created_at]
+      properties:
+        proposal_id: {$ref: '#/components/schemas/OpaqueID'}
+        round_id: {$ref: '#/components/schemas/OpaqueID'}
+        fingerprint: {$ref: '#/components/schemas/OpaqueID'}
+        pattern_refs: {type: array, minItems: 1, maxItems: 1000, items: {$ref: '#/components/schemas/PatternRef'}}
+        candidate_id: {$ref: '#/components/schemas/OpaqueID'}
+        created_at: {type: string, format: date-time}
+    ReviewedDiff:
+      type: object
+      additionalProperties: false
+      required: [diff_id, base_artifact_version, base_artifact_hash, candidate_artifact_hash, diff_hash, reviewer, review_policy_version, reviewed_at]
+      properties:
+        diff_id: {type: string, maxLength: 128}
+        base_artifact_version: {type: integer, format: int64, minimum: 0}
+        base_artifact_hash: {type: string, maxLength: 128}
+        candidate_artifact_hash: {type: string, maxLength: 128}
+        diff_hash: {type: string, maxLength: 128}
+        reviewer: {type: string, maxLength: 128}
+        review_policy_version: {type: string, maxLength: 128}
+        reviewed_at: {type: string, format: date-time}
+    SkillCandidateResponse:
+      type: object
+      additionalProperties: false
+      required: [candidate_id, space_id, proposal_id, fingerprint, target_skill_id, new_skill_name, base_artifact_version, diff, pattern_refs, status, replay_result_id, created_at]
+      properties:
+        candidate_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        proposal_id: {$ref: '#/components/schemas/OpaqueID'}
+        fingerprint: {$ref: '#/components/schemas/OpaqueID'}
+        target_skill_id: {type: string, maxLength: 128}
+        new_skill_name: {type: string, maxLength: 200}
+        base_artifact_version: {type: integer, format: int64, minimum: 0}
+        diff: {$ref: '#/components/schemas/ReviewedDiff'}
+        pattern_refs: {type: array, minItems: 1, maxItems: 1000, items: {$ref: '#/components/schemas/PatternRef'}}
+        status: {type: string, enum: [needs_review, evaluating, accepted, rejected, stale]}
+        replay_result_id: {type: string, maxLength: 128}
+        created_at: {type: string, format: date-time}
+    CandidateDecision:
+      type: object
+      additionalProperties: false
+      required: [decision_id, candidate_id, decision, candidate_digest, replay_result_id, policy_version, reason, decided_by, decided_at]
+      properties:
+        decision_id: {$ref: '#/components/schemas/OpaqueID'}
+        candidate_id: {$ref: '#/components/schemas/OpaqueID'}
+        decision: {type: string, enum: [accepted, rejected]}
+        candidate_digest: {$ref: '#/components/schemas/OpaqueID'}
+        replay_result_id: {$ref: '#/components/schemas/OpaqueID'}
+        policy_version: {$ref: '#/components/schemas/OpaqueID'}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+        decided_by: {$ref: '#/components/schemas/OpaqueID'}
+        decided_at: {type: string, format: date-time}
+    CandidateDecisionResponse:
+      type: object
+      additionalProperties: false
+      required: [decision, duplicate]
+      properties:
+        decision: {$ref: '#/components/schemas/CandidateDecision'}
+        duplicate: {type: boolean}
+    SkillActivation:
+      type: object
+      additionalProperties: false
+      required: [activation_id, candidate_id, decision_id, replay_result_id, candidate_digest, expected_base_version, new_artifact_version, activated_by, activated_at]
+      properties:
+        activation_id: {$ref: '#/components/schemas/OpaqueID'}
+        candidate_id: {$ref: '#/components/schemas/OpaqueID'}
+        decision_id: {$ref: '#/components/schemas/OpaqueID'}
+        replay_result_id: {$ref: '#/components/schemas/OpaqueID'}
+        candidate_digest: {$ref: '#/components/schemas/OpaqueID'}
+        expected_base_version: {type: integer, format: int64, minimum: 1}
+        new_artifact_version: {type: integer, format: int64, minimum: 1}
+        activated_by: {$ref: '#/components/schemas/OpaqueID'}
+        activated_at: {type: string, format: date-time}
+    SkillActivationResponse:
+      type: object
+      additionalProperties: false
+      required: [activation, duplicate]
+      properties:
+        activation: {$ref: '#/components/schemas/SkillActivation'}
+        duplicate: {type: boolean}
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [field, reason]
+      properties:
+        field: {type: string}
+        reason: {type: string}
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required: [code, message, request_id, details]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        details: {type: array, items: {$ref: '#/components/schemas/ErrorDetail'}}
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error: {$ref: '#/components/schemas/ErrorBody'}
+    RejectPatternRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, space_id, operation_id, expected_revision, reason]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        operation_id: {$ref: '#/components/schemas/OpaqueID'}
+        expected_revision: {type: integer, format: int64, minimum: 1}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+    DecideCandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, space_id, decision_id, decision, candidate_digest, replay_result_id, policy_version, reason]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        decision_id: {$ref: '#/components/schemas/OpaqueID'}
+        decision: {type: string, enum: [accepted, rejected]}
+        candidate_digest: {$ref: '#/components/schemas/OpaqueID'}
+        replay_result_id: {$ref: '#/components/schemas/OpaqueID'}
+        policy_version: {$ref: '#/components/schemas/OpaqueID'}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+    ActivateCandidateRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, space_id, activation_id, decision_id, replay_result_id, candidate_digest, expected_base_version]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        space_id: {$ref: '#/components/schemas/OpaqueID'}
+        activation_id: {$ref: '#/components/schemas/OpaqueID'}
+        decision_id: {$ref: '#/components/schemas/OpaqueID'}
+        replay_result_id: {$ref: '#/components/schemas/OpaqueID'}
+        candidate_digest: {$ref: '#/components/schemas/OpaqueID'}
+        expected_base_version: {type: integer, format: int64, minimum: 1}
+  responses:
+    InitializeTenantOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/InitializeTenantResponse'}}}}
+    InitializeTenantCreated: {description: Tenant initialized, content: {application/json: {schema: {$ref: '#/components/schemas/InitializeTenantResponse'}}}}
+    RegisterPrincipalOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterPrincipalResponse'}}}}
+    RegisterPrincipalCreated: {description: Principal registered, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterPrincipalResponse'}}}}
+    RegisterSpaceOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterSpaceResponse'}}}}
+    RegisterSpaceCreated: {description: Space registered, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterSpaceResponse'}}}}
+    RegisterGrantOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterGrantResponse'}}}}
+    RegisterGrantCreated: {description: Grant registered, content: {application/json: {schema: {$ref: '#/components/schemas/RegisterGrantResponse'}}}}
+    StageEvidenceBatchOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/StageEvidenceBatchResponse'}}}}
+    StageEvidenceBatchCreated: {description: Batch staged, content: {application/json: {schema: {$ref: '#/components/schemas/StageEvidenceBatchResponse'}}}}
+    CommitEvidenceBatchOK: {description: Batch committed or replayed, content: {application/json: {schema: {$ref: '#/components/schemas/CommitEvidenceBatchResponse'}}}}
+    EvidenceBatchStatusOK: {description: Batch status, content: {application/json: {schema: {$ref: '#/components/schemas/EvidenceBatchStatusResponse'}}}}
+    RecallOK: {description: Recall result or typed degradation, content: {application/json: {schema: {$ref: '#/components/schemas/RecallResponse'}}}}
+    StartExplorationOK: {description: Idempotent replay, content: {application/json: {schema: {$ref: '#/components/schemas/StartExplorationResponse'}}}}
+    StartExplorationCreated: {description: Exploration started, content: {application/json: {schema: {$ref: '#/components/schemas/StartExplorationResponse'}}}}
+    ExploreOK: {description: Exploration step, content: {application/json: {schema: {$ref: '#/components/schemas/ExplorationStepResponse'}}}}
+    RedirectOK: {description: Redirected exploration step, content: {application/json: {schema: {$ref: '#/components/schemas/ExplorationStepResponse'}}}}
+    SubmitOK: {description: Terminal submission, content: {application/json: {schema: {$ref: '#/components/schemas/SubmitResponse'}}}}
+    NavigateOK: {description: Durable automatic exploration result, content: {application/json: {schema: {$ref: '#/components/schemas/NavigateResponse'}}}}
+    BadRequest: {description: Malformed or invalid request, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Unauthorized: {description: Missing or invalid bearer token, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Forbidden: {description: Space or Grant forbidden/expired, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    NotFound: {description: Resource not found, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Conflict: {description: Idempotency or state conflict, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Unprocessable: {description: Domain invariant violation, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    BudgetExhausted: {description: Exploration budget exhausted, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Internal: {description: Internal error, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Unavailable: {description: Service unavailable, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    DiveReadOK: {description: Server-owned dive judgment of a terminal exploration, content: {application/json: {schema: {$ref: '#/components/schemas/DiveResultResponse'}}}}
+    PatternReadOK: {description: Latest stored pattern revision, content: {application/json: {schema: {$ref: '#/components/schemas/PatternRevisionResponse'}}}}
+    PatternRejectOK: {description: Idempotent replay of a stored rejection, content: {application/json: {schema: {$ref: '#/components/schemas/PatternRejectResponse'}}}}
+    PatternRejectCreated: {description: Pattern rejection stored as a terminal revision, content: {application/json: {schema: {$ref: '#/components/schemas/PatternRejectResponse'}}}}
+    ProposalReadOK: {description: Stored proposal, content: {application/json: {schema: {$ref: '#/components/schemas/SkillProposalResponse'}}}}
+    CandidateReadOK: {description: Stored reviewed candidate, content: {application/json: {schema: {$ref: '#/components/schemas/SkillCandidateResponse'}}}}
+    CandidateDecideOK: {description: Idempotent replay of a stored decision, content: {application/json: {schema: {$ref: '#/components/schemas/CandidateDecisionResponse'}}}}
+    CandidateDecideCreated: {description: Candidate decision stored; acceptance never activates, content: {application/json: {schema: {$ref: '#/components/schemas/CandidateDecisionResponse'}}}}
+    CandidateActivateOK: {description: Idempotent replay of a stored activation, content: {application/json: {schema: {$ref: '#/components/schemas/SkillActivationResponse'}}}}
+    CandidateActivateCreated: {description: Accepted candidate activated as the new skill version, content: {application/json: {schema: {$ref: '#/components/schemas/SkillActivationResponse'}}}}

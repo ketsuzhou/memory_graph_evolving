@@ -1,0 +1,16 @@
+# 编译产物 / build artifacts
+server
+bench-runner
+past-runner
+*.exe
+*.test
+*.out
+
+# 运行输出 / runtime outputs
+outputs/
+
+# 本地配置 / local config
+.kiro/
+
+# 系统文件 / OS files
+.DS_Store
