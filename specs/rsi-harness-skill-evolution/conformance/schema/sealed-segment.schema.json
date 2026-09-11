@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.conformance.sealed-segment.v1.schema.json",
+  "title": "Host Sealed Segment record (FND-002 recorded corpus, segment.json)",
+  "description": "Records the frozen Host sealed Segment data protocol. The record is pure data: members, causal links, deliveries, tool executions with one exact Contract 7.18 ToolProxyResult, and (settled only) the Evidence Seal body (Host 4.2) and Conversation Path Seal body (Host 4.3). canonical.utf8 holds the RFC 8785 JCS bytes of this document; seal.json holds the SHA-256 seal envelope derived from those bytes plus Contract 7.5 SegmentRef / 7.6 CheckpointRef / 7.7 EvidenceRef projections. Settled-only fields (evidence_seal_body, path_seal_body, checkpoint_identity) and non-settled-only fields (terminal_audit) are enforced by validate_recorded.py because this schema dialect has no conditional keys. Digest procedure notes: member payload_digest = SHA-256(JCS(payload)); ToolProxyResult.proxy_result_digest = SHA-256(JCS(result minus proxy_result_digest)); failed results cover an upstream_attempt_record; the checkpoint_digest preimage is (room_id, segment_id, segment_version, segment_digest, checkpoint_id, checkpoint_sequence, close_intent).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "room_id",
+    "segment_id",
+    "segment_version",
+    "terminal_state",
+    "logical_clock",
+    "close",
+    "frontier",
+    "members",
+    "causal_links",
+    "deliveries",
+    "tool_executions"
+  ],
+  "properties": {
+    "schema_version": { "const": "host.sealed-segment.v1" },
+    "room_id": { "type": "string", "minLength": 1 },
+    "segment_id": { "type": "string", "minLength": 1 },
+    "segment_version": { "type": "integer", "minimum": 1 },
+    "terminal_state": { "enum": ["settled", "failed", "aborted"] },
+    "logical_clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "first_tick", "last_tick"],
+      "properties": {
+        "kind": { "const": "monotonic-integer" },
+        "first_tick": { "type": "integer", "minimum": 0 },
+        "last_tick": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "close": { "$ref": "#/$defs/close" },
+    "frontier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_room_sequence", "end_room_sequence"],
+      "properties": {
+        "start_room_sequence": { "type": "integer", "minimum": 0 },
+        "end_room_sequence": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "members": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/member" } },
+    "causal_links": { "type": "array", "items": { "$ref": "#/$defs/causal_link" } },
+    "deliveries": { "type": "array", "items": { "$ref": "#/$defs/delivery" } },
+    "tool_executions": { "type": "array", "items": { "$ref": "#/$defs/tool_execution" } },
+    "evidence_seal_body": { "$ref": "#/$defs/evidence_seal_body" },
+    "path_seal_body": { "$ref": "#/$defs/path_seal_body" },
+    "checkpoint_identity": { "$ref": "#/$defs/checkpoint_identity" },
+    "terminal_audit": { "$ref": "#/$defs/terminal_audit" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "close": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["close_policy_ref", "close_idempotency_key", "close_intent"],
+      "properties": {
+        "close_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+        "close_idempotency_key": { "type": "string", "minLength": 1 },
+        "close_intent": { "enum": ["settle", "fail", "abort"] }
+      }
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "event_kind", "room_sequence", "logical_tick", "actor_id", "payload_digest", "payload"],
+      "properties": {
+        "event_id": { "type": "string", "minLength": 1 },
+        "event_kind": {
+          "enum": [
+            "agent_message",
+            "model_response",
+            "tool_call",
+            "tool_result",
+            "delivery_transition",
+            "decision_checkpoint",
+            "replay_dispatch",
+            "replay_completion"
+          ]
+        },
+        "room_sequence": { "type": "integer", "minimum": 1 },
+        "logical_tick": { "type": "integer", "minimum": 0 },
+        "actor_id": { "type": "string", "minLength": 1 },
+        "payload_digest": { "$ref": "#/$defs/digest" },
+        "payload": { "type": "object" }
+      }
+    },
+    "causal_link": {
+      "type": "object",
+      "description": "Direction convention: every causal edge runs from cause to effect, forward with respect to the monotone room sequence chain (response_to: original->response; delivery_of: delivered event->delivery transition; replay_of: dispatch->completion), so the Interaction DAG stays acyclic.",
+      "additionalProperties": false,
+      "required": ["link_id", "link_kind", "from_event", "to_event"],
+      "properties": {
+        "link_id": { "type": "string", "minLength": 1 },
+        "link_kind": {
+          "enum": [
+            "room_sequence",
+            "response_to",
+            "caused_by",
+            "tool_call_to_result",
+            "delivery_of",
+            "segment_membership",
+            "replay_of"
+          ]
+        },
+        "from_event": { "type": "string", "minLength": 1 },
+        "to_event": { "type": "string", "minLength": 1 }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delivery_id", "subject_event", "terminal_state"],
+      "properties": {
+        "delivery_id": { "type": "string", "minLength": 1 },
+        "subject_event": { "type": "string", "minLength": 1 },
+        "terminal_state": {
+          "enum": ["queued", "in_flight", "delivered", "failed", "cancelled"]
+        }
+      }
+    },
+    "tool_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_call_event", "tool_result_event", "delivery_id", "tool_proxy_result"],
+      "properties": {
+        "tool_call_event": { "type": "string", "minLength": 1 },
+        "tool_result_event": { "type": "string", "minLength": 1 },
+        "delivery_id": { "type": "string", "minLength": 1 },
+        "tool_proxy_result": { "$ref": "#/$defs/tool_proxy_result" },
+        "upstream_attempt_record": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempt_id", "attempt_state", "reason_code"],
+          "properties": {
+            "attempt_id": { "type": "string", "minLength": 1 },
+            "attempt_state": { "enum": ["not_started", "no_response", "cancelled"] },
+            "reason_code": { "type": "string", "minLength": 1 }
+          }
+        },
+        "retry_correlation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["is_retry", "original_tool_call_event", "retry_policy"],
+          "properties": {
+            "is_retry": { "type": "boolean" },
+            "original_tool_call_event": { "type": "string", "minLength": 1 },
+            "retry_policy": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "tool_proxy_result": {
+      "type": "object",
+      "description": "Contract 7.18 exact ToolProxyResult. proxy_result_digest covers JCS(this object minus proxy_result_digest).",
+      "additionalProperties": false,
+      "required": ["schema_version", "proxy_request_id", "status", "upstream_result_digest", "proxy_result_digest"],
+      "properties": {
+        "schema_version": { "const": "host.tool-proxy-result.v1" },
+        "proxy_request_id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["succeeded", "failed", "inconclusive"] },
+        "result": { "type": "object" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason_code", "message", "retryable", "record_refs"],
+          "properties": {
+            "reason_code": { "type": "string", "minLength": 1 },
+            "message": { "type": "string" },
+            "retryable": { "type": "boolean" },
+            "record_refs": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": { "$ref": "#/$defs/versioned_ref" }
+            }
+          }
+        },
+        "upstream_result_digest": { "$ref": "#/$defs/digest" },
+        "proxy_result_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "evidence_seal_body": {
+      "type": "object",
+      "description": "Host 4.2 Evidence Seal canonical body semantics.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "room_id", "segment_id", "segment_version",
+        "sequence_interval", "ordered_event_refs", "actor_ids", "deliveries",
+        "tool_correlations", "causal_link_set_digest",
+        "included_evidence_candidates", "excluded_event_refs",
+        "scope_profile_ref", "close_policy"
+      ],
+      "properties": {
+        "schema_version": { "const": "host.evidence-seal.v1" },
+        "room_id": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "minLength": 1 },
+        "segment_version": { "type": "integer", "minimum": 1 },
+        "sequence_interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start_room_sequence", "end_room_sequence"],
+          "properties": {
+            "start_room_sequence": { "type": "integer", "minimum": 0 },
+            "end_room_sequence": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "ordered_event_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "room_sequence", "payload_digest"],
+            "properties": {
+              "event_id": { "type": "string", "minLength": 1 },
+              "room_sequence": { "type": "integer", "minimum": 1 },
+              "payload_digest": { "$ref": "#/$defs/digest" }
+            }
+          }
+        },
+        "actor_ids": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "deliveries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["delivery_id", "terminal_state"],
+            "properties": {
+              "delivery_id": { "type": "string", "minLength": 1 },
+              "terminal_state": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "tool_correlations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool_call_event", "tool_result_event", "tool_proxy_result_digest"],
+            "properties": {
+              "tool_call_event": { "type": "string", "minLength": 1 },
+              "tool_result_event": { "type": "string", "minLength": 1 },
+              "tool_proxy_result_digest": { "$ref": "#/$defs/digest" }
+            }
+          }
+        },
+        "causal_link_set_digest": { "$ref": "#/$defs/digest" },
+        "included_evidence_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "evidence_kind"],
+            "properties": {
+              "event_id": { "type": "string", "minLength": 1 },
+              "evidence_kind": {
+                "enum": [
+                  "success_path", "failure_path", "recovery_path",
+                  "observation", "replay_result", "human_attestation"
+                ]
+              }
+            }
+          }
+        },
+        "excluded_event_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "reason_code"],
+            "properties": {
+              "event_id": { "type": "string", "minLength": 1 },
+              "reason_code": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "scope_profile_ref": { "$ref": "#/$defs/versioned_ref" },
+        "close_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["close_policy_ref", "canonicalization_profile", "schema_version"],
+          "properties": {
+            "close_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+            "canonicalization_profile": { "const": "rfc8785-jcs" },
+            "schema_version": { "const": "host.sealed-segment.v1" }
+          }
+        }
+      }
+    },
+    "path_seal_body": {
+      "type": "object",
+      "description": "Host 4.3 Conversation Path Seal canonical body semantics; preserves success/failure/recovery branches.",
+      "additionalProperties": false,
+      "required": ["schema_version", "room_id", "segment_id", "segment_version", "paths"],
+      "properties": {
+        "schema_version": { "const": "host.path-seal.v1" },
+        "room_id": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "minLength": 1 },
+        "segment_version": { "type": "integer", "minimum": 1 },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path_id", "domain", "ordered_event_refs", "causal_link_refs",
+              "causal_links_digest", "start_room_sequence", "end_room_sequence",
+              "terminal_outcome", "tool_outcomes", "delivery_outcomes",
+              "checkpoint_ref_id", "completeness", "extraction_policy_ref"
+            ],
+            "properties": {
+              "path_id": { "type": "string", "minLength": 1 },
+              "domain": { "enum": ["success", "failure", "recovery"] },
+              "ordered_event_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+              "causal_link_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "causal_links_digest": { "$ref": "#/$defs/digest" },
+              "start_room_sequence": { "type": "integer", "minimum": 1 },
+              "end_room_sequence": { "type": "integer", "minimum": 1 },
+              "terminal_outcome": { "type": "string", "minLength": 1 },
+              "tool_outcomes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["tool_call_event", "outcome"],
+                  "properties": {
+                    "tool_call_event": { "type": "string", "minLength": 1 },
+                    "outcome": { "type": "string", "minLength": 1 },
+                    "attempts": { "type": "integer", "minimum": 1 }
+                  }
+                }
+              },
+              "delivery_outcomes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["delivery_id", "outcome"],
+                  "properties": {
+                    "delivery_id": { "type": "string", "minLength": 1 },
+                    "outcome": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              "checkpoint_ref_id": { "type": "string", "minLength": 1 },
+              "completeness": { "enum": ["complete", "incomplete"] },
+              "extraction_policy_ref": { "$ref": "#/$defs/versioned_ref" }
+            }
+          }
+        }
+      }
+    },
+    "checkpoint_identity": {
+      "type": "object",
+      "description": "Terminal Decision Checkpoint identity. Deliberately digest-free: the CheckpointRef digest preimage may include this identity but never a checkpoint_digest of itself (Host 3.6).",
+      "additionalProperties": false,
+      "required": ["checkpoint_id", "checkpoint_sequence"],
+      "properties": {
+        "checkpoint_id": { "type": "string", "minLength": 1 },
+        "checkpoint_sequence": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "terminal_audit": {
+      "type": "object",
+      "description": "Present only on failed/aborted segments; such terminals never produce SegmentRef/CheckpointRef/seals (Host 3.8).",
+      "additionalProperties": false,
+      "required": ["reason_code", "phase", "detail"],
+      "properties": {
+        "reason_code": { "type": "string", "minLength": 1 },
+        "phase": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}

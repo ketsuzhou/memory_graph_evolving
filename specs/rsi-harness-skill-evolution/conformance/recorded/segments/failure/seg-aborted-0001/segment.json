@@ -1,0 +1,70 @@
+{
+  "schema_version": "host.sealed-segment.v1",
+  "room_id": "room-alpha-0001",
+  "segment_id": "seg-aborted-0001",
+  "segment_version": 1,
+  "terminal_state": "aborted",
+  "logical_clock": {
+    "kind": "monotonic-integer",
+    "first_tick": 401,
+    "last_tick": 402
+  },
+  "close": {
+    "close_policy_ref": {
+      "id": "host.segment-close-policy",
+      "version": 1,
+      "digest": "sha256:94b67600e889de610f0617f573cbbbf2ebbcccd13a9a6935663a1d12e8c68d92"
+    },
+    "close_idempotency_key": "closekey-seg-aborted-0001",
+    "close_intent": "abort"
+  },
+  "frontier": {
+    "start_room_sequence": 60,
+    "end_room_sequence": 62
+  },
+  "members": [
+    {
+      "event_id": "evt-301",
+      "event_kind": "agent_message",
+      "room_sequence": 61,
+      "logical_tick": 401,
+      "actor_id": "user-u1",
+      "payload_digest": "sha256:79a8e60fa8d4c89e91e1e88378376383f6296483f768a4e03fa4546934d82e67",
+      "payload": {
+        "text": "draft the maintenance summary"
+      }
+    },
+    {
+      "event_id": "evt-302",
+      "event_kind": "model_response",
+      "room_sequence": 62,
+      "logical_tick": 402,
+      "actor_id": "pi-agent-1",
+      "payload_digest": "sha256:ee6f5a8245965368db857ed3bbd1979b29aa6a0ef382a3aa2f21ef4aaea6b43f",
+      "payload": {
+        "text": "starting the draft"
+      }
+    }
+  ],
+  "causal_links": [
+    {
+      "link_id": "lnk-401",
+      "link_kind": "room_sequence",
+      "from_event": "evt-301",
+      "to_event": "evt-302"
+    },
+    {
+      "link_id": "lnk-402",
+      "link_kind": "response_to",
+      "from_event": "evt-301",
+      "to_event": "evt-302"
+    }
+  ],
+  "deliveries": [],
+  "tool_executions": [],
+  "terminal_audit": {
+    "reason_code": "ROOM_CANCELLED",
+    "phase": "operator_cancel",
+    "detail": "room closed by operator before close conditions were reached; aborted segments never produce anchorable refs"
+  }
+}

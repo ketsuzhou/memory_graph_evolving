@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-omission-budget-used-mismatch",
+ "expected_accept": false,
+ "expected_reason_code": "BUDGET_INVALID",
+ "expected_result_digest": null,
+ "notes": "total_used=3 while served evidence+skill counts = 4",
+ "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

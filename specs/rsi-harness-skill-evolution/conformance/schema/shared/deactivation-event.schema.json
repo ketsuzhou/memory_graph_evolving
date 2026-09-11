@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.deactivation-event.v1.schema.json",
+  "title": "Contract 7.13 ActivationEvent (event_type=deactivate profile)",
+  "description": "Compensating deactivate event: requires the protected deactivation authorization and current-head CAS; history is never deleted (9.2.4).",
+  "contract_refs": [
+    "system-contract.md 7.13",
+    "system-contract.md 9.2",
+    "system-contract.md 13.5"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "activation_sequence",
+    "event_id",
+    "event_digest",
+    "event_type",
+    "lineage_id",
+    "skill_ref",
+    "outbox_key"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.activation-event.v1"
+    },
+    "activation_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "event_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "event_type": {
+      "const": "deactivate"
+    },
+    "lineage_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "skill_ref": {
+      "$ref": "skill-artifact-ref.schema.json#"
+    },
+    "previous_active_ref": {
+      "$ref": "skill-artifact-ref.schema.json#"
+    },
+    "release_decision_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "deactivation_authorization_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "candidate_ref": {
+      "$ref": "candidate-artifact-ref.schema.json#"
+    },
+    "body_digest_equal": {
+      "type": "boolean"
+    },
+    "derived_from_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      }
+    },
+    "expected_active_head": {
+      "$ref": "skill-artifact-ref.schema.json#"
+    },
+    "outbox_key": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "deactivate"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "deactivation_authorization_ref"
+        ],
+        "not": {
+          "required": [
+            "release_decision_ref"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "deactivate"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "candidate_ref"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "deactivate"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "body_digest_equal"
+          ]
+        }
+      }
+    }
+  ],
+  "x-digest": {
+    "digest_field": "event_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "activation_sequence",
+      "event_id",
+      "event_type",
+      "lineage_id",
+      "skill_ref",
+      "previous_active_ref",
+      "release_decision_ref",
+      "deactivation_authorization_ref",
+      "candidate_ref",
+      "body_digest_equal",
+      "derived_from_refs",
+      "expected_active_head",
+      "outbox_key"
+    ],
+    "preimage_rule": "event_digest = SHA-256(JCS(core minus event_digest and extensions))."
+  }
+}

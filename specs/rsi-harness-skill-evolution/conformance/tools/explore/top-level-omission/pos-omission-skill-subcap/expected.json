@@ -1,0 +1,1 @@
+{"case_id":"pos-omission-skill-subcap","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:eaa118a9d24e248f16be802011935bf6d0fb6333aefecc7a223e19a081ef2062","notes":"skill served == skill_subcap: omitted skill exact refs (JCS order)","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

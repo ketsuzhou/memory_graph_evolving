@@ -1,0 +1,1 @@
+{"case_id":"artifact-007-skill-lock","expected_accept":true,"expected_canonical_byte_length":1030,"expected_digest":"sha256:f236fdf75a087497838600cfafdaa589eeeb5055f06d05dfe81a69b55c604f2f","notes":"Contract §16.4 #15: frozen lock closure over exact refs and file digests","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

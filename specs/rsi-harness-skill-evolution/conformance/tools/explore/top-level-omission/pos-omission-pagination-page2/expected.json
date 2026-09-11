@@ -1,0 +1,1 @@
+{"case_id":"pos-omission-pagination-page2","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:01f3b68f91cb9d236c0df041d0bfe2efb1be2b327b7cedfe320e988a6a619b74","notes":"page 2: watermark 14 > prior 12; prior-served refs absent from omissions","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

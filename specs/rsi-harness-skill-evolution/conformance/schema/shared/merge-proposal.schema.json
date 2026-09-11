@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.merge-proposal.v1.schema.json",
+  "title": "Contract 7.22 MergeProposal",
+  "description": "Exactly 2 canonical-order sources, exactly 2 evidence sets; v1 freezes step_guidance/symmetric_new_lineage/retain (5.5, M-decisions).",
+  "contract_refs": [
+    "system-contract.md 7.22",
+    "system-contract.md 5.5",
+    "system-contract.md 9.4"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proposal_id",
+    "proposal_version",
+    "proposal_digest",
+    "source_skill_refs",
+    "similarity_assessment_refs",
+    "source_evidence_sets",
+    "joint_evidence",
+    "merge_intent",
+    "conflicts",
+    "policies",
+    "dedup",
+    "origin",
+    "prior_proposal_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.merge-proposal.v1"
+    },
+    "proposal_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "proposal_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "proposal_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "source_skill_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "similarity_assessment_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "source_evidence_sets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_skill_ref",
+          "supporting_evidence_refs",
+          "refuting_evidence_refs",
+          "success_path_refs",
+          "failure_path_refs",
+          "recovery_path_refs",
+          "branch_claim_refs"
+        ],
+        "properties": {
+          "source_skill_ref": {
+            "$ref": "skill-artifact-ref.schema.json#"
+          },
+          "supporting_evidence_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "evidence-ref.schema.json#"
+            },
+            "minItems": 0
+          },
+          "refuting_evidence_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "evidence-ref.schema.json#"
+            },
+            "minItems": 0
+          },
+          "success_path_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/versioned_ref"
+            },
+            "minItems": 0
+          },
+          "failure_path_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/versioned_ref"
+            },
+            "minItems": 0
+          },
+          "recovery_path_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/versioned_ref"
+            },
+            "minItems": 0
+          },
+          "branch_claim_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/versioned_ref"
+            },
+            "minItems": 0
+          }
+        }
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "joint_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overlap_evidence_refs",
+        "divergence_evidence_refs",
+        "shared_anchor_refs",
+        "paired_fixture_refs"
+      ],
+      "properties": {
+        "overlap_evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "evidence-ref.schema.json#"
+          },
+          "minItems": 0
+        },
+        "divergence_evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "evidence-ref.schema.json#"
+          },
+          "minItems": 0
+        },
+        "shared_anchor_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "skill-anchor.schema.json#"
+          },
+          "minItems": 0
+        },
+        "paired_fixture_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/versioned_ref"
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "merge_intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_kind",
+        "strategy",
+        "normalized_applicability_key",
+        "source_disposition",
+        "required_branch_preservation"
+      ],
+      "properties": {
+        "target_kind": {
+          "const": "step_guidance"
+        },
+        "strategy": {
+          "const": "symmetric_new_lineage"
+        },
+        "normalized_applicability_key": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        },
+        "source_disposition": {
+          "const": "retain"
+        },
+        "required_branch_preservation": {
+          "const": true
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "conflict_id",
+          "category",
+          "semantic_location",
+          "source_a_claim_ref",
+          "source_b_claim_ref",
+          "applicability_overlap",
+          "resolution",
+          "blocking"
+        ],
+        "properties": {
+          "conflict_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "category": {
+            "enum": [
+              "causal_context_divergence",
+              "applicability_mismatch",
+              "contradictory_action",
+              "outcome_divergence",
+              "future_path_divergence",
+              "permission_mismatch",
+              "port_schema_mismatch",
+              "branch_identity_collision",
+              "evidence_contradiction",
+              "unknown"
+            ]
+          },
+          "semantic_location": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "source_a_claim_ref": {
+            "$ref": "common-types.schema.json#/$defs/versioned_ref"
+          },
+          "source_b_claim_ref": {
+            "$ref": "common-types.schema.json#/$defs/versioned_ref"
+          },
+          "applicability_overlap": {
+            "enum": [
+              "disjoint",
+              "partial",
+              "complete",
+              "unknown"
+            ]
+          },
+          "resolution": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action",
+              "evidence_refs",
+              "rationale"
+            ],
+            "properties": {
+              "action": {
+                "enum": [
+                  "preserve_as_branches",
+                  "narrow_applicability",
+                  "prefer_source",
+                  "request_human",
+                  "unresolved"
+                ]
+              },
+              "selected_source_ref": {
+                "$ref": "skill-artifact-ref.schema.json#"
+              },
+              "predicate": {
+                "type": "object"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "$ref": "evidence-ref.schema.json#"
+                },
+                "minItems": 0
+              },
+              "rationale": {
+                "type": "string"
+              }
+            },
+            "description": "selected_source_ref REQUIRED when action=prefer_source.",
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "action"
+                  ],
+                  "properties": {
+                    "action": {
+                      "const": "prefer_source"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "selected_source_ref"
+                  ]
+                }
+              }
+            ]
+          },
+          "blocking": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "similarity_policy_ref",
+        "merge_policy_ref",
+        "validation_profile_ref",
+        "replay_profile_ref",
+        "release_rule_ref",
+        "utility_comparator_ref"
+      ],
+      "properties": {
+        "similarity_policy_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        },
+        "merge_policy_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        },
+        "validation_profile_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        },
+        "replay_profile_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        },
+        "release_rule_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        },
+        "utility_comparator_ref": {
+          "$ref": "common-types.schema.json#/$defs/versioned_ref"
+        }
+      }
+    },
+    "dedup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_pair_key",
+        "proposal_group_key",
+        "intent_key"
+      ],
+      "properties": {
+        "source_pair_key": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        },
+        "proposal_group_key": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        },
+        "intent_key": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initiator_type",
+        "initiator_ref",
+        "request_ref"
+      ],
+      "properties": {
+        "initiator_type": {
+          "enum": [
+            "automatic",
+            "model",
+            "human"
+          ]
+        },
+        "initiator_ref": {
+          "$ref": "common-types.schema.json#/$defs/non_empty_string"
+        },
+        "request_ref": {
+          "$ref": "common-types.schema.json#/$defs/non_empty_string"
+        }
+      },
+      "description": "Contract 7.9 origin block."
+    },
+    "prior_proposal_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 0
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "x-digest": {
+    "digest_field": "proposal_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "proposal_id",
+      "proposal_version",
+      "source_skill_refs",
+      "similarity_assessment_refs",
+      "source_evidence_sets",
+      "joint_evidence",
+      "merge_intent",
+      "conflicts",
+      "policies",
+      "dedup",
+      "origin",
+      "prior_proposal_refs"
+    ],
+    "preimage_rule": "proposal_digest = SHA-256(JCS(core minus proposal_digest and extensions))."
+  }
+}

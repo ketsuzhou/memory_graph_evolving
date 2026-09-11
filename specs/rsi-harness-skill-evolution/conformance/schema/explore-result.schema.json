@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.conformance.explore-result.v1.schema.json",
+  "title": "ExploreResult closed shape with the top-level omission carrier (CTR-003, Contract 7.16 + 12.7.2 revision v1.1)",
+  "description": "Freezes the complete closed shape of System Contract 7.16 ExploreResult as extended by revision 12.7.2 v1.1 (CTR-003): the REQUIRED top-level 'omissions' carrier expresses every cap-induced top-level omission as typed exact refs. Entry shape is the closed object {kind, ref, reason_code}; kind 'evidence' binds a closed EvidenceRef (committed|sealed only), kind 'skill' binds a closed SkillArtifactRef; reason_code reuses exactly the four gms-truncation-success registry codes (TOTAL_CAP_REACHED, EVIDENCE_SUBCAP_REACHED, SKILL_SUBCAP_REACHED, GUIDANCE_TOKEN_BUDGET_REACHED). The list MUST be ordered by (kind ascending, RFC 8785 JCS canonical bytes of the exact ref ascending), deduplicated per exact ref, and disjoint from the served set (this payload's evidence_results/skill_results plus the ExploreSession's previously served exact refs). truncation_reason_codes MUST equal the order-preserving dedupe of the entry reason_codes (non-empty iff omissions non-empty: silent truncation and reason-less refs are both TOOL_RESULT_BINDING_INVALID). Budget accounting is replayable: budgets.total_used == len(evidence_results) + len(skill_results) (omitted items never consume budget) and every claimed cap code must be truthful (cap actually filled plus a matching entry). Within one ExploreSession each newly served page MUST strictly advance the projection watermark. Branch omission stays inside GuidanceView (omitted_branch_refs/expandable_refs) and MUST NOT appear in the top-level carrier. validate_explore_omission.py enforces this dialect; cross-field obligations beyond plain JSON Schema (ordering, dedup, served disjointness, accounting, fence advancement) are enforced by the validator because this dialect has no conditional keys.",
+  "type": "object",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "evidence_ref": {
+      "type": "object",
+      "description": "Contract 7.7 EvidenceRef; exact form only (no latest/naked-id/Graph-node shapes); staged/uncommitted evidence is rejected by the validator with EVIDENCE_NOT_COMMITTED.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "version",
+        "evidence_digest",
+        "commit_state",
+        "evidence_kind"
+      ],
+      "properties": {
+        "schema_version": { "const": "gms.evidence-ref.v1" },
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "evidence_digest": { "$ref": "#/$defs/sha256" },
+        "commit_state": { "enum": ["committed", "sealed"] },
+        "evidence_kind": {
+          "enum": [
+            "success_path",
+            "failure_path",
+            "recovery_path",
+            "observation",
+            "replay_result",
+            "human_attestation"
+          ]
+        },
+        "source_segment_ref": { "type": "object" }
+      }
+    },
+    "skill_artifact_ref": {
+      "type": "object",
+      "description": "Contract 7.3 SkillArtifactRef; exact identity is (lineage_id, version, artifact_digest) with kind validated on resolution.",
+      "additionalProperties": false,
+      "required": ["schema_version", "lineage_id", "version", "kind", "artifact_digest"],
+      "properties": {
+        "schema_version": { "const": "gms.skill-artifact-ref.v1" },
+        "lineage_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "kind": { "enum": ["human_procedure", "step_guidance", "composite"] },
+        "artifact_digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "omission_entry": {
+      "type": "object",
+      "description": "Contract 12.7.2 C1 closed carrier entry. kind binds the ref schema: evidence -> EvidenceRef, skill -> SkillArtifactRef (mismatch -> REF_MISMATCH). reason_code kind-compatibility: evidence entries only TOTAL_CAP_REACHED|EVIDENCE_SUBCAP_REACHED; skill entries only TOTAL_CAP_REACHED|SKILL_SUBCAP_REACHED|GUIDANCE_TOKEN_BUDGET_REACHED (violation -> SCHEMA_ENUM_INVALID).",
+      "additionalProperties": false,
+      "required": ["kind", "ref", "reason_code"],
+      "properties": {
+        "kind": { "enum": ["evidence", "skill"] },
+        "ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "evidence": { "$ref": "#/$defs/evidence_ref" },
+            "skill": { "$ref": "#/$defs/skill_artifact_ref" }
+          }
+        },
+        "reason_code": {
+          "enum": [
+            "TOTAL_CAP_REACHED",
+            "EVIDENCE_SUBCAP_REACHED",
+            "SKILL_SUBCAP_REACHED",
+            "GUIDANCE_TOKEN_BUDGET_REACHED"
+          ]
+        }
+      }
+    },
+    "evidence_citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "claim"],
+      "properties": {
+        "evidence_ref": { "$ref": "#/$defs/evidence_ref" },
+        "claim": { "type": "string", "minLength": 1 }
+      }
+    },
+    "guidance_view": {
+      "type": "object",
+      "description": "Contract 7.15 closed GuidanceView; branch omission lives ONLY here (omitted_branch_refs/expandable_refs), never in the top-level omissions carrier. view_hash = SHA-256(JCS(view document minus view_hash)).",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "source_skill_ref",
+        "render_profile_ref",
+        "policy_ref",
+        "runtime_context_hash",
+        "included_branch_refs",
+        "omitted_branch_refs",
+        "expandable_refs",
+        "content",
+        "content_token_count",
+        "truncated",
+        "view_hash"
+      ],
+      "properties": {
+        "schema_version": { "const": "gms.guidance-view.v1" },
+        "source_skill_ref": { "$ref": "#/$defs/skill_artifact_ref" },
+        "render_profile_ref": { "$ref": "#/$defs/versioned_ref" },
+        "policy_ref": { "$ref": "#/$defs/versioned_ref" },
+        "runtime_context_hash": { "$ref": "#/$defs/sha256" },
+        "included_branch_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "omitted_branch_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "expandable_refs": { "type": "array", "items": { "type": "object" } },
+        "content": { "type": "string" },
+        "content_token_count": { "type": "integer", "minimum": 0 },
+        "truncated": { "type": "boolean" },
+        "view_hash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "projection_watermark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "projection_stream",
+        "projection_schema_version",
+        "projection_head",
+        "projected_through_activation_sequence",
+        "source_ledger_digest",
+        "state",
+        "watermark_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "gms.projection-watermark.v1" },
+        "projection_stream": { "enum": ["runtime", "curation"] },
+        "projection_schema_version": { "type": "string", "minLength": 1 },
+        "projection_head": { "type": "string", "minLength": 1 },
+        "projected_through_activation_sequence": { "type": "integer", "minimum": 0 },
+        "source_ledger_digest": { "$ref": "#/$defs/sha256" },
+        "state": {
+          "enum": ["uninitialized", "catching_up", "current", "blocked", "rebuilding"]
+        },
+        "watermark_digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "evidence_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_type", "evidence_ref", "rank_score_micros", "citation"],
+      "properties": {
+        "result_type": { "const": "evidence" },
+        "evidence_ref": { "$ref": "#/$defs/evidence_ref" },
+        "rank_score_micros": { "type": "integer" },
+        "citation": { "$ref": "#/$defs/evidence_citation" }
+      }
+    },
+    "skill_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_type",
+        "skill_ref",
+        "rank_score_micros",
+        "guidance_view",
+        "artifact_identity_citation",
+        "evidence_citations"
+      ],
+      "properties": {
+        "result_type": { "const": "skill" },
+        "skill_ref": { "$ref": "#/$defs/skill_artifact_ref" },
+        "rank_score_micros": { "type": "integer" },
+        "guidance_view": { "$ref": "#/$defs/guidance_view" },
+        "artifact_identity_citation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["skill_ref"],
+          "properties": {
+            "skill_ref": { "$ref": "#/$defs/skill_artifact_ref" }
+          }
+        },
+        "evidence_citations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence_citation" }
+        }
+      }
+    },
+    "explore_result": {
+      "type": "object",
+      "description": "Contract 7.16 closed field group as frozen by 12.7.2 v1.1 (CTR-003): omissions is REQUIRED and is the empty list when nothing was omitted (determined semantics, never absent).",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "explore_session_id",
+        "query_digest",
+        "ranker_policy_ref",
+        "watermark",
+        "evidence_results",
+        "skill_results",
+        "served_fences",
+        "budgets",
+        "truncation_reason_codes",
+        "omissions"
+      ],
+      "properties": {
+        "schema_version": { "const": "gms.explore-result.v1" },
+        "explore_session_id": { "type": "string", "minLength": 1 },
+        "query_digest": { "$ref": "#/$defs/sha256" },
+        "ranker_policy_ref": { "$ref": "#/$defs/versioned_ref" },
+        "watermark": { "$ref": "#/$defs/projection_watermark" },
+        "min_activation_sequence": { "type": "integer", "minimum": 0 },
+        "evidence_results": { "type": "array", "items": { "$ref": "#/$defs/evidence_result" } },
+        "skill_results": { "type": "array", "items": { "$ref": "#/$defs/skill_result" } },
+        "served_fences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["evidence_fence_digest", "skill_fence_digest"],
+          "properties": {
+            "evidence_fence_digest": { "$ref": "#/$defs/sha256" },
+            "skill_fence_digest": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_cap",
+            "evidence_subcap",
+            "skill_subcap",
+            "guidance_token_budget",
+            "total_used"
+          ],
+          "properties": {
+            "total_cap": { "type": "integer", "minimum": 0 },
+            "evidence_subcap": { "type": "integer", "minimum": 0 },
+            "skill_subcap": { "type": "integer", "minimum": 0 },
+            "guidance_token_budget": { "type": "integer", "minimum": 0 },
+            "total_used": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "truncation_reason_codes": {
+          "type": "array",
+          "description": "MUST equal the order-preserving dedupe of omissions[].reason_code (validator-enforced; non-empty iff omissions non-empty).",
+          "items": {
+            "enum": [
+              "TOTAL_CAP_REACHED",
+              "EVIDENCE_SUBCAP_REACHED",
+              "SKILL_SUBCAP_REACHED",
+              "GUIDANCE_TOKEN_BUDGET_REACHED"
+            ]
+          }
+        },
+        "omissions": {
+          "type": "array",
+          "description": "The 12.7.2 top-level omission carrier; ordered by (kind asc, JCS(ref) asc), deduplicated, disjoint from the served set (validator-enforced).",
+          "items": { "$ref": "#/$defs/omission_entry" }
+        },
+        "extensions": { "type": "object" }
+      }
+    },
+    "omission_case": {
+      "type": "object",
+      "description": "tools/explore/**/input.json case envelope (rsih-skill-evolution.explore-omission-case.v1). The optional session block carries the ExploreSession pagination context: prior_watermark (previous served page watermark; the new page MUST strictly advance) and prior_served exact refs already served earlier in the session (MUST NOT reappear in omissions).",
+      "additionalProperties": false,
+      "required": ["schema_version", "case_id", "tool_name", "request", "result_payload"],
+      "properties": {
+        "schema_version": { "const": "rsih-skill-evolution.explore-omission-case.v1" },
+        "case_id": { "type": "string", "minLength": 1 },
+        "tool_name": { "enum": ["memory_explore", "memory_expand"] },
+        "request": { "type": "object" },
+        "read_audit": { "type": "object" },
+        "session": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prior_watermark", "prior_served"],
+          "properties": {
+            "prior_watermark": { "$ref": "#/$defs/projection_watermark" },
+            "prior_served": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["evidence_refs", "skill_refs"],
+              "properties": {
+                "evidence_refs": { "type": "array", "items": { "$ref": "#/$defs/evidence_ref" } },
+                "skill_refs": { "type": "array", "items": { "$ref": "#/$defs/skill_artifact_ref" } }
+              }
+            }
+          }
+        },
+        "result_payload": { "$ref": "#/$defs/explore_result" }
+      }
+    },
+    "omission_expected": {
+      "type": "object",
+      "description": "tools/explore/**/expected.json; must agree with the omission_cases registration.",
+      "additionalProperties": false,
+      "required": ["schema_version", "case_id", "expected_accept", "expected_reason_code"],
+      "properties": {
+        "schema_version": { "const": "rsih-skill-evolution.explore-omission-expected.v1" },
+        "case_id": { "type": "string", "minLength": 1 },
+        "expected_accept": { "type": "boolean" },
+        "expected_reason_code": {
+          "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "expected_result_digest": {
+          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  },
+  "properties": {
+    "omission_cases_registration": {
+      "description": "tools/manifest.json shape for the CTR-003 omission_cases append (the CTR-002 cases array is untouched).",
+      "type": "object",
+      "required": ["schema_version", "cases", "omission_cases"],
+      "properties": {
+        "schema_version": { "const": "rsih-skill-evolution.tool-binding-manifest.v1" },
+        "cases": { "type": "array" },
+        "omission_cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "category",
+              "input_path",
+              "expected_path",
+              "tool_name",
+              "expected_accept",
+              "expected_reason_code"
+            ],
+            "properties": {
+              "case_id": { "type": "string", "minLength": 1 },
+              "category": { "enum": ["top-level-omission", "no-omission", "negative"] },
+              "input_path": {
+                "type": "string",
+                "pattern": "^explore/(top-level-omission|no-omission|negative)/[^/]+/input\\.json$"
+              },
+              "expected_path": {
+                "type": "string",
+                "pattern": "^explore/(top-level-omission|no-omission|negative)/[^/]+/expected\\.json$"
+              },
+              "tool_name": { "enum": ["memory_explore", "memory_expand"] },
+              "expected_accept": { "type": "boolean" },
+              "expected_reason_code": {
+                "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+              },
+              "notes": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

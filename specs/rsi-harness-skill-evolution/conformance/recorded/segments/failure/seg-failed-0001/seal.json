@@ -1,0 +1,12 @@
+{
+  "schema_version": "host.segment-seal.v1",
+  "segment_id": "seg-failed-0001",
+  "terminal_state": "failed",
+  "canonical_byte_length": 2077,
+  "segment_digest": "sha256:85d9bc684e65d04ce4ddff932d9cef59f4f5cda206f36f387c908bc51ee79d9e",
+  "terminal_audit": {
+    "reason_code": "MISSING_TOOL_RESULT",
+    "phase": "close_integrity_check",
+    "detail": "tool call evt-203 reached close without a terminal tool result; integrity failure freezes no seals and produces no SegmentRef or CheckpointRef"
+  }
+}

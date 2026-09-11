@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.conformance.materialization-identity.v1.schema.json",
+  "title": "Materialization exact identity corpus (CTR-001, Contract 6.2.1 revision v1.1)",
+  "description": "Freezes the three-layer materialization identity of System Contract 6.2.1 (revision v1.1, CTR-001). Layer 1 bundle bytes: per-file SHA-256 of stored bytes plus the bundle rollup digest bundle_digest = SHA-256(JCS(files sorted by path UTF-16, entries {content_digest, path})). Layer 2 manifest: manifest_digest = SHA-256(JCS(manifest_document)) over the closed field set below; manifest_digest is the ONLY legal value of SkillLock.materialization_ref.digest. Layer 3 lock: SkillLock references (materialization_id, manifest_version, manifest_digest) plus the freeze-time activation sequence and session id; lock_digest = SHA-256(JCS(lock_document minus lock_digest)). bundle_digest MUST NOT be used as materialization_ref.digest (BUNDLE_DIGEST_NOT_MANIFEST_REF). A manifest without manifest_version (the pre-v1.1 7.19-only shape) is classified legacy_unlocked: readable as history, fail-closed for publish/freeze/cache-serve, never auto-upgraded. validate_materialization_identity.py enforces this dialect plus the fail-closed rules; conditional keys (legacy shape, optional lock/conflicting document) are enforced by the validator because this dialect has no conditional keys.",
+  "type": "object",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "skill_artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "lineage_id", "version", "kind", "artifact_digest"],
+      "properties": {
+        "schema_version": { "const": "gms.skill-artifact-ref.v1" },
+        "lineage_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "kind": { "enum": ["human_procedure", "step_guidance", "composite"] },
+        "artifact_digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "manifest_document": {
+      "type": "object",
+      "description": "Closed v1.1 manifest document (the complete manifest_digest preimage). Every field change changes manifest_digest. manifest_version/file_count/total_bytes/size_bytes/skill/producer are added by revision v1.1 on top of Contract 7.19; a document without manifest_version is the legacy shape -> legacy_unlocked.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "materialization_id",
+        "manifest_version",
+        "skill",
+        "root_skill_refs",
+        "transitive_skill_refs",
+        "render_profile_ref",
+        "permission_profile_ref",
+        "producer",
+        "files",
+        "file_count",
+        "total_bytes",
+        "bundle_digest",
+        "created_from_activation_sequence"
+      ],
+      "properties": {
+        "schema_version": { "const": "rsih.materialization-manifest.v1" },
+        "materialization_id": { "type": "string", "minLength": 1 },
+        "manifest_version": { "type": "integer", "minimum": 1 },
+        "skill": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lineage_id", "version", "kind"],
+          "properties": {
+            "lineage_id": { "type": "string", "minLength": 1 },
+            "version": { "type": "integer", "minimum": 1 },
+            "kind": { "enum": ["human_procedure", "step_guidance", "composite"] }
+          }
+        },
+        "root_skill_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": { "$ref": "#/$defs/skill_artifact_ref" }
+        },
+        "transitive_skill_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/skill_artifact_ref" }
+        },
+        "render_profile_ref": { "$ref": "#/$defs/versioned_ref" },
+        "permission_profile_ref": { "$ref": "#/$defs/versioned_ref" },
+        "producer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["producer_id", "producer_version"],
+          "properties": {
+            "producer_id": { "type": "string", "minLength": 1 },
+            "producer_version": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "size_bytes", "content_digest"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^[^/](.*/)?[^/]+$",
+                "description": "Relative normalized bundle path; no leading/trailing slash, no empty/./.. segments (fully enforced by the validator)."
+              },
+              "size_bytes": { "type": "integer", "minimum": 0 },
+              "content_digest": { "$ref": "#/$defs/sha256" },
+              "source_skill_ref": { "$ref": "#/$defs/skill_artifact_ref" }
+            }
+          }
+        },
+        "file_count": { "type": "integer", "minimum": 1 },
+        "total_bytes": { "type": "integer", "minimum": 0 },
+        "bundle_digest": { "$ref": "#/$defs/sha256" },
+        "created_from_activation_sequence": { "type": "integer", "minimum": 1 },
+        "extensions": { "type": "object" }
+      }
+    },
+    "lock_document": {
+      "type": "object",
+      "description": "Contract 7.20 SkillLock bound by revision v1.1: materialization_ref is the manifest exact identity (id=materialization_id, version=manifest_version, digest=manifest_digest); activation_sequence_at_freeze MUST equal manifest created_from_activation_sequence; lock_digest = SHA-256(JCS(document minus lock_digest)).",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "session_id",
+        "materialization_ref",
+        "root_skill_refs",
+        "locked_closure",
+        "activation_sequence_at_freeze",
+        "lock_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "rsih.skill-lock.v1" },
+        "session_id": { "type": "string", "minLength": 1 },
+        "materialization_ref": { "$ref": "#/$defs/versioned_ref" },
+        "root_skill_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/skill_artifact_ref" }
+        },
+        "locked_closure": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["skill_ref", "artifact_digest", "materialized_path", "file_digest"],
+            "properties": {
+              "skill_ref": { "$ref": "#/$defs/skill_artifact_ref" },
+              "artifact_digest": { "$ref": "#/$defs/sha256" },
+              "materialized_path": { "type": "string", "minLength": 1 },
+              "file_digest": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        },
+        "activation_sequence_at_freeze": { "type": "integer", "minimum": 1 },
+        "lock_digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "description": "Per-case expectation; must agree with the materialization/manifest.json mirrors.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "case_id",
+        "expected_accept",
+        "expected_manifest_digest",
+        "expected_reason_code"
+      ],
+      "properties": {
+        "schema_version": { "const": "rsih-skill-evolution.materialization-expected.v1" },
+        "case_id": { "type": "string", "minLength": 1 },
+        "expected_accept": { "type": "boolean" },
+        "expected_manifest_digest": { "$ref": "#/$defs/sha256" },
+        "expected_bundle_digest": {
+          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        },
+        "expected_lock_digest": {
+          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        },
+        "expected_reason_code": {
+          "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  },
+  "properties": {
+    "sub_manifest": {
+      "description": "materialization/manifest.json case registration shape.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "contract_schema_version", "cases"],
+      "properties": {
+        "schema_version": { "const": "rsih-skill-evolution.materialization-manifest.v1" },
+        "contract_schema_version": { "const": "rsih-skill-evolution.system-contract.v1" },
+        "revision": { "type": "string" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "category",
+              "path",
+              "expected_accept",
+              "expected_manifest_digest",
+              "expected_reason_code"
+            ],
+            "properties": {
+              "case_id": { "type": "string", "minLength": 1 },
+              "category": { "enum": ["identity", "lock-closure", "negative"] },
+              "path": { "type": "string", "minLength": 1 },
+              "expected_accept": { "type": "boolean" },
+              "expected_manifest_digest": { "$ref": "#/$defs/sha256" },
+              "expected_bundle_digest": {
+                "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+              },
+              "expected_lock_digest": {
+                "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+              },
+              "expected_reason_code": {
+                "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+              },
+              "notes": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

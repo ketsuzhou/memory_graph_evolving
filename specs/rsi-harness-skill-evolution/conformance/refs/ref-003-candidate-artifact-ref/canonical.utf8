@@ -1,0 +1,1 @@
+{"body_digest":"sha256:fe5d3431c7f34c459490aa01ddc442962bb10c5724657ac57cc87eb46bbf06e5","candidate_id":"cand-0001","kind":"step_guidance","origin_ref":{"digest":"sha256:8ebd2236f7b625e092df06845dbf6cb8dd9ca0d467be4e2964737580f243e46a","id":"prop-0001","version":1},"origin_type":"skill_proposal","schema_version":"gms.candidate-artifact-ref.v1"}

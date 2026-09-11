@@ -1,0 +1,153 @@
+{
+  "schema_version": "rsih.q29b-runtime.v1",
+  "packet_id": "q29b-extra-tool-call-0001",
+  "family": "extra-tool-call",
+  "run": {
+    "mode": "replay",
+    "side": "baseline",
+    "run_id": "run-extra-tool-call-0001",
+    "attempt": 1,
+    "adapter_ref": {
+      "id": "rsih.fake-runtime-adapter",
+      "version": 1,
+      "digest": "sha256:b61822af49ed662c6e882237e1e85b27b3ead0f18869a079d9ba5a7697217803"
+    },
+    "profile_ref": {
+      "id": "rsih.replay-profile",
+      "version": 1,
+      "digest": "sha256:536aa4b6b9489674b74ba2daa169650346f08911a0410a99b0d0e59a4716fb09"
+    }
+  },
+  "sealed_inputs": {
+    "segment_refs": [
+      {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-alpha-0001",
+        "segment_id": "seg-success-0001",
+        "segment_version": 1,
+        "segment_digest": "sha256:ad3b6ad01798de10110a69a14f789c812c7395e3f1e26f4ea2a99f10abdd7cb2",
+        "evidence_seal_ref": {
+          "id": "evseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:4e5e12a6dc91986afb4b61a5104b271f9ec9e33856a085baf0e5022a1a485290"
+        },
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      }
+    ],
+    "path_refs": [
+      {
+        "path_id": "path-success-0001",
+        "domain": "success",
+        "segment_id": "seg-success-0001",
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      }
+    ],
+    "artifact_ref": {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "skill-alpha",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:dedd43cd5311628440bf8771574d788c0075ec864397f27df48f12280a3eb156"
+    },
+    "required_path_domains": [
+      "success"
+    ]
+  },
+  "environment": {
+    "locale": "en_US_POSIX",
+    "timezone": "UTC",
+    "network": "disabled",
+    "cache": "per-run-isolated",
+    "workdir": "/fake-workdir/q29b-extra-tool-call-0001"
+  },
+  "capabilities": {
+    "clock": {
+      "kind": "fake-sequence",
+      "unit": "logical-tick",
+      "ticks": [
+        5000
+      ]
+    },
+    "random": {
+      "kind": "fake-sequence",
+      "unit": "uint32",
+      "draws": []
+    },
+    "tool": {
+      "kind": "fake-responses",
+      "responses": [
+        {
+          "call_index": 0,
+          "tool_name": "memory_explore",
+          "status": "succeeded",
+          "upstream_result_digest": "sha256:851bf4a9379e418bed15e6fe57e11ec66a92d5a34c0230d7c9de91438ecc55a1",
+          "response_digest": "sha256:dee29306b8651904d26276e51eda666f435118789d272c995ae6c5fa5bd2bec6"
+        }
+      ]
+    },
+    "provider": {
+      "kind": "fake-responses",
+      "responses": [
+        {
+          "call_index": 0,
+          "model_id": "fake-model-1",
+          "status": "succeeded",
+          "content_digest": "sha256:1277d52593571b83529235b34bd8ab329f937a0c3d61879c56416041f2ec3a6a",
+          "content": "recorded provider completion before extra tool call"
+        }
+      ]
+    },
+    "filesystem": {
+      "kind": "fake-tree",
+      "entries": []
+    }
+  },
+  "call_sequence": [
+    {
+      "step": 1,
+      "capability": "clock",
+      "operation": "read_tick"
+    },
+    {
+      "step": 2,
+      "capability": "provider",
+      "operation": "complete",
+      "call_index": 0,
+      "model_id": "fake-model-1"
+    },
+    {
+      "step": 3,
+      "capability": "tool",
+      "operation": "invoke",
+      "call_index": 0,
+      "tool_name": "memory_explore"
+    },
+    {
+      "step": 4,
+      "capability": "tool",
+      "operation": "invoke",
+      "call_index": 1,
+      "tool_name": "memory_expand"
+    }
+  ],
+  "terminal": {
+    "status": "failed",
+    "reason_code": "UNDECLARED_TOOL_ACCESS",
+    "completed_step": 3,
+    "failing_step": 4
+  },
+  "expected": {
+    "outcome": "accept",
+    "run_status": "failed",
+    "reason_code": "UNDECLARED_TOOL_ACCESS",
+    "output_digest": "sha256:1b8be92f579d868d28e58dd761c08baaf7a6772e0634f39713b9c7b98621938d"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "rsih-skill-evolution.state-events.v1",
+  "case_id": "neg-merge-terminal-reopen",
+  "bundle": "merge-lifecycle",
+  "machine": "merge-proposal",
+  "initial_state": "proposed",
+  "events": [
+    {
+      "event_sequence": 1,
+      "from_state": "proposed",
+      "to_state": "admitted"
+    },
+    {
+      "event_sequence": 2,
+      "from_state": "admitted",
+      "to_state": "synthesizing"
+    },
+    {
+      "event_sequence": 3,
+      "from_state": "synthesizing",
+      "to_state": "rejected"
+    },
+    {
+      "event_sequence": 4,
+      "from_state": "rejected",
+      "to_state": "synthesizing"
+    }
+  ]
+}

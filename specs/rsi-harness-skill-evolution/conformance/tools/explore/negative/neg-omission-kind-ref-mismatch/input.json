@@ -1,0 +1,203 @@
+{
+ "case_id": "neg-omission-kind-ref-mismatch",
+ "read_audit": {
+  "active_head_activation_sequence": 12,
+  "agent_id": "agent-ctr003-a1",
+  "proxy_request_id": "pr-ctr003-0013",
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.read-audit.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "watermark_projection_sequence": 12
+ },
+ "request": {
+  "agent_id": "agent-ctr003-a1",
+  "arguments": {},
+  "delivery_id": "delivery-ctr003-0013",
+  "idempotency_key": "sha256:97219450aa5a3fc10a40194ff1b84773b0dc30e0af0b41666d51bd4085986a66",
+  "proxy_request_id": "pr-ctr003-0013",
+  "requested_min_activation_sequence": 10,
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.tool-proxy-request.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "timeout_millis": 5000,
+  "tool_name": "memory_explore"
+ },
+ "result_payload": {
+  "budgets": {
+   "evidence_subcap": 2,
+   "guidance_token_budget": 100,
+   "skill_subcap": 3,
+   "total_cap": 10,
+   "total_used": 3
+  },
+  "evidence_results": [
+   {
+    "citation": {
+     "claim": "Sealed observation supports the exploration result set.",
+     "evidence_ref": {
+      "commit_state": "committed",
+      "evidence_digest": "sha256:07aca1557e6785b32e668ac68cdd637ac7462895d91af6325303b7242e050447",
+      "evidence_id": "ev-ctr003-ref-0201",
+      "evidence_kind": "observation",
+      "schema_version": "gms.evidence-ref.v1",
+      "version": 1
+     }
+    },
+    "evidence_ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:07aca1557e6785b32e668ac68cdd637ac7462895d91af6325303b7242e050447",
+     "evidence_id": "ev-ctr003-ref-0201",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    },
+    "rank_score_micros": 950000,
+    "result_type": "evidence"
+   },
+   {
+    "citation": {
+     "claim": "Sealed observation supports the exploration result set.",
+     "evidence_ref": {
+      "commit_state": "committed",
+      "evidence_digest": "sha256:a0e59bfd5c0a452bc5a8e063e396498684a55bdd177f6eab0eb8819a9eceb929",
+      "evidence_id": "ev-ctr003-ref-0202",
+      "evidence_kind": "observation",
+      "schema_version": "gms.evidence-ref.v1",
+      "version": 1
+     }
+    },
+    "evidence_ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:a0e59bfd5c0a452bc5a8e063e396498684a55bdd177f6eab0eb8819a9eceb929",
+     "evidence_id": "ev-ctr003-ref-0202",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    },
+    "rank_score_micros": 949000,
+    "result_type": "evidence"
+   }
+  ],
+  "explore_session_id": "exp-session-ctr003-0013",
+  "omissions": [
+   {
+    "kind": "skill",
+    "reason_code": "SKILL_SUBCAP_REACHED",
+    "ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:d4aac2508a01cac338784cc20ed768b9f406e4c375c31342028c527df5e45a22",
+     "evidence_id": "ev-ctr003-ref-0203",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    }
+   }
+  ],
+  "query_digest": "sha256:9d98e618515844bc14cf3fb9bad344858c7ca63f117996ac4eebed272354b6cc",
+  "ranker_policy_ref": {
+   "digest": "sha256:5eff80771a7a552752cca156cb84c4ef5dbd9dbea008ca236255397dcb0d1bb8",
+   "id": "gms.ranker.lexical-graph.v1",
+   "version": 1
+  },
+  "schema_version": "gms.explore-result.v1",
+  "served_fences": {
+   "evidence_fence_digest": "sha256:c3929189b0539cc0a8a339629a8ade1054718b37d23a5a8ca755f48c3705004c",
+   "skill_fence_digest": "sha256:041949e4ecda08c47b9ca85667895493f3a719224d74d5c9f925f574a2022600"
+  },
+  "skill_results": [
+   {
+    "artifact_identity_citation": {
+     "skill_ref": {
+      "artifact_digest": "sha256:f02677398c413a51403e8c61e54ad69f13219729a89f863e498089e48833e435",
+      "kind": "human_procedure",
+      "lineage_id": "lin-ctr003-alpha",
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "version": 2
+     }
+    },
+    "evidence_citations": [
+     {
+      "claim": "Procedure provenance is supported by sealed evidence.",
+      "evidence_ref": {
+       "commit_state": "committed",
+       "evidence_digest": "sha256:07aca1557e6785b32e668ac68cdd637ac7462895d91af6325303b7242e050447",
+       "evidence_id": "ev-ctr003-ref-0201",
+       "evidence_kind": "observation",
+       "schema_version": "gms.evidence-ref.v1",
+       "version": 1
+      }
+     }
+    ],
+    "guidance_view": {
+     "content": "Guidance for lin-ctr003-alpha v2.",
+     "content_token_count": 30,
+     "expandable_refs": [
+      {
+       "ref": {
+        "branch_id": "branch-ctr003--alpha-a1"
+       },
+       "ref_type": "branch"
+      }
+     ],
+     "included_branch_refs": [
+      "branch-ctr003--alpha-a1"
+     ],
+     "omitted_branch_refs": [],
+     "policy_ref": {
+      "digest": "sha256:a8a4abfc27efa49775139f6968c61e2d54cd01b93ff02b5eadb76035f39ba0a0",
+      "id": "gms.guidance-policy.default.v1",
+      "version": 1
+     },
+     "render_profile_ref": {
+      "digest": "sha256:e7914db1aa52cd53792ae0b637fc3a3715f745b30f1c0ba83dceba187cf158d5",
+      "id": "rsih.render-profile.default.v1",
+      "version": 2
+     },
+     "runtime_context_hash": "sha256:3919987af613824d1233a578d2637e32cb8fd3556b7d8ebe20a36a331ce4451c",
+     "schema_version": "gms.guidance-view.v1",
+     "source_skill_ref": {
+      "artifact_digest": "sha256:f02677398c413a51403e8c61e54ad69f13219729a89f863e498089e48833e435",
+      "kind": "human_procedure",
+      "lineage_id": "lin-ctr003-alpha",
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "version": 2
+     },
+     "truncated": false,
+     "view_hash": "sha256:dcef0fe21026377a482097ac423b23277eaea7df115e12471cf0791c61767698"
+    },
+    "rank_score_micros": 900000,
+    "result_type": "skill",
+    "skill_ref": {
+     "artifact_digest": "sha256:f02677398c413a51403e8c61e54ad69f13219729a89f863e498089e48833e435",
+     "kind": "human_procedure",
+     "lineage_id": "lin-ctr003-alpha",
+     "schema_version": "gms.skill-artifact-ref.v1",
+     "version": 2
+    }
+   }
+  ],
+  "truncation_reason_codes": [
+   "SKILL_SUBCAP_REACHED"
+  ],
+  "watermark": {
+   "projected_through_activation_sequence": 12,
+   "projection_head": "head-ctr003-0012",
+   "projection_schema_version": "gms.skill-graph.v1",
+   "projection_stream": "runtime",
+   "schema_version": "gms.projection-watermark.v1",
+   "source_ledger_digest": "sha256:95a0cc1fcb55dd8ec452068c50b34f84f6e3d8ce8be01143155e016d0bf75a2e",
+   "state": "current",
+   "watermark_digest": "sha256:7b02ff0126e8e53b4859282cbf864d87310c1e8bd7d71a668859b3fc8de4c4e9"
+  }
+ },
+ "schema_version": "rsih-skill-evolution.explore-omission-case.v1",
+ "tool_name": "memory_explore"
+}

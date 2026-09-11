@@ -1,0 +1,1 @@
+{"case_id":"canon-006-integers","expected_accept":true,"expected_canonical_byte_length":112,"expected_digest":"sha256:fd04a092c669a24001ee1e51fabe08d1f37c53f80233bfd68bbaa21a684f5bb0","notes":"integer-only core: exact decimal digits, no precision loss beyond 2^53 (cross-language runners need big-int handling)","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

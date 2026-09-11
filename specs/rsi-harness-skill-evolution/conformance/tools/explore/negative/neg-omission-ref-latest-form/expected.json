@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-omission-ref-latest-form",
+ "expected_accept": false,
+ "expected_reason_code": "NON_EXACT_REF",
+ "expected_result_digest": null,
+ "notes": "omitted ref uses the non-exact latest form (no digest, string version)",
+ "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

@@ -566,6 +566,8 @@ type ProposalFingerprintInput struct {
 	BaseArtifactVersion   int64
 	BaseArtifactHash      string
 	CandidateArtifactHash string
+	BaseArtifactRef       *SkillArtifactRef
+	CandidateArtifactRef  *SkillArtifactRef
 	ReviewedDiffHash      string
 	RequestedScope        string
 	PatternRefs           []PatternRef
@@ -620,19 +622,21 @@ const (
 )
 
 type SkillCandidate struct {
-	TenantID            TenantID
-	SpaceID             SpaceID
-	CandidateID         string
-	ProposalID          string
-	Fingerprint         ProposalFingerprint
-	TargetSkillID       string
-	NewSkillName        string
-	BaseArtifactVersion int64
-	Diff                ReviewedDiff
-	PatternRefs         []PatternRef
-	Status              CandidateStatus
-	ReplayResultID      string
-	CreatedAt           time.Time
+	TenantID             TenantID
+	SpaceID              SpaceID
+	CandidateID          string
+	ProposalID           string
+	Fingerprint          ProposalFingerprint
+	TargetSkillID        string
+	NewSkillName         string
+	BaseArtifactVersion  int64
+	BaseArtifactRef      *SkillArtifactRef
+	CandidateArtifactRef *SkillArtifactRef
+	Diff                 ReviewedDiff
+	PatternRefs          []PatternRef
+	Status               CandidateStatus
+	ReplayResultID       string
+	CreatedAt            time.Time
 }
 
 type ReplayArm string

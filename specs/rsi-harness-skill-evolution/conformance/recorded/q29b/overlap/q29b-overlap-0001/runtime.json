@@ -1,0 +1,179 @@
+{
+  "schema_version": "rsih.q29b-runtime.v1",
+  "packet_id": "q29b-overlap-0001",
+  "family": "overlap",
+  "run": {
+    "mode": "replay",
+    "side": "baseline",
+    "run_id": "run-overlap-0001",
+    "attempt": 1,
+    "adapter_ref": {
+      "id": "rsih.fake-runtime-adapter",
+      "version": 1,
+      "digest": "sha256:b61822af49ed662c6e882237e1e85b27b3ead0f18869a079d9ba5a7697217803"
+    },
+    "profile_ref": {
+      "id": "rsih.replay-profile",
+      "version": 1,
+      "digest": "sha256:536aa4b6b9489674b74ba2daa169650346f08911a0410a99b0d0e59a4716fb09"
+    }
+  },
+  "sealed_inputs": {
+    "segment_refs": [
+      {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-alpha-0001",
+        "segment_id": "seg-success-0001",
+        "segment_version": 1,
+        "segment_digest": "sha256:ad3b6ad01798de10110a69a14f789c812c7395e3f1e26f4ea2a99f10abdd7cb2",
+        "evidence_seal_ref": {
+          "id": "evseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:4e5e12a6dc91986afb4b61a5104b271f9ec9e33856a085baf0e5022a1a485290"
+        },
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      }
+    ],
+    "path_refs": [
+      {
+        "path_id": "path-success-0001",
+        "domain": "success",
+        "segment_id": "seg-success-0001",
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      }
+    ],
+    "artifact_ref": {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "skill-alpha",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:dedd43cd5311628440bf8771574d788c0075ec864397f27df48f12280a3eb156"
+    },
+    "required_path_domains": [
+      "success"
+    ]
+  },
+  "environment": {
+    "locale": "en_US_POSIX",
+    "timezone": "UTC",
+    "network": "disabled",
+    "cache": "per-run-isolated",
+    "workdir": "/fake-workdir/q29b-overlap-0001"
+  },
+  "capabilities": {
+    "clock": {
+      "kind": "fake-sequence",
+      "unit": "logical-tick",
+      "ticks": [
+        4100,
+        4101
+      ]
+    },
+    "random": {
+      "kind": "fake-sequence",
+      "unit": "uint32",
+      "draws": []
+    },
+    "tool": {
+      "kind": "fake-responses",
+      "responses": []
+    },
+    "provider": {
+      "kind": "fake-responses",
+      "responses": [
+        {
+          "call_index": 0,
+          "model_id": "fake-model-1",
+          "status": "succeeded",
+          "content_digest": "sha256:53d5bfc843cbaf743270c1a3527482f32741975dc0cb2d82aba30ee94cf7dd6b",
+          "content": "recorded provider completion on shared context"
+        }
+      ]
+    },
+    "filesystem": {
+      "kind": "fake-tree",
+      "entries": [
+        {
+          "path": "/fake-workdir/q29b-overlap-0001/state.json",
+          "node_type": "file",
+          "content_digest": "sha256:84b2e7f1272675113958ec58ea3cad47442cb1a41b9c7ec07e24720342f51f51",
+          "size_bytes": 47
+        }
+      ]
+    }
+  },
+  "call_sequence": [
+    {
+      "step": 1,
+      "capability": "clock",
+      "operation": "read_tick"
+    },
+    {
+      "step": 2,
+      "capability": "provider",
+      "operation": "complete",
+      "call_index": 0,
+      "model_id": "fake-model-1"
+    },
+    {
+      "step": 3,
+      "capability": "filesystem",
+      "operation": "read",
+      "path": "/fake-workdir/q29b-overlap-0001/state.json"
+    },
+    {
+      "step": 4,
+      "capability": "clock",
+      "operation": "read_tick"
+    }
+  ],
+  "terminal": {
+    "status": "succeeded",
+    "reason_code": null,
+    "completed_step": 4,
+    "failing_step": null
+  },
+  "bilateral": {
+    "family_domain": "overlap",
+    "source_a_ref": {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "skill-alpha",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:dedd43cd5311628440bf8771574d788c0075ec864397f27df48f12280a3eb156"
+    },
+    "source_b_ref": {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "skill-beta",
+      "version": 2,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:cee39cecbcdf53f736d8b32026858bf60f065cbbf47a000d9ff7f5947ec3fddc"
+    },
+    "shared_context_refs": [
+      {
+        "id": "shared-context-0001",
+        "version": 1,
+        "digest": "sha256:1ee601d25dc4d9b0de37f4359fff0b3f8bc45d1671715a252190512460398808"
+      },
+      {
+        "id": "shared-context-0002",
+        "version": 1,
+        "digest": "sha256:7b5fd3aa59d7b53a592080d25eea5c4f3845c30c2973e5096a15b10e5ff66199"
+      }
+    ]
+  },
+  "expected": {
+    "outcome": "accept",
+    "run_status": "succeeded",
+    "reason_code": null,
+    "output_digest": "sha256:10cbfba0a52f85198006a37a6173bda2c459adb6afa941985b3d505d61f0b187"
+  }
+}

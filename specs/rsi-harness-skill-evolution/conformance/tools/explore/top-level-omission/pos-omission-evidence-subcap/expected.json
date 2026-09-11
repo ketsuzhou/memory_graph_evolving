@@ -1,0 +1,1 @@
+{"case_id":"pos-omission-evidence-subcap","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:32621a534e2296064c442aae0684b05d2c72003b8d5017b3212d80e795f6af39","notes":"evidence served == evidence_subcap: two omitted evidence exact refs (JCS order)","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

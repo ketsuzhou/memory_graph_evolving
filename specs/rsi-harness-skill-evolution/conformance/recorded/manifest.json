@@ -1,0 +1,194 @@
+{
+ "schema_version": "rsih-skill-evolution.recorded-manifest.v1",
+ "contract_schema_version": "rsih-skill-evolution.system-contract.v1",
+ "segments_families": [
+  "success",
+  "failure",
+  "recovery",
+  "negative"
+ ],
+ "q29b_families": [
+  "baseline",
+  "candidate",
+  "overlap",
+  "conflict",
+  "late-output",
+  "clock-exhausted",
+  "extra-tool-call",
+  "merge"
+ ],
+ "q29b_reserved_families": [],
+ "cases": [
+  {
+   "case_id": "seg-success-0001",
+   "corpus": "segments",
+   "family": "success",
+   "path": "segments/success/seg-success-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "settled close with members, DAG causal links, frontier, Evidence Seal, Conversation Path Seal (success path), SegmentRef, terminal CheckpointRef and one exact ToolProxyResult"
+  },
+  {
+   "case_id": "seg-failed-0001",
+   "corpus": "segments",
+   "family": "failure",
+   "path": "segments/failure/seg-failed-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "failed terminal: MISSING_TOOL_RESULT integrity failure; no SegmentRef/CheckpointRef/seals"
+  },
+  {
+   "case_id": "seg-aborted-0001",
+   "corpus": "segments",
+   "family": "failure",
+   "path": "segments/failure/seg-aborted-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "aborted terminal: ROOM_CANCELLED; no refs"
+  },
+  {
+   "case_id": "seg-recovery-0001",
+   "corpus": "segments",
+   "family": "recovery",
+   "path": "segments/recovery/seg-recovery-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "infra retry: failed attempt + retry success both recorded; failure and recovery paths sealed"
+  },
+  {
+   "case_id": "seg-neg-dag-cycle",
+   "corpus": "segments",
+   "family": "negative",
+   "path": "segments/negative/seg-neg-dag-cycle",
+   "expected_outcome": "reject",
+   "expected_reason_code": "DAG_CYCLE",
+   "notes": "causal cycle evt-005 -> evt-007 -> evt-005"
+  },
+  {
+   "case_id": "seg-neg-missing-causal-link",
+   "corpus": "segments",
+   "family": "negative",
+   "path": "segments/negative/seg-neg-missing-causal-link",
+   "expected_outcome": "reject",
+   "expected_reason_code": "MISSING_CAUSAL_LINK",
+   "notes": "tool result without tool_call_to_result link"
+  },
+  {
+   "case_id": "seg-neg-nonterminal-tool",
+   "corpus": "segments",
+   "family": "negative",
+   "path": "segments/negative/seg-neg-nonterminal-tool",
+   "expected_outcome": "reject",
+   "expected_reason_code": "NONTERMINAL_TOOL",
+   "notes": "tool delivery still in_flight at settle"
+  },
+  {
+   "case_id": "seg-neg-seal-mismatch",
+   "corpus": "segments",
+   "family": "negative",
+   "path": "segments/negative/seg-neg-seal-mismatch",
+   "expected_outcome": "reject",
+   "expected_reason_code": "SEAL_DIGEST_MISMATCH",
+   "notes": "one hex digit of the seal digest flipped"
+  },
+  {
+   "case_id": "seg-neg-append-after-settled",
+   "corpus": "segments",
+   "family": "negative",
+   "path": "segments/negative/seg-neg-append-after-settled",
+   "expected_outcome": "reject",
+   "expected_reason_code": "APPEND_AFTER_SETTLED",
+   "notes": "event appended beyond the frozen frontier"
+  },
+  {
+   "case_id": "q29b-baseline-0001",
+   "corpus": "q29b",
+   "family": "baseline",
+   "path": "q29b/baseline/q29b-baseline-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-candidate-0001",
+   "corpus": "q29b",
+   "family": "candidate",
+   "path": "q29b/candidate/q29b-candidate-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-overlap-0001",
+   "corpus": "q29b",
+   "family": "overlap",
+   "path": "q29b/overlap/q29b-overlap-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-conflict-0001",
+   "corpus": "q29b",
+   "family": "conflict",
+   "path": "q29b/conflict/q29b-conflict-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-late-output-0001",
+   "corpus": "q29b",
+   "family": "late-output",
+   "path": "q29b/late-output/q29b-late-output-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-clock-exhausted-0001",
+   "corpus": "q29b",
+   "family": "clock-exhausted",
+   "path": "q29b/clock-exhausted/q29b-clock-exhausted-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-extra-tool-call-0001",
+   "corpus": "q29b",
+   "family": "extra-tool-call",
+   "path": "q29b/extra-tool-call/q29b-extra-tool-call-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "recorded Q29-B fake runtime packet"
+  },
+  {
+   "case_id": "q29b-merge-reserved",
+   "corpus": "q29b",
+   "family": "merge",
+   "path": "q29b/merge",
+   "expected_outcome": "reserved",
+   "expected_reason_code": null,
+   "notes": "reserved placeholder; GMS-208 will fill merge families"
+  },
+  {
+   "case_id": "q29b-merge-pair-0001",
+   "corpus": "q29b",
+   "family": "merge",
+   "path": "q29b/merge/q29b-merge-pair-0001",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "GMS-208 merge family: baseline side of the canonical pair (skill-beta v2) over the sealed success path"
+  },
+  {
+   "case_id": "q29b-merge-pair-0002",
+   "corpus": "q29b",
+   "family": "merge",
+   "path": "q29b/merge/q29b-merge-pair-0002",
+   "expected_outcome": "accept",
+   "expected_reason_code": null,
+   "notes": "GMS-208 merge family: candidate side executing the derived merged guidance (cand-merge-0001) covering success/failure/recovery"
+  }
+ ]
+}

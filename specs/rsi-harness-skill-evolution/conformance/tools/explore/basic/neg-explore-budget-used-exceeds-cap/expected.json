@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-explore-budget-used-exceeds-cap",
+ "expected_accept": false,
+ "expected_reason_code": "BUDGET_INVALID",
+ "expected_result_digest": null,
+ "notes": "total_used 11 > total_cap 10",
+ "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

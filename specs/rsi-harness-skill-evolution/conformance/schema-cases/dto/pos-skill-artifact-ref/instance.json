@@ -1,0 +1,7 @@
+{
+  "schema_version": "gms.skill-artifact-ref.v1",
+  "lineage_id": "sg-commit-checklist",
+  "version": 3,
+  "kind": "step_guidance",
+  "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+}

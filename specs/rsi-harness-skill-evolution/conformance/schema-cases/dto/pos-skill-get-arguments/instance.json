@@ -1,0 +1,26 @@
+{
+  "schema_version": "gms.skill-get-arguments.v1",
+  "skill_ref": {
+    "schema_version": "gms.skill-artifact-ref.v1",
+    "lineage_id": "sg-commit-checklist",
+    "version": 3,
+    "kind": "step_guidance",
+    "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+  },
+  "runtime_context_hash": "sha256:35d4c64962405515bd956605170f4126409a39ae967332b08f86abe2d63aa073",
+  "render_profile_ref": {
+    "id": "ref-0191",
+    "version": 1,
+    "digest": "sha256:50d88eca826dc470760878eb52620375e2de8cd1f44f73251c280fa8228a7cd3"
+  },
+  "policy_ref": {
+    "id": "ref-0192",
+    "version": 1,
+    "digest": "sha256:a805f8b6641dc240867fc85b17790f394081d999776479184861f0d38d4a3c3c"
+  },
+  "included_branch_refs": [
+    "branch-success"
+  ],
+  "guidance_token_budget": 2048,
+  "visibility": "current_active"
+}

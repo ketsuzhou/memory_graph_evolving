@@ -1,0 +1,426 @@
+{
+ "common_rules": [
+  {
+   "applies_to": "all",
+   "description": "tool_name is not bound in this policy (closed tool set v1: memory_explore, memory_expand, skill_get)",
+   "host_code": "HOST_TOOL_NOT_ALLOWED",
+   "host_registry": "host-proxy",
+   "reason_code": "TOOL_UNSUPPORTED",
+   "reason_registry": "system",
+   "rule_id": "unknown_tool_name"
+  },
+  {
+   "applies_to": "all",
+   "description": "required:true extension not registered in v1 (Contract 6.4)",
+   "host_code": "UPSTREAM_SCHEMA_INVALID",
+   "host_registry": "host-proxy",
+   "reason_code": "UNKNOWN_REQUIRED_EXTENSION",
+   "reason_registry": "system",
+   "rule_id": "unknown_required_extension"
+  },
+  {
+   "applies_to": "all",
+   "description": "result body is not a JSON object carrying a known closed result schema_version (free JSON body / free artifact body)",
+   "host_code": "UPSTREAM_SCHEMA_INVALID",
+   "host_registry": "host-proxy",
+   "reason_code": "ARTIFACT_BODY_INVALID",
+   "reason_registry": "system",
+   "rule_id": "result_body_not_closed"
+  },
+  {
+   "applies_to": "all",
+   "description": "tool/result type mismatch: result schema_version is not the schema bound to tool_name",
+   "host_code": "UPSTREAM_SCHEMA_INVALID",
+   "host_registry": "host-proxy",
+   "reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "reason_registry": "system",
+   "rule_id": "result_schema_mismatch"
+  },
+  {
+   "applies_to": "all",
+   "description": "closed-DTO field-set violation: unknown top-level field, incl. wrapper keys and GuidanceView smuggling watermark/budgets/citations (DTO_FIELD_NOT_IN_CLOSED_SCHEMA)",
+   "host_code": "UPSTREAM_SCHEMA_INVALID",
+   "host_registry": "host-proxy",
+   "reason_code": "SCHEMA_FIELD_UNKNOWN",
+   "reason_registry": "system",
+   "rule_id": "closed_field_unknown"
+  },
+  {
+   "applies_to": "all",
+   "description": "a required top-level field of the bound closed DTO is absent",
+   "host_code": "UPSTREAM_SCHEMA_INVALID",
+   "host_registry": "host-proxy",
+   "reason_code": "SCHEMA_REQUIRED_FIELD_MISSING",
+   "reason_registry": "system",
+   "rule_id": "required_field_missing"
+  },
+  {
+   "applies_to": "all",
+   "description": "authorization carried by request + authoritative read audit record: room_id/agent_id/scope_profile_ref mismatch",
+   "host_code": "UPSTREAM_SCOPE_VIOLATION",
+   "host_registry": "host-proxy",
+   "reason_code": "EXPLORE_SCOPE_VIOLATION",
+   "reason_registry": "system",
+   "rule_id": "scope_violation"
+  }
+ ],
+ "contract_revision": "system-contract 12.7.1 v1.1 (CTR-002)",
+ "derivation_order": "common_rules array order, then the bound tool's ruleset rules array order; first closed failure wins; otherwise accepted",
+ "policy_digest": "sha256:dde91eff2aaac31057512beba1c667e0b07b7cb4c36037db4e07eaced6f702f5",
+ "policy_id": "tool-success-validation",
+ "policy_version": 1,
+ "readiness_gates": {
+  "skill_get": {
+   "enable_after": "gate pass: policy digest verifies and every tools/ skill-get case derives accept/reason equal to expected (validate_tool_binding.py exit 0)",
+   "failure_code": "TOOL_UNSUPPORTED",
+   "failure_code_registry": "system",
+   "gate": "fixtures-and-policy-green",
+   "host_failure_code": "HOST_TOOL_NOT_ALLOWED",
+   "host_failure_code_registry": "host-proxy",
+   "state": "disabled-until-green"
+  }
+ },
+ "reason_registry_digests": {
+  "host-proxy": "sha256:e48f27252bff3fd34868ef4bc5b56a678cf2a35d59f4cd7f2c71f78290485f5e",
+  "system": "sha256:16410afa27498bb425885d4629c65309389f15adeb975f97f98674170ad00a2c"
+ },
+ "rulesets": {
+  "explore-family": {
+   "description": "memory_explore and memory_expand: success requires watermark + budgets + typed citations (Contract 12.7.1 M2/M3)",
+   "required_budget_fields": [
+    "total_cap",
+    "evidence_subcap",
+    "skill_subcap",
+    "guidance_token_budget",
+    "total_used"
+   ],
+   "required_served_fence_fields": [
+    "evidence_fence_digest",
+    "skill_fence_digest"
+   ],
+   "required_watermark_fields": [
+    "schema_version",
+    "projection_stream",
+    "projection_schema_version",
+    "projection_head",
+    "projected_through_activation_sequence",
+    "source_ledger_digest",
+    "state",
+    "watermark_digest"
+   ],
+   "rules": [
+    {
+     "description": "watermark/budgets/served_fences closed sub-objects missing a required field (Contract 7.14/7.16)",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "reason_code": "SCHEMA_REQUIRED_FIELD_MISSING",
+     "reason_registry": "system",
+     "rule_id": "nested_required_field_missing"
+    },
+    {
+     "description": "total_used > total_cap, or evidence/skill result counts exceed subcaps, or guidance token sum exceeds budget (Contract 12.4)",
+     "host_code": "UPSTREAM_BUDGET_VIOLATION",
+     "host_registry": "host-proxy",
+     "reason_code": "BUDGET_INVALID",
+     "reason_registry": "system",
+     "rule_id": "budget_inconsistent"
+    },
+    {
+     "description": "evidence_results[].result_type != 'evidence' or skill_results[].result_type != 'skill'",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "reason_code": "SCHEMA_ENUM_INVALID",
+     "reason_registry": "system",
+     "rule_id": "result_type_invalid"
+    },
+    {
+     "description": "typed citations missing: evidence result citation.evidence_ref+claim, skill result artifact_identity_citation.skill_ref and evidence_citations (Contract 12.6)",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "reason_code": "CITATION_INVALID",
+     "reason_registry": "system",
+     "rule_id": "citation_invalid"
+    },
+    {
+     "description": "non-empty truncation_reason_codes without a frozen top-level omitted-refs carrier",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "notes": "silent-truncation guard per Contract 12.7.2 v1.1 (CTR-003): fires when truncation_reason_codes is non-empty while the omissions carrier is absent or empty; matrix-level derivation in validate_tool_binding.py remains this under-approximation, full carrier validation is validate_explore_omission.py",
+     "reason_code": "TOOL_RESULT_BINDING_INVALID",
+     "reason_registry": "system",
+     "rule_id": "truncation_without_omission_carrier"
+    },
+    {
+     "description": "a versioned profile ref in the payload is below the policy-frozen floor",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "reason_code": "SCHEMA_VERSION_UNSUPPORTED",
+     "reason_registry": "system",
+     "rule_id": "profile_version_stale"
+    },
+    {
+     "description": "requested_min_activation_sequence exceeds watermark.projected_through_activation_sequence",
+     "host_code": "PROJECTION_BEHIND_REQUIRED_SEQUENCE",
+     "host_registry": "system",
+     "notes": "shared GMS/Host code; Host MAY generate per Contract 13.7.1 R1",
+     "reason_code": "PROJECTION_BEHIND_REQUIRED_SEQUENCE",
+     "reason_registry": "system",
+     "rule_id": "freshness_behind"
+    }
+   ],
+   "ruleset_id": "explore-family"
+  },
+  "guidance-view-closed": {
+   "description": "skill_get: only closed GuidanceView applicable rules; freshness/authorization are carried by request + read audit, never by DTO fields (Contract 12.7.1 M4)",
+   "rules": [
+    {
+     "description": "render/policy profile ref version below the policy-frozen floor (old profile must not enable)",
+     "host_code": "UPSTREAM_SCHEMA_INVALID",
+     "host_registry": "host-proxy",
+     "reason_code": "SCHEMA_VERSION_UNSUPPORTED",
+     "reason_registry": "system",
+     "rule_id": "profile_version_stale"
+    },
+    {
+     "description": "view_hash != SHA-256(JCS(view document minus view_hash))",
+     "host_code": "UPSTREAM_DIGEST_MISMATCH",
+     "host_registry": "host-proxy",
+     "reason_code": "GUIDANCE_VIEW_HASH_MISMATCH",
+     "reason_registry": "system",
+     "rule_id": "guidance_view_hash_mismatch"
+    },
+    {
+     "description": "requested_min_activation_sequence exceeds the authoritative active head sequence recorded in the read audit (current_active checks the head directly, GMS 10.10)",
+     "host_code": "PROJECTION_BEHIND_REQUIRED_SEQUENCE",
+     "host_registry": "system",
+     "notes": "shared GMS/Host code; Host MAY generate per Contract 13.7.1 R1",
+     "reason_code": "PROJECTION_BEHIND_REQUIRED_SEQUENCE",
+     "reason_registry": "system",
+     "rule_id": "freshness_behind"
+    }
+   ],
+   "ruleset_id": "guidance-view-closed"
+  }
+ },
+ "schema_version": "rsih-skill-evolution.tool-success-validation-policy.v1",
+ "tools": {
+  "memory_expand": {
+   "applicable_rules": [
+    "require_watermark",
+    "require_budgets",
+    "require_citations"
+   ],
+   "audit_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "watermark_projection_sequence"
+   ],
+   "closed_fields": [
+    "schema_version",
+    "explore_session_id",
+    "query_digest",
+    "ranker_policy_ref",
+    "watermark",
+    "min_activation_sequence",
+    "evidence_results",
+    "skill_results",
+    "served_fences",
+    "budgets",
+    "truncation_reason_codes",
+    "omissions"
+   ],
+   "forbidden_extraneous_fields": [
+    "payload",
+    "data",
+    "result",
+    "output",
+    "tool_result",
+    "body"
+   ],
+   "non_applicable_rules": [],
+   "omitted_refs_obligation": {
+    "carrier_field": "omissions",
+    "frozen_by": "Contract 12.7.2 (revision v1.1, CTR-003)",
+    "interim_rule": "truncation_without_omission_carrier",
+    "status": "carrier-frozen; full consistency obligations validated by validate_explore_omission.py"
+   },
+   "profile_constraints": {
+    "min_ranker_policy_ref_version": 1
+   },
+   "request_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "requested_min_activation_sequence"
+   ],
+   "required_fields": [
+    "schema_version",
+    "explore_session_id",
+    "query_digest",
+    "ranker_policy_ref",
+    "watermark",
+    "evidence_results",
+    "skill_results",
+    "served_fences",
+    "budgets",
+    "truncation_reason_codes"
+   ],
+   "result_schema_version": "gms.explore-result.v1",
+   "ruleset": "explore-family",
+   "tool_name": "memory_expand"
+  },
+  "memory_explore": {
+   "applicable_rules": [
+    "require_watermark",
+    "require_budgets",
+    "require_citations"
+   ],
+   "audit_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "watermark_projection_sequence"
+   ],
+   "closed_fields": [
+    "schema_version",
+    "explore_session_id",
+    "query_digest",
+    "ranker_policy_ref",
+    "watermark",
+    "min_activation_sequence",
+    "evidence_results",
+    "skill_results",
+    "served_fences",
+    "budgets",
+    "truncation_reason_codes",
+    "omissions"
+   ],
+   "forbidden_extraneous_fields": [
+    "payload",
+    "data",
+    "result",
+    "output",
+    "tool_result",
+    "body"
+   ],
+   "non_applicable_rules": [],
+   "omitted_refs_obligation": {
+    "carrier_field": "omissions",
+    "frozen_by": "Contract 12.7.2 (revision v1.1, CTR-003)",
+    "interim_rule": "truncation_without_omission_carrier",
+    "status": "carrier-frozen; full consistency obligations validated by validate_explore_omission.py"
+   },
+   "profile_constraints": {
+    "min_ranker_policy_ref_version": 1
+   },
+   "request_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "requested_min_activation_sequence"
+   ],
+   "required_fields": [
+    "schema_version",
+    "explore_session_id",
+    "query_digest",
+    "ranker_policy_ref",
+    "watermark",
+    "evidence_results",
+    "skill_results",
+    "served_fences",
+    "budgets",
+    "truncation_reason_codes"
+   ],
+   "result_schema_version": "gms.explore-result.v1",
+   "ruleset": "explore-family",
+   "tool_name": "memory_explore"
+  },
+  "skill_get": {
+   "applicable_rules": [
+    "closed_dto_completeness",
+    "digest_consistency"
+   ],
+   "audit_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "active_head_activation_sequence"
+   ],
+   "closed_fields": [
+    "schema_version",
+    "source_skill_ref",
+    "render_profile_ref",
+    "policy_ref",
+    "runtime_context_hash",
+    "included_branch_refs",
+    "omitted_branch_refs",
+    "expandable_refs",
+    "content",
+    "content_token_count",
+    "truncated",
+    "view_hash"
+   ],
+   "forbidden_extraneous_fields": [
+    "watermark",
+    "budgets",
+    "citations",
+    "served_fences",
+    "truncation_reason_codes",
+    "explore_session_id",
+    "query_digest",
+    "payload",
+    "data",
+    "result",
+    "output",
+    "tool_result",
+    "body"
+   ],
+   "freshness_authorization_carried_by": "request fields + authoritative read audit record (Contract 12.7.1 M4); the closed GuidanceView DTO MUST NOT gain fields",
+   "non_applicable_rules": [
+    "require_watermark",
+    "require_budgets",
+    "require_citations"
+   ],
+   "profile_constraints": {
+    "min_policy_ref_version": 1,
+    "min_render_profile_ref_version": 2
+   },
+   "request_carried_fields": [
+    "room_id",
+    "agent_id",
+    "scope_profile_ref",
+    "requested_min_activation_sequence"
+   ],
+   "required_fields": [
+    "schema_version",
+    "source_skill_ref",
+    "render_profile_ref",
+    "policy_ref",
+    "runtime_context_hash",
+    "included_branch_refs",
+    "omitted_branch_refs",
+    "expandable_refs",
+    "content",
+    "content_token_count",
+    "truncated",
+    "view_hash"
+   ],
+   "result_schema_version": "gms.guidance-view.v1",
+   "ruleset": "guidance-view-closed",
+   "tool_name": "skill_get"
+  }
+ },
+ "wrapper_prohibition": {
+  "description": "wrapping the real payload under an extra key and claiming success is a closed-schema field-set violation (Contract 12.7.1 M5)",
+  "forbidden_wrapper_keys": [
+   "payload",
+   "data",
+   "result",
+   "output",
+   "tool_result",
+   "body"
+  ],
+  "reason_code": "SCHEMA_FIELD_UNKNOWN"
+ }
+}

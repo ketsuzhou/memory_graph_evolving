@@ -1,0 +1,124 @@
+{
+  "branches": [
+    {
+      "action": {
+        "evidence_refs": [
+          {
+            "commit_state": "sealed",
+            "evidence_digest": "sha256:6d2c8b0b1e18f6db3018709f343dfa56f8083cb78a7b21ec00e715e882fa8327",
+            "evidence_id": "ev-sg-s",
+            "evidence_kind": "success_path",
+            "schema_version": "gms.evidence-ref.v1",
+            "source_segment_ref": {
+              "evidence_seal_ref": {
+                "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc",
+                "id": "ref-0021",
+                "version": 1
+              },
+              "path_seal_ref": {
+                "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8",
+                "id": "ref-0022",
+                "version": 1
+              },
+              "room_id": "room-01",
+              "schema_version": "host.segment-ref.v1",
+              "segment_digest": "sha256:1ec5f0cae7c6532f4125c8c3bb0c816d622655e268ee641bfce434a9b0fa2f40",
+              "segment_id": "seg-sg-s",
+              "segment_version": 1
+            },
+            "version": 1
+          }
+        ],
+        "failure_action": "stop",
+        "guidance": "Push directly"
+      },
+      "branch_id": "branch-success",
+      "future": {
+        "critical_steps": [
+          {
+            "condition": {
+              "release": "due"
+            },
+            "step_id": "fs1",
+            "task_impact": "release ready"
+          }
+        ],
+        "expected_outcome": "pushed",
+        "final_task_impact": "task delivered"
+      },
+      "when": {
+        "ci": "green"
+      }
+    },
+    {
+      "action": {
+        "evidence_refs": [
+          {
+            "commit_state": "sealed",
+            "evidence_digest": "sha256:4059fbf164c7105ddb02b7ceb1504f7387336aefb72949245724732774709655",
+            "evidence_id": "ev-sg-r",
+            "evidence_kind": "recovery_path",
+            "schema_version": "gms.evidence-ref.v1",
+            "source_segment_ref": {
+              "evidence_seal_ref": {
+                "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc",
+                "id": "ref-0021",
+                "version": 1
+              },
+              "path_seal_ref": {
+                "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8",
+                "id": "ref-0022",
+                "version": 1
+              },
+              "room_id": "room-01",
+              "schema_version": "host.segment-ref.v1",
+              "segment_digest": "sha256:e31e41539f082c4613693ec23cee18d98412ac3bf02b2f4f9db90630d65b0ebf",
+              "segment_id": "seg-sg-r",
+              "segment_version": 1
+            },
+            "version": 1
+          }
+        ],
+        "failure_action": "mark_inconclusive",
+        "guidance": "Re-run the failed job once"
+      },
+      "branch_id": "branch-recovery",
+      "future": {
+        "critical_steps": [
+          {
+            "condition": {
+              "release": "due"
+            },
+            "step_id": "fs1",
+            "task_impact": "release ready"
+          }
+        ],
+        "expected_outcome": "recovered",
+        "final_task_impact": "task delivered"
+      },
+      "when": {
+        "ci": "flaky"
+      }
+    }
+  ],
+  "causal_context": {
+    "claim_refs": [
+      {
+        "digest": "sha256:4314b7ceab878912a20c9d02fc3707481570982ab54bcca2dd83493030dd4705",
+        "id": "ref-0201",
+        "version": 1
+      }
+    ],
+    "summary": "Pre-push state"
+  },
+  "input_port_schema": {
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4",
+    "schema_id": "gms.child-io.v1",
+    "version": 1
+  },
+  "output_port_schema": {
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4",
+    "schema_id": "gms.child-io.v1",
+    "version": 1
+  }
+}

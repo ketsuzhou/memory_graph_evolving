@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-get-arguments.v1.schema.json",
+  "title": "GMS 10.4 SkillGetArgumentsV1",
+  "description": "historical_exact requires exact Host profile authorization; candidates are never readable.",
+  "contract_refs": [
+    "graph-memory-service.md 10.4",
+    "system-contract.md 12"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "skill_ref",
+    "runtime_context_hash",
+    "render_profile_ref",
+    "policy_ref",
+    "guidance_token_budget",
+    "visibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.skill-get-arguments.v1"
+    },
+    "skill_ref": {
+      "$ref": "skill-artifact-ref.schema.json#"
+    },
+    "runtime_context_hash": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "render_profile_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "policy_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "included_branch_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/non_empty_string"
+      },
+      "minItems": 0
+    },
+    "guidance_token_budget": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visibility": {
+      "enum": [
+        "current_active",
+        "historical_exact"
+      ]
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  }
+}

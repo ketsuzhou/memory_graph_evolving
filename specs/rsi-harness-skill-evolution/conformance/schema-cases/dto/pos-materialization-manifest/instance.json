@@ -1,0 +1,53 @@
+{
+  "schema_version": "rsih.materialization-manifest.v1",
+  "materialization_id": "mat-0001",
+  "manifest_version": 1,
+  "skill": {
+    "lineage_id": "sg-commit-checklist",
+    "version": 3,
+    "kind": "step_guidance"
+  },
+  "root_skill_refs": [
+    {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "sg-commit-checklist",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:f9fbe744a67116eb9cffcb9cc2e6801da17a8ed33454fcb3872e6b69f00fbf53"
+    }
+  ],
+  "transitive_skill_refs": [
+    {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "sg-commit-checklist",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:f9fbe744a67116eb9cffcb9cc2e6801da17a8ed33454fcb3872e6b69f00fbf53"
+    }
+  ],
+  "render_profile_ref": {
+    "id": "ref-0131",
+    "version": 1,
+    "digest": "sha256:7fd9e6bf81d9397656e1660e532436d3840c096acdd70f062d8581d10ba23c07"
+  },
+  "permission_profile_ref": {
+    "id": "ref-0132",
+    "version": 1,
+    "digest": "sha256:13b6fb4376c84e03c68b3721f3424db0da832e00c0c173611357cc08d8bb5f04"
+  },
+  "producer": {
+    "producer_id": "rsih-materializer",
+    "producer_version": 1
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "size_bytes": 128,
+      "content_digest": "sha256:46c8fd2dfb8eb70d21ef2360907985df6948b06f5f71546452c81b4bab1a3f14"
+    }
+  ],
+  "file_count": 1,
+  "total_bytes": 128,
+  "bundle_digest": "sha256:f1264b8220acb2720aa5689110eb6a3ae781be6062f99a51fb3578f8868ee9c8",
+  "created_from_activation_sequence": 7
+}

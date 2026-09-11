@@ -94,7 +94,6 @@ func (p *Process) Prompt(ctx context.Context, message string, handle func(PiEven
 	// dies before agent_settled still surfaces through stdout EOF below.
 	defer func() { _ = p.stdin.Close() }()
 
-
 	accepted := false
 	acceptedAt := time.Time{}
 	for p.scanner.Scan() {

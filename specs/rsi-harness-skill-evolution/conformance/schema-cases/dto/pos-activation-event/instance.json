@@ -1,0 +1,34 @@
+{
+  "schema_version": "gms.activation-event.v1",
+  "activation_sequence": 1,
+  "event_id": "act-0001",
+  "event_digest": "sha256:8181c9f5801e82193c9cb5e948cfe605695b95c8741f988a66b93c74b476069d",
+  "event_type": "activate",
+  "lineage_id": "sg-commit-checklist",
+  "skill_ref": {
+    "schema_version": "gms.skill-artifact-ref.v1",
+    "lineage_id": "sg-commit-checklist",
+    "version": 3,
+    "kind": "step_guidance",
+    "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+  },
+  "release_decision_ref": {
+    "id": "ref-0091",
+    "version": 1,
+    "digest": "sha256:9dfd93295c609102d20d3b239fbd71d377aba22cd9b9f94a9fa7805aba268e90"
+  },
+  "candidate_ref": {
+    "schema_version": "gms.candidate-artifact-ref.v1",
+    "candidate_id": "cand-0001",
+    "kind": "step_guidance",
+    "body_digest": "sha256:5e06d81c92690fd6e5bca14205d1760498bcb541e9faef08db4055be742c7685",
+    "origin_type": "skill_proposal",
+    "origin_ref": {
+      "id": "ref-0011",
+      "version": 1,
+      "digest": "sha256:3775d8b9f92972a0ea1c55cbed61b3f52e7ec5af06bace40a3efa7cc9ed141c5"
+    }
+  },
+  "body_digest_equal": true,
+  "outbox_key": "sha256:c5ba2b29b34d3cca260a05d9fcd35f0c5bc2c08c4a55bd8703b8c90b16fcf9aa"
+}

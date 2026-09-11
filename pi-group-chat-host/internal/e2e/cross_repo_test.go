@@ -167,10 +167,10 @@ func commitEvidence(t *testing.T, ctx context.Context, client *memoryclient.Clie
 	t.Helper()
 	digest := sha256.Sum256([]byte(content))
 	response, err := client.StageEvidenceBatch(ctx, ports.StageEvidenceBatchRequest{
-		BatchID:        batchID,
-		IdempotencyKey: key,
-		SpaceID:        spaceID,
-		StreamID:       "stream-" + spaceID,
+		BatchID:         batchID,
+		IdempotencyKey:  key,
+		SpaceID:         spaceID,
+		StreamID:        "stream-" + spaceID,
 		SourceSegmentID: "segment-e2e-first",
 		Provenance: ports.EvidenceProvenance{
 			HostType:       "pi-group-chat-host",

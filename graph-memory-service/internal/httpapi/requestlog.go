@@ -66,9 +66,10 @@ func RequestLogger(log *JSONLogger) func(http.Handler) http.Handler {
 
 			recorder := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(recorder, r)
-			if !recorder.wrote {
-				recorder.WriteHeader(recorder.status)
-			}
+			// The recorder intercepts WriteHeader without delegating, so
+			// the real writer gets the status exactly once, here — whether
+			// the handler set it explicitly or left the 200 default.
+			w.WriteHeader(recorder.status)
 			if recorder.body.Len() > 0 {
 				_, _ = w.Write(recorder.body.Bytes())
 			}

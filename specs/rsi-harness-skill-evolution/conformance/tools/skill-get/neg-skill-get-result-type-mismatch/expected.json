@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-skill-get-result-type-mismatch",
+ "expected_accept": false,
+ "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+ "expected_result_digest": null,
+ "notes": "ExploreResult schema claimed for skill_get binding",
+ "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

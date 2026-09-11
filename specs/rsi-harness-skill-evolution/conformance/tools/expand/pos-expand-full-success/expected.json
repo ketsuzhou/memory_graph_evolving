@@ -1,0 +1,1 @@
+{"case_id":"pos-expand-full-success","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:f10f4729ed8f92a187072be63b88eea30935b900c0b8588541ca2af097b73ff7","notes":"expand binds the same ExploreResult schema and explore-family rules","schema_version":"rsih-skill-evolution.tool-binding-expected.v1"}

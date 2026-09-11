@@ -1,0 +1,28 @@
+{
+  "schema_version": "gms.proposal-event.v1",
+  "proposal_ref": {
+    "id": "ref-0051",
+    "version": 1,
+    "digest": "sha256:d6c9f1716cd7bb0ce4fe64868e7101fdfc9e7346bf8925a5062a8b136ed2f3be"
+  },
+  "event_sequence": 1,
+  "event_id": "pev-0001",
+  "event_digest": "sha256:47cfb5dcc1c62400e3ab03fa03f1b709de01db46098051e45eca26de0ffb0a8a",
+  "from_state": "none",
+  "to_state": "proposed",
+  "reason_codes": [],
+  "authority_ref": {
+    "id": "ref-0052",
+    "version": 1,
+    "digest": "sha256:80bd7be8c01973c1cac3720cd7cfcf7db7c8ef450ee701fc6c6a71656395c63c"
+  },
+  "record_refs": [
+    {
+      "id": "ref-0053",
+      "version": 1,
+      "digest": "sha256:c0c7e16e8758c63444afc25bdb92b941c02d6432f46b0de0f5de3a3cd74a9fb6"
+    }
+  ],
+  "payload_digest": "sha256:1a8456f458aa9a9d64d0a93443bd342f9648f14d9f986dd7a406f1468b004d0b",
+  "expected_previous_event_sequence": 0
+}

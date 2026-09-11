@@ -1,0 +1,393 @@
+{
+ "cases": [
+  {
+   "case_id": "pos-explore-full-success",
+   "category": "explore",
+   "expected_path": "explore/basic/pos-explore-full-success/expected.json",
+   "input_path": "explore/basic/pos-explore-full-success/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-missing-watermark",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-missing-watermark/expected.json",
+   "input_path": "explore/basic/neg-explore-missing-watermark/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-missing-budgets",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-missing-budgets/expected.json",
+   "input_path": "explore/basic/neg-explore-missing-budgets/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-missing-citations",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-missing-citations/expected.json",
+   "input_path": "explore/basic/neg-explore-missing-citations/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-budget-used-exceeds-cap",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-budget-used-exceeds-cap/expected.json",
+   "input_path": "explore/basic/neg-explore-budget-used-exceeds-cap/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-wrapper-payload",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-wrapper-payload/expected.json",
+   "input_path": "explore/basic/neg-explore-wrapper-payload/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-free-json-body",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-free-json-body/expected.json",
+   "input_path": "explore/basic/neg-explore-free-json-body/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-unknown-required-extension",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-unknown-required-extension/expected.json",
+   "input_path": "explore/basic/neg-explore-unknown-required-extension/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-freshness-behind",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-freshness-behind/expected.json",
+   "input_path": "explore/basic/neg-explore-freshness-behind/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-explore-truncation-without-omission-carrier",
+   "category": "explore",
+   "expected_path": "explore/basic/neg-explore-truncation-without-omission-carrier/expected.json",
+   "input_path": "explore/basic/neg-explore-truncation-without-omission-carrier/input.json",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-expand-full-success",
+   "category": "expand",
+   "expected_path": "expand/pos-expand-full-success/expected.json",
+   "input_path": "expand/pos-expand-full-success/input.json",
+   "tool_name": "memory_expand"
+  },
+  {
+   "case_id": "neg-expand-missing-budgets",
+   "category": "expand",
+   "expected_path": "expand/neg-expand-missing-budgets/expected.json",
+   "input_path": "expand/neg-expand-missing-budgets/input.json",
+   "tool_name": "memory_expand"
+  },
+  {
+   "case_id": "pos-skill-get-guidance-view",
+   "category": "skill-get",
+   "expected_path": "skill-get/pos-skill-get-guidance-view/expected.json",
+   "input_path": "skill-get/pos-skill-get-guidance-view/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-guidance-view-private-watermark",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-guidance-view-private-watermark/expected.json",
+   "input_path": "skill-get/neg-skill-get-guidance-view-private-watermark/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-free-artifact-body",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-free-artifact-body/expected.json",
+   "input_path": "skill-get/neg-skill-get-free-artifact-body/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-unknown-tool",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-unknown-tool/expected.json",
+   "input_path": "skill-get/neg-skill-get-unknown-tool/input.json",
+   "tool_name": "memory_delete"
+  },
+  {
+   "case_id": "neg-skill-get-result-type-mismatch",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-result-type-mismatch/expected.json",
+   "input_path": "skill-get/neg-skill-get-result-type-mismatch/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-scope-violation",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-scope-violation/expected.json",
+   "input_path": "skill-get/neg-skill-get-scope-violation/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-stale-render-profile",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-stale-render-profile/expected.json",
+   "input_path": "skill-get/neg-skill-get-stale-render-profile/input.json",
+   "tool_name": "skill_get"
+  },
+  {
+   "case_id": "neg-skill-get-view-hash-mismatch",
+   "category": "skill-get",
+   "expected_path": "skill-get/neg-skill-get-view-hash-mismatch/expected.json",
+   "input_path": "skill-get/neg-skill-get-view-hash-mismatch/input.json",
+   "tool_name": "skill_get"
+  }
+ ],
+ "contract_schema_version": "rsih-skill-evolution.system-contract.v1",
+ "omission_cases": [
+  {
+   "case_id": "pos-omission-total-cap",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-total-cap/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-total-cap/input.json",
+   "notes": "total cap filled (used==cap): omitted evidence+skill exact refs in canonical order",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-evidence-subcap",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-evidence-subcap/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-evidence-subcap/input.json",
+   "notes": "evidence served == evidence_subcap: two omitted evidence exact refs (JCS order)",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-skill-subcap",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-skill-subcap/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-skill-subcap/input.json",
+   "notes": "skill served == skill_subcap: omitted skill exact refs (JCS order)",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-guidance-token-budget",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-guidance-token-budget/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-guidance-token-budget/input.json",
+   "notes": "served guidance token sum == budget: omitted skill ref carries the token code",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-multi-code",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-multi-code/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-multi-code/input.json",
+   "notes": "two caps hit: truncation_reason_codes == order-preserving dedupe of entries",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-pagination-page1",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-pagination-page1/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-pagination-page1/input.json",
+   "notes": "page 1 of the mixed pagination scenario: empty omissions + empty codes",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-omission-pagination-page2",
+   "category": "top-level-omission",
+   "expected_accept": true,
+   "expected_path": "explore/top-level-omission/pos-omission-pagination-page2/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/top-level-omission/pos-omission-pagination-page2/input.json",
+   "notes": "page 2: watermark 14 > prior 12; prior-served refs absent from omissions",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "pos-no-omission-empty-carrier",
+   "category": "no-omission",
+   "expected_accept": true,
+   "expected_path": "explore/no-omission/pos-no-omission-empty-carrier/expected.json",
+   "expected_reason_code": null,
+   "input_path": "explore/no-omission/pos-no-omission-empty-carrier/input.json",
+   "notes": "no omission: omissions == [] (determined, not absent) and codes == []",
+   "tool_name": "memory_expand"
+  },
+  {
+   "case_id": "neg-omission-silent-truncation-no-carrier",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-silent-truncation-no-carrier/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-silent-truncation-no-carrier/input.json",
+   "notes": "silent truncation: non-empty truncation codes while the carrier is absent",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-reason-without-refs",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-reason-without-refs/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-reason-without-refs/input.json",
+   "notes": "reason without refs: codes non-empty while omissions == []",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-refs-without-reason",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-refs-without-reason/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-refs-without-reason/input.json",
+   "notes": "refs without reason: omissions non-empty while codes == []",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-kind-branch-not-allowed",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-kind-branch-not-allowed/expected.json",
+   "expected_reason_code": "SCHEMA_ENUM_INVALID",
+   "input_path": "explore/negative/neg-omission-kind-branch-not-allowed/input.json",
+   "notes": "branch omission belongs to GuidanceView, never to the top-level carrier",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-kind-ref-mismatch",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-kind-ref-mismatch/expected.json",
+   "expected_reason_code": "REF_MISMATCH",
+   "input_path": "explore/negative/neg-omission-kind-ref-mismatch/input.json",
+   "notes": "kind=skill carries an EvidenceRef: kind/ref schema binding violated",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-ref-latest-form",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-ref-latest-form/expected.json",
+   "expected_reason_code": "NON_EXACT_REF",
+   "input_path": "explore/negative/neg-omission-ref-latest-form/input.json",
+   "notes": "omitted ref uses the non-exact latest form (no digest, string version)",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-ref-graph-node",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-ref-graph-node/expected.json",
+   "expected_reason_code": "NON_EXACT_REF",
+   "input_path": "explore/negative/neg-omission-ref-graph-node/input.json",
+   "notes": "omitted ref uses a Graph-node id instead of the exact closed fields",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-duplicate-ref",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-duplicate-ref/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-duplicate-ref/input.json",
+   "notes": "the same exact ref appears twice in the carrier",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-served-ref-relisted",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-served-ref-relisted/expected.json",
+   "expected_reason_code": "EXPLORE_FENCE_CONFLICT",
+   "input_path": "explore/negative/neg-omission-served-ref-relisted/input.json",
+   "notes": "a ref served by this payload reappears in omissions",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-wrong-result-type",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-wrong-result-type/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-wrong-result-type/input.json",
+   "notes": "memory_explore success result is a GuidanceView instead of ExploreResult",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-budget-used-mismatch",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-budget-used-mismatch/expected.json",
+   "expected_reason_code": "BUDGET_INVALID",
+   "input_path": "explore/negative/neg-omission-budget-used-mismatch/input.json",
+   "notes": "total_used=3 while served evidence+skill counts = 4",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-fence-not-advancing",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-fence-not-advancing/expected.json",
+   "expected_reason_code": "EXPLORE_FENCE_CONFLICT",
+   "input_path": "explore/negative/neg-omission-fence-not-advancing/input.json",
+   "notes": "page 2 watermark equals the prior served page watermark (12)",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-unknown-truncation-code",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-unknown-truncation-code/expected.json",
+   "expected_reason_code": "SCHEMA_ENUM_INVALID",
+   "input_path": "explore/negative/neg-omission-unknown-truncation-code/input.json",
+   "notes": "reason_code outside the four frozen gms-truncation-success codes",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-misordered",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-misordered/expected.json",
+   "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+   "input_path": "explore/negative/neg-omission-misordered/input.json",
+   "notes": "entries are in reverse canonical (kind, JCS ref) order",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-kind-code-mismatch",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-kind-code-mismatch/expected.json",
+   "expected_reason_code": "SCHEMA_ENUM_INVALID",
+   "input_path": "explore/negative/neg-omission-kind-code-mismatch/input.json",
+   "notes": "evidence-kind entry carries the skill subcap code",
+   "tool_name": "memory_explore"
+  },
+  {
+   "case_id": "neg-omission-cap-claim-untruthful",
+   "category": "negative",
+   "expected_accept": false,
+   "expected_path": "explore/negative/neg-omission-cap-claim-untruthful/expected.json",
+   "expected_reason_code": "BUDGET_INVALID",
+   "input_path": "explore/negative/neg-omission-cap-claim-untruthful/input.json",
+   "notes": "TOTAL_CAP_REACHED claimed while total_used(4) < total_cap(6)",
+   "tool_name": "memory_explore"
+  }
+ ],
+ "policy_relative_path": "../policy/tool-success-validation.v1.json",
+ "readiness_gates": {
+  "skill_get": "disabled-until-green (policy tool-success-validation.v1.json)"
+ },
+ "revision": "system-contract 12.7.1 v1.1 (CTR-002)",
+ "schema_version": "rsih-skill-evolution.tool-binding-manifest.v1"
+}

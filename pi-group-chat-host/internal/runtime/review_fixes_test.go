@@ -32,7 +32,7 @@ func newReviewRuntime() (*Orchestrator, *memorystore.Store) {
 func reviewAuthority(kind string) ExecutionAuthority {
 	return ExecutionAuthority{
 		TenantID: "tenant-review", RoomID: "room-review", AgentID: "agent-review",
-		ProfileKind: kind,
+		ProfileKind:   kind,
 		SharedSpaceID: "space-room-shared", PrivateSpaceID: "space-agent-private",
 	}
 }

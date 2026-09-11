@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-explore-truncation-without-omission-carrier",
+ "expected_accept": false,
+ "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+ "expected_result_digest": null,
+ "notes": "interim per GMS 10.8: no top-level omitted-refs carrier until CTR-003",
+ "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

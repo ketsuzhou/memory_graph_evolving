@@ -1,0 +1,72 @@
+{
+ "case_id": "neg-omission-wrong-result-type",
+ "read_audit": {
+  "active_head_activation_sequence": 12,
+  "agent_id": "agent-ctr003-a1",
+  "proxy_request_id": "pr-ctr003-0018",
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.read-audit.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "watermark_projection_sequence": 12
+ },
+ "request": {
+  "agent_id": "agent-ctr003-a1",
+  "arguments": {},
+  "delivery_id": "delivery-ctr003-0018",
+  "idempotency_key": "sha256:0591aa83336030c89370fae0e3d39ceb0919e06ac6d40063aac7b477c8e3412c",
+  "proxy_request_id": "pr-ctr003-0018",
+  "requested_min_activation_sequence": 10,
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.tool-proxy-request.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "timeout_millis": 5000,
+  "tool_name": "memory_explore"
+ },
+ "result_payload": {
+  "content": "Guidance for lin-ctr003-alpha v2.",
+  "content_token_count": 25,
+  "expandable_refs": [
+   {
+    "ref": {
+     "branch_id": "branch-ctr003--alpha-a1"
+    },
+    "ref_type": "branch"
+   }
+  ],
+  "included_branch_refs": [
+   "branch-ctr003--alpha-a1"
+  ],
+  "omitted_branch_refs": [],
+  "policy_ref": {
+   "digest": "sha256:a8a4abfc27efa49775139f6968c61e2d54cd01b93ff02b5eadb76035f39ba0a0",
+   "id": "gms.guidance-policy.default.v1",
+   "version": 1
+  },
+  "render_profile_ref": {
+   "digest": "sha256:e7914db1aa52cd53792ae0b637fc3a3715f745b30f1c0ba83dceba187cf158d5",
+   "id": "rsih.render-profile.default.v1",
+   "version": 2
+  },
+  "runtime_context_hash": "sha256:3919987af613824d1233a578d2637e32cb8fd3556b7d8ebe20a36a331ce4451c",
+  "schema_version": "gms.guidance-view.v1",
+  "source_skill_ref": {
+   "artifact_digest": "sha256:f02677398c413a51403e8c61e54ad69f13219729a89f863e498089e48833e435",
+   "kind": "human_procedure",
+   "lineage_id": "lin-ctr003-alpha",
+   "schema_version": "gms.skill-artifact-ref.v1",
+   "version": 2
+  },
+  "truncated": false,
+  "view_hash": "sha256:5c02ca566b5edb15a2d9cc27aa343435587931c5b388ddc6605463125386e322"
+ },
+ "schema_version": "rsih-skill-evolution.explore-omission-case.v1",
+ "tool_name": "memory_explore"
+}

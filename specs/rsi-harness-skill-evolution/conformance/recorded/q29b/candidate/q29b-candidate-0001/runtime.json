@@ -1,0 +1,219 @@
+{
+  "schema_version": "rsih.q29b-runtime.v1",
+  "packet_id": "q29b-candidate-0001",
+  "family": "candidate",
+  "run": {
+    "mode": "replay",
+    "side": "candidate",
+    "run_id": "run-candidate-0001",
+    "attempt": 1,
+    "adapter_ref": {
+      "id": "rsih.fake-runtime-adapter",
+      "version": 1,
+      "digest": "sha256:b61822af49ed662c6e882237e1e85b27b3ead0f18869a079d9ba5a7697217803"
+    },
+    "profile_ref": {
+      "id": "rsih.replay-profile",
+      "version": 1,
+      "digest": "sha256:536aa4b6b9489674b74ba2daa169650346f08911a0410a99b0d0e59a4716fb09"
+    }
+  },
+  "sealed_inputs": {
+    "segment_refs": [
+      {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-alpha-0001",
+        "segment_id": "seg-success-0001",
+        "segment_version": 1,
+        "segment_digest": "sha256:ad3b6ad01798de10110a69a14f789c812c7395e3f1e26f4ea2a99f10abdd7cb2",
+        "evidence_seal_ref": {
+          "id": "evseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:4e5e12a6dc91986afb4b61a5104b271f9ec9e33856a085baf0e5022a1a485290"
+        },
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      },
+      {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-alpha-0001",
+        "segment_id": "seg-recovery-0001",
+        "segment_version": 1,
+        "segment_digest": "sha256:3e34bb9b8b42d2536c2f461883cd51eef8dba6c733307278b379a4b834abf60b",
+        "evidence_seal_ref": {
+          "id": "evseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297"
+        },
+        "path_seal_ref": {
+          "id": "pathseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+        }
+      }
+    ],
+    "path_refs": [
+      {
+        "path_id": "path-success-0001",
+        "domain": "success",
+        "segment_id": "seg-success-0001",
+        "path_seal_ref": {
+          "id": "pathseal-seg-success-0001",
+          "version": 1,
+          "digest": "sha256:15956a54e283a6660096710d67fd88d8d561b7220c337c0a91be6370b3790576"
+        }
+      },
+      {
+        "path_id": "path-failure-0001",
+        "domain": "failure",
+        "segment_id": "seg-recovery-0001",
+        "path_seal_ref": {
+          "id": "pathseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+        }
+      },
+      {
+        "path_id": "path-recovery-0001",
+        "domain": "recovery",
+        "segment_id": "seg-recovery-0001",
+        "path_seal_ref": {
+          "id": "pathseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+        }
+      }
+    ],
+    "artifact_ref": {
+      "schema_version": "gms.candidate-artifact-ref.v1",
+      "candidate_id": "cand-0001",
+      "kind": "step_guidance",
+      "body_digest": "sha256:5ca2d3d975102507ad670945a8b77becae6eec70ce5d9463b0716867365bad34",
+      "origin_type": "skill_proposal",
+      "origin_ref": {
+        "id": "prop-0001",
+        "version": 1,
+        "digest": "sha256:4dbfa5e4285010517492150d190b8d574bab2034e41481fff19f475fc0fedbc2"
+      }
+    },
+    "required_path_domains": [
+      "success",
+      "failure",
+      "recovery"
+    ]
+  },
+  "environment": {
+    "locale": "en_US_POSIX",
+    "timezone": "UTC",
+    "network": "disabled",
+    "cache": "per-run-isolated",
+    "workdir": "/fake-workdir/q29b-candidate-0001"
+  },
+  "capabilities": {
+    "clock": {
+      "kind": "fake-sequence",
+      "unit": "logical-tick",
+      "ticks": [
+        1100,
+        1101,
+        1102,
+        1103
+      ]
+    },
+    "random": {
+      "kind": "fake-sequence",
+      "unit": "uint32",
+      "draws": [
+        7,
+        11
+      ]
+    },
+    "tool": {
+      "kind": "fake-responses",
+      "responses": [
+        {
+          "call_index": 0,
+          "tool_name": "memory_explore",
+          "status": "succeeded",
+          "upstream_result_digest": "sha256:851bf4a9379e418bed15e6fe57e11ec66a92d5a34c0230d7c9de91438ecc55a1",
+          "response_digest": "sha256:dee29306b8651904d26276e51eda666f435118789d272c995ae6c5fa5bd2bec6"
+        }
+      ]
+    },
+    "provider": {
+      "kind": "fake-responses",
+      "responses": [
+        {
+          "call_index": 0,
+          "model_id": "fake-model-1",
+          "status": "succeeded",
+          "content_digest": "sha256:f05b787d2e6e1e72e096cc9af9c98d13d5aa24594cf05ead1968f4729d06255e",
+          "content": "recorded provider completion for candidate run"
+        }
+      ]
+    },
+    "filesystem": {
+      "kind": "fake-tree",
+      "entries": [
+        {
+          "path": "/fake-workdir/q29b-candidate-0001/state.json",
+          "node_type": "file",
+          "content_digest": "sha256:84b2e7f1272675113958ec58ea3cad47442cb1a41b9c7ec07e24720342f51f51",
+          "size_bytes": 47
+        }
+      ]
+    }
+  },
+  "call_sequence": [
+    {
+      "step": 1,
+      "capability": "clock",
+      "operation": "read_tick"
+    },
+    {
+      "step": 2,
+      "capability": "provider",
+      "operation": "complete",
+      "call_index": 0,
+      "model_id": "fake-model-1"
+    },
+    {
+      "step": 3,
+      "capability": "tool",
+      "operation": "invoke",
+      "call_index": 0,
+      "tool_name": "memory_explore"
+    },
+    {
+      "step": 4,
+      "capability": "filesystem",
+      "operation": "read",
+      "path": "/fake-workdir/q29b-candidate-0001/state.json"
+    },
+    {
+      "step": 5,
+      "capability": "random",
+      "operation": "draw"
+    },
+    {
+      "step": 6,
+      "capability": "clock",
+      "operation": "read_tick"
+    }
+  ],
+  "terminal": {
+    "status": "succeeded",
+    "reason_code": null,
+    "completed_step": 6,
+    "failing_step": null
+  },
+  "expected": {
+    "outcome": "accept",
+    "run_status": "succeeded",
+    "reason_code": null,
+    "output_digest": "sha256:b25c8b79fbd7215c19446734bfe7f98d1127a04545e590eb11304054c0950d7d"
+  }
+}

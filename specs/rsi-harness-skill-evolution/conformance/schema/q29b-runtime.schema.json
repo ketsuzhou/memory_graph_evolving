@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.conformance.q29b-runtime.v1.schema.json",
+  "title": "RSIH Q29-B fake runtime packet (FND-002 recorded corpus, runtime.json)",
+  "description": "Records the Q29-B recorded runtime data protocol (RSIH 6.2-6.7, Contract 10.5): declared fake capabilities (versioned clock/random/tool/provider/filesystem), neutral locale/timezone, per-run isolation, the expected call sequence, late-output audit events and the expected deterministic outcome. validate_recorded.py simulates the fake runtime over the declared capabilities and compares the derived raw output document against expected-output.canonical and expected.output_digest. Capability kind strings are intentionally not enum-restricted here so that real wall-clock/OS-random/network declarations fail with the dedicated REAL_CAPABILITY_DECLARED code instead of a generic schema error; run.mode keeps 'live' reachable for the same reason (rejected with CANDIDATE_IN_LIVE_REGISTRY / RUN_MODE_NOT_REPLAY).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet_id",
+    "family",
+    "run",
+    "sealed_inputs",
+    "environment",
+    "capabilities",
+    "call_sequence",
+    "terminal",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": { "const": "rsih.q29b-runtime.v1" },
+    "packet_id": { "type": "string", "minLength": 1 },
+    "family": {
+      "enum": [
+        "baseline", "candidate", "overlap", "conflict", "late-output",
+        "clock-exhausted", "extra-tool-call", "merge"
+      ]
+    },
+    "run": { "$ref": "#/$defs/run" },
+    "sealed_inputs": { "$ref": "#/$defs/sealed_inputs" },
+    "environment": { "$ref": "#/$defs/environment" },
+    "capabilities": { "$ref": "#/$defs/capabilities" },
+    "bilateral": { "$ref": "#/$defs/bilateral" },
+    "call_sequence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/call_step" } },
+    "late_events": { "type": "array", "items": { "$ref": "#/$defs/late_event" } },
+    "terminal": { "$ref": "#/$defs/terminal" },
+    "expected": { "$ref": "#/$defs/expected" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "versioned_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "side", "run_id", "attempt", "adapter_ref", "profile_ref"],
+      "properties": {
+        "mode": { "enum": ["replay", "live"] },
+        "side": { "enum": ["baseline", "candidate"] },
+        "run_id": { "type": "string", "minLength": 1 },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "adapter_ref": { "$ref": "#/$defs/versioned_ref" },
+        "profile_ref": { "$ref": "#/$defs/versioned_ref" }
+      }
+    },
+    "sealed_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["segment_refs", "path_refs", "artifact_ref", "required_path_domains"],
+      "properties": {
+        "segment_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema_version", "room_id", "segment_id", "segment_version",
+              "segment_digest", "evidence_seal_ref", "path_seal_ref"
+            ],
+            "properties": {
+              "schema_version": { "const": "host.segment-ref.v1" },
+              "room_id": { "type": "string", "minLength": 1 },
+              "segment_id": { "type": "string", "minLength": 1 },
+              "segment_version": { "type": "integer", "minimum": 1 },
+              "segment_digest": { "$ref": "#/$defs/digest" },
+              "evidence_seal_ref": { "$ref": "#/$defs/versioned_ref" },
+              "path_seal_ref": { "$ref": "#/$defs/versioned_ref" }
+            }
+          }
+        },
+        "path_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path_id", "domain", "segment_id", "path_seal_ref"],
+            "properties": {
+              "path_id": { "type": "string", "minLength": 1 },
+              "domain": { "enum": ["success", "failure", "recovery"] },
+              "segment_id": { "type": "string", "minLength": 1 },
+              "path_seal_ref": { "$ref": "#/$defs/versioned_ref" }
+            }
+          }
+        },
+        "artifact_ref": {
+          "type": "object",
+          "required": ["schema_version"],
+          "properties": {
+            "schema_version": {
+              "enum": [
+                "gms.skill-artifact-ref.v1",
+                "gms.candidate-artifact-ref.v1"
+              ]
+            }
+          }
+        },
+        "required_path_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["success", "failure", "recovery"] }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locale", "timezone", "network", "cache", "workdir"],
+      "properties": {
+        "locale": { "type": "string", "minLength": 1 },
+        "timezone": { "type": "string", "minLength": 1 },
+        "network": { "type": "string", "minLength": 1 },
+        "cache": { "type": "string", "minLength": 1 },
+        "workdir": { "type": "string", "minLength": 1 }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clock", "random", "tool", "provider", "filesystem"],
+      "properties": {
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "unit", "ticks"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "unit": { "const": "logical-tick" },
+            "ticks": { "type": "array", "minItems": 0, "items": { "type": "integer", "minimum": 0 } }
+          }
+        },
+        "random": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "unit", "draws"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "unit": { "const": "uint32" },
+            "draws": { "type": "array", "minItems": 0, "items": { "type": "integer", "minimum": 0 } }
+          }
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "responses"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "responses": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["call_index", "tool_name", "status", "upstream_result_digest", "response_digest"],
+                "properties": {
+                  "call_index": { "type": "integer", "minimum": 0 },
+                  "tool_name": { "enum": ["memory_explore", "memory_expand", "skill_get"] },
+                  "status": { "enum": ["succeeded", "timeout_no_response", "no_response", "cancelled"] },
+                  "upstream_result_digest": { "$ref": "#/$defs/digest" },
+                  "response_digest": { "$ref": "#/$defs/digest" }
+                }
+              }
+            }
+          }
+        },
+        "provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "responses"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "responses": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["call_index", "model_id", "status", "content_digest", "content"],
+                "properties": {
+                  "call_index": { "type": "integer", "minimum": 0 },
+                  "model_id": { "type": "string", "minLength": 1 },
+                  "status": { "enum": ["succeeded", "no_response"] },
+                  "content_digest": { "$ref": "#/$defs/digest" },
+                  "content": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "filesystem": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "entries"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "node_type", "content_digest", "size_bytes"],
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "node_type": { "enum": ["file", "directory"] },
+                  "content_digest": { "$ref": "#/$defs/digest" },
+                  "size_bytes": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "bilateral": {
+      "type": "object",
+      "description": "Present for overlap/conflict families: the A/B shared-context or divergent-decision-point records (Contract 10.4).",
+      "additionalProperties": false,
+      "required": ["family_domain", "source_a_ref", "source_b_ref"],
+      "properties": {
+        "family_domain": { "enum": ["overlap", "conflict"] },
+        "source_a_ref": { "$ref": "#/$defs/skill_artifact_ref" },
+        "source_b_ref": { "$ref": "#/$defs/skill_artifact_ref" },
+        "shared_context_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/versioned_ref" }
+        },
+        "decision_points": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["decision_point_id", "source_a_decision", "source_b_decision", "resolution_policy_ref"],
+            "properties": {
+              "decision_point_id": { "type": "string", "minLength": 1 },
+              "source_a_decision": { "type": "string", "minLength": 1 },
+              "source_b_decision": { "type": "string", "minLength": 1 },
+              "resolution_policy_ref": { "$ref": "#/$defs/versioned_ref" }
+            }
+          }
+        }
+      }
+    },
+    "skill_artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "lineage_id", "version", "kind", "artifact_digest"],
+      "properties": {
+        "schema_version": { "const": "gms.skill-artifact-ref.v1" },
+        "lineage_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 },
+        "kind": { "enum": ["human_procedure", "step_guidance", "composite"] },
+        "artifact_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "call_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "capability", "operation"],
+      "properties": {
+        "step": { "type": "integer", "minimum": 1 },
+        "capability": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "minLength": 1 },
+        "call_index": { "type": "integer", "minimum": 0 },
+        "tool_name": { "enum": ["memory_explore", "memory_expand", "skill_get"] },
+        "model_id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "late_event": {
+      "type": "object",
+      "description": "Output arriving after the run terminal: audit-only; recorded_as and arrival ordering are enforced by the runtime-semantics validator with LATE_OUTPUT_REWRITE.",
+      "additionalProperties": false,
+      "required": ["arrival_step", "capability", "origin", "detail", "recorded_as"],
+      "properties": {
+        "arrival_step": { "type": "integer", "minimum": 1 },
+        "capability": { "type": "string", "minLength": 1 },
+        "origin": { "type": "string", "minLength": 1 },
+        "detail": { "type": "object" },
+        "recorded_as": { "type": "string", "minLength": 1 }
+      }
+    },
+    "terminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason_code", "completed_step", "failing_step"],
+      "properties": {
+        "status": { "enum": ["succeeded", "failed", "inconclusive"] },
+        "reason_code": { "type": ["string", "null"] },
+        "completed_step": { "type": "integer", "minimum": 0 },
+        "failing_step": { "type": ["integer", "null"] }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "run_status", "reason_code", "output_digest"],
+      "properties": {
+        "outcome": { "enum": ["accept"] },
+        "run_status": { "enum": ["succeeded", "failed", "inconclusive"] },
+        "reason_code": { "type": ["string", "null"] },
+        "output_digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"case_id":"canon-neg-003-bom-source","expected_accept":false,"expected_reason_code":"BOM_NOT_ALLOWED","notes":"Contract §6.1.1: hashed core is UTF-8 JSON without BOM","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

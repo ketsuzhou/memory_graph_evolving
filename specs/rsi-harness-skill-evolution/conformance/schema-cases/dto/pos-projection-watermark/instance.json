@@ -1,0 +1,10 @@
+{
+  "schema_version": "gms.projection-watermark.v1",
+  "projection_stream": "runtime",
+  "projection_schema_version": "gms.runtime-projection.v1",
+  "projection_head": "proj-head-0007",
+  "projected_through_activation_sequence": 7,
+  "source_ledger_digest": "sha256:47afc1074e95c50f070b6cc00a5b8ae138920c1927310cd97dc81f7e0cdcd6d8",
+  "state": "current",
+  "watermark_digest": "sha256:54c9c1d887ca20214f415243308ea2f41041059f0d6a7b42e2f84663d9e925c8"
+}

@@ -1,0 +1,1 @@
+{"case_id":"ref-005-evidence-ref","expected_accept":true,"expected_canonical_byte_length":226,"expected_digest":"sha256:67f5ff391a2692f1685b8c5b1ebd3ced06add3834fffdd68f12cfe99f13a43bb","notes":"EvidenceRef exact form with commit_state=committed","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

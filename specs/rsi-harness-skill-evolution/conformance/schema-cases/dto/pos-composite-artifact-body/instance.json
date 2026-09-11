@@ -1,0 +1,52 @@
+{
+  "children": [
+    {
+      "child_id": "c1",
+      "skill_ref": {
+        "schema_version": "gms.skill-artifact-ref.v1",
+        "lineage_id": "sg-commit-checklist",
+        "version": 3,
+        "kind": "step_guidance",
+        "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+      },
+      "input_port": "in",
+      "output_port": "out"
+    }
+  ],
+  "edges": [],
+  "retry_policies": [
+    {
+      "child_id": "c1",
+      "max_attempts": 2,
+      "retryable_reason_codes": [
+        "GMS_UNAVAILABLE"
+      ],
+      "backoff_units": 1
+    }
+  ],
+  "failure_handlers": [
+    {
+      "child_id": "c1",
+      "reason_codes": [
+        "PORT_SCHEMA_MISSING"
+      ],
+      "action": "stop"
+    }
+  ],
+  "orchestration_permissions": [
+    {
+      "capability": "tool.invoke",
+      "scope": "declared_composite_children"
+    }
+  ],
+  "input_port_schema": {
+    "schema_id": "gms.child-io.v1",
+    "version": 1,
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4"
+  },
+  "output_port_schema": {
+    "schema_id": "gms.child-io.v1",
+    "version": 1,
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4"
+  }
+}

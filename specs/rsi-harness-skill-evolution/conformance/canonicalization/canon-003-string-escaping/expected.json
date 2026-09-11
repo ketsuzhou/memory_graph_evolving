@@ -1,0 +1,1 @@
+{"case_id":"canon-003-string-escaping","expected_accept":true,"expected_canonical_byte_length":90,"expected_digest":"sha256:44fad137398034fd98c4f738360ad11309ec40c0c9de8c4ef6d3b0eface19e43","notes":"RFC 8785 escaping: only quote/backslash and C0 controls; CJK, emoji (surrogate pairs) and U+007F stay raw UTF-8","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

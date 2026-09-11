@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.step-guidance-body.v1.schema.json",
+  "title": "Contract 8.3 step_guidance body",
+  "description": "Causal context plus atomic condition-action-future branches. A branch is the complete decision and its future path.",
+  "contract_refs": ["system-contract.md 8.3"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["causal_context", "branches"],
+  "properties": {
+    "causal_context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["summary", "claim_refs"],
+      "properties": {
+        "summary": { "$ref": "common-types.schema.json#/$defs/non_empty_string" },
+        "claim_refs": { "type": "array", "items": { "$ref": "common-types.schema.json#/$defs/versioned_ref" }, "minItems": 0 }
+      }
+    },
+    "branches": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["branch_id", "when", "action", "future"],
+        "properties": {
+          "branch_id": { "$ref": "common-types.schema.json#/$defs/non_empty_string" },
+          "when": { "$ref": "common-types.schema.json#/$defs/predicate" },
+          "action": {
+            "type": "object", "additionalProperties": false,
+            "required": ["guidance", "failure_action", "evidence_refs"],
+            "properties": {
+              "guidance": { "$ref": "common-types.schema.json#/$defs/non_empty_string" },
+              "failure_action": { "$ref": "common-types.schema.json#/$defs/failure_action" },
+              "evidence_refs": { "type": "array", "items": { "$ref": "evidence-ref.schema.json#" }, "minItems": 0 }
+            }
+          },
+          "future": {
+            "type": "object", "additionalProperties": false,
+            "required": ["expected_outcome", "critical_steps", "final_task_impact"],
+            "properties": {
+              "expected_outcome": { "type": "string" },
+              "critical_steps": {
+                "type": "array", "minItems": 0,
+                "items": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["step_id", "condition", "task_impact"],
+                  "properties": {
+                    "step_id": { "$ref": "common-types.schema.json#/$defs/non_empty_string" },
+                    "condition": { "$ref": "common-types.schema.json#/$defs/predicate" },
+                    "task_impact": { "$ref": "common-types.schema.json#/$defs/non_empty_string" }
+                  }
+                }
+              },
+              "final_task_impact": { "$ref": "common-types.schema.json#/$defs/non_empty_string" }
+            }
+          }
+        }
+      }
+    },
+    "input_port_schema": { "$ref": "common-types.schema.json#/$defs/json_schema_ref" },
+    "output_port_schema": { "$ref": "common-types.schema.json#/$defs/json_schema_ref" }
+  }
+}

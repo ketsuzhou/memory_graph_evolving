@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.similarity-assessment.v1.schema.json",
+  "title": "Contract 7.21 SimilarityAssessment",
+  "description": "source_skill_refs is exactly 2 in canonical (6.3) order; integer score_micros only (5.5.7).",
+  "contract_refs": [
+    "system-contract.md 7.21",
+    "system-contract.md 5.5"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "assessment_version",
+    "assessment_digest",
+    "source_skill_refs",
+    "policy_ref",
+    "feature_record_refs",
+    "score_micros",
+    "band",
+    "compatibility",
+    "supporting_evidence_refs",
+    "refuting_evidence_refs",
+    "assessor_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.similarity-assessment.v1"
+    },
+    "assessment_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "assessment_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "assessment_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "source_skill_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "policy_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "feature_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "score_micros": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "band": {
+      "enum": [
+        "below_suggestion",
+        "suggestion_only",
+        "merge_review",
+        "auto_merge_eligible"
+      ]
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind_compatible",
+        "applicability_overlap",
+        "permission_compatible",
+        "port_compatible",
+        "blocking_conflict_count"
+      ],
+      "properties": {
+        "kind_compatible": {
+          "type": "boolean"
+        },
+        "applicability_overlap": {
+          "enum": [
+            "none",
+            "partial",
+            "complete",
+            "unknown"
+          ]
+        },
+        "permission_compatible": {
+          "type": "boolean"
+        },
+        "port_compatible": {
+          "enum": [
+            true,
+            false,
+            "not_applicable"
+          ]
+        },
+        "blocking_conflict_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "supporting_evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "evidence-ref.schema.json#"
+      },
+      "minItems": 0
+    },
+    "refuting_evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "evidence-ref.schema.json#"
+      },
+      "minItems": 0
+    },
+    "assessor_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "x-digest": {
+    "digest_field": "assessment_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "assessment_id",
+      "assessment_version",
+      "source_skill_refs",
+      "policy_ref",
+      "feature_record_refs",
+      "score_micros",
+      "band",
+      "compatibility",
+      "supporting_evidence_refs",
+      "refuting_evidence_refs",
+      "assessor_ref"
+    ],
+    "preimage_rule": "assessment_digest = SHA-256(JCS(core minus assessment_digest and extensions))."
+  }
+}

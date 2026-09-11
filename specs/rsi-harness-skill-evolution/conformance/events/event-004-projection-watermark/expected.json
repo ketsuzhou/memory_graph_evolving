@@ -1,0 +1,1 @@
+{"case_id":"event-004-projection-watermark","expected_accept":true,"expected_canonical_byte_length":419,"expected_digest":"sha256:5a4a8255d27f9b5c690feaafd2a9da9e7e62da89544c770383925c579773a949","notes":"ProjectionWatermark record: stream, head, projected-through sequence, source ledger digest, state","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

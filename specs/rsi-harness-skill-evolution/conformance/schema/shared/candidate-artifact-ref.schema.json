@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.candidate-artifact-ref.v1.schema.json",
+  "title": "Contract 7.4 CandidateArtifactRef",
+  "description": "Exact identity is (candidate_id, body_digest). MUST NOT carry a released lineage version and MUST NOT be executed as Runtime input.",
+  "contract_refs": [
+    "system-contract.md 7.4"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "kind",
+    "body_digest",
+    "origin_type",
+    "origin_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.candidate-artifact-ref.v1"
+    },
+    "candidate_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "kind": {
+      "$ref": "common-types.schema.json#/$defs/canonical_kind"
+    },
+    "body_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "origin_type": {
+      "enum": [
+        "skill_proposal",
+        "merge_proposal"
+      ]
+    },
+    "origin_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.replay-request.v1.schema.json",
+  "title": "Contract 7.10 ReplayRequest",
+  "description": "Frozen paired-replay packet (10.5); merge candidates MUST also freeze required_source_heads (conditional below).",
+  "contract_refs": [
+    "system-contract.md 7.10"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "replay_request_id",
+    "candidate_ref",
+    "baseline_skill_refs",
+    "fixture_set_refs",
+    "segment_refs",
+    "replay_profile_ref",
+    "runtime_adapter_ref",
+    "mode",
+    "idempotency_key"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.replay-request.v1"
+    },
+    "replay_request_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "candidate_ref": {
+      "$ref": "candidate-artifact-ref.schema.json#"
+    },
+    "baseline_skill_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      },
+      "minItems": 1
+    },
+    "fixture_set_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "segment_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "segment-ref.schema.json#"
+      },
+      "minItems": 1
+    },
+    "replay_profile_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "runtime_adapter_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "mode": {
+      "const": "causal_evaluation"
+    },
+    "idempotency_key": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "required_source_heads": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      }
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "candidate_ref"
+        ],
+        "properties": {
+          "candidate_ref": {
+            "required": [
+              "origin_type"
+            ],
+            "properties": {
+              "origin_type": {
+                "const": "merge_proposal"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "required_source_heads"
+        ]
+      }
+    }
+  ]
+}

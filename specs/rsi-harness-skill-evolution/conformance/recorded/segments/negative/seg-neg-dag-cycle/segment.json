@@ -1,0 +1,502 @@
+{
+  "schema_version": "host.sealed-segment.v1",
+  "room_id": "room-alpha-0001",
+  "segment_id": "seg-neg-dag-cycle",
+  "segment_version": 1,
+  "terminal_state": "settled",
+  "logical_clock": {
+    "kind": "monotonic-integer",
+    "first_tick": 101,
+    "last_tick": 109
+  },
+  "close": {
+    "close_policy_ref": {
+      "id": "host.segment-close-policy",
+      "version": 1,
+      "digest": "sha256:94b67600e889de610f0617f573cbbbf2ebbcccd13a9a6935663a1d12e8c68d92"
+    },
+    "close_idempotency_key": "closekey-seg-neg-dag-cycle",
+    "close_intent": "settle"
+  },
+  "frontier": {
+    "start_room_sequence": 10,
+    "end_room_sequence": 19
+  },
+  "members": [
+    {
+      "event_id": "evt-001",
+      "event_kind": "agent_message",
+      "room_sequence": 11,
+      "logical_tick": 101,
+      "actor_id": "user-u1",
+      "payload_digest": "sha256:d703d6b76d1010d207e902c142824400698dfed5bf6226143490ad23377a8df9",
+      "payload": {
+        "text": "summarize the river flow notes for the group"
+      }
+    },
+    {
+      "event_id": "evt-002",
+      "event_kind": "model_response",
+      "room_sequence": 12,
+      "logical_tick": 102,
+      "actor_id": "pi-agent-1",
+      "payload_digest": "sha256:661df07f923d47167722e65b4c6298e83cf406c6438c84738ad66e03e5e4fc0f",
+      "payload": {
+        "text": "checking memory before answering"
+      }
+    },
+    {
+      "event_id": "evt-003",
+      "event_kind": "tool_call",
+      "room_sequence": 13,
+      "logical_tick": 103,
+      "actor_id": "pi-agent-1",
+      "payload_digest": "sha256:be7a575574e0a2cfc89e8bbcda5170f5d2ea286e276c76b96944abd709b2c929",
+      "payload": {
+        "tool_name": "memory_explore",
+        "arguments": {
+          "query": "river flow notes",
+          "budget": 5
+        },
+        "arguments_digest": "sha256:8eb6800df5fade4e0bdf99eedec15aa1e7ccf0f121fc7c01dd82a89496643cb6"
+      }
+    },
+    {
+      "event_id": "evt-004",
+      "event_kind": "tool_result",
+      "room_sequence": 14,
+      "logical_tick": 104,
+      "actor_id": "pi-agent-1",
+      "payload_digest": "sha256:9595707e62d8dae5b6c65d76b80090c2682e782b8169418d1a87f4bddac2fba8",
+      "payload": {
+        "schema_version": "host.tool-proxy-result.v1",
+        "proxy_request_id": "tpr-success-0001",
+        "status": "succeeded",
+        "result": {
+          "schema_version": "gms.explore-result.v1",
+          "explore_session_id": "explore-success-0001",
+          "query_digest": "sha256:edfa9e9cbcda14ce9438705ff916525532ebfdc9b14bcca10b142dc1aa0da8fe",
+          "ranker_policy_ref": {
+            "id": "gms.ranker-policy",
+            "version": 1,
+            "digest": "sha256:d462f568242733bffea345b6b502394e8437dc24c82aa65497f581b257da3b1e"
+          },
+          "watermark": {
+            "schema_version": "gms.projection-watermark.v1",
+            "projection_stream": "runtime",
+            "projection_schema_version": "gms.projection.v1",
+            "projection_head": "head-0007",
+            "projected_through_activation_sequence": 7,
+            "source_ledger_digest": "sha256:5b0e5b288c84a7e8d9de1a6cfaa4769ed38977a0beb02966456dd1c895d7afa0",
+            "state": "current",
+            "watermark_digest": "sha256:46c7ad3e4efb5e2c9c581c63fa83d553a32f489ca42e8d1902f10db14fe697f3"
+          },
+          "evidence_results": [],
+          "skill_results": [],
+          "served_fences": {
+            "evidence_fence_digest": "sha256:eb8f03ab3377a20e7583632c75920c004983696976ceaed1f2ab267c6330f5a0",
+            "skill_fence_digest": "sha256:72037a668f125fa6c16df09d19d0b9a7550625044858416ce8d0699812ba2f44"
+          },
+          "budgets": {
+            "total_cap": 10,
+            "evidence_subcap": 5,
+            "skill_subcap": 5,
+            "guidance_token_budget": 200,
+            "total_used": 0
+          },
+          "truncation_reason_codes": []
+        },
+        "upstream_result_digest": "sha256:880f0ece2654e92a40c8151ce2ef942eca8ebee6688d287ee5c59b873671c541",
+        "proxy_result_digest": "sha256:7b7be5e17c447c59baec8bfeafe20a09c525aa78387fb25c168dfbcbff927a4f"
+      }
+    },
+    {
+      "event_id": "evt-005",
+      "event_kind": "model_response",
+      "room_sequence": 15,
+      "logical_tick": 105,
+      "actor_id": "pi-agent-1",
+      "payload_digest": "sha256:6d77bc47cec23b3bda671e476b4db6e55ed54b2fb374db06760844e8cb232680",
+      "payload": {
+        "text": "final answer built from the exact tool result"
+      }
+    },
+    {
+      "event_id": "evt-006",
+      "event_kind": "delivery_transition",
+      "room_sequence": 16,
+      "logical_tick": 106,
+      "actor_id": "host-scheduler",
+      "payload_digest": "sha256:398b8aafe141605f332689cadeaf83b6f7da5418c25ec2a4f6d7ffb951a6a001",
+      "payload": {
+        "delivery_id": "dlv-msg-0001",
+        "from_state": "in_flight",
+        "to_state": "delivered"
+      }
+    },
+    {
+      "event_id": "evt-007",
+      "event_kind": "decision_checkpoint",
+      "room_sequence": 17,
+      "logical_tick": 107,
+      "actor_id": "host-lifecycle",
+      "payload_digest": "sha256:14316061f23f07eaec9e48f41dc2be6ce5842749c469a554590c07972a831665",
+      "payload": {
+        "checkpoint_id": "ckpt-success-0001",
+        "checkpoint_sequence": 1,
+        "close_intent": "settle"
+      }
+    },
+    {
+      "event_id": "evt-008",
+      "event_kind": "replay_dispatch",
+      "room_sequence": 18,
+      "logical_tick": 108,
+      "actor_id": "host-scheduler",
+      "payload_digest": "sha256:9d5166e0fff707ddd00fd44fc0aa688838a3f3b5193001bd5cf824daa4efbabe",
+      "payload": {
+        "replay_request_digest": "sha256:acc936e8867c07fe3be1f7872e4a88b38c9223cf43a26c5fce5000a0161b1902"
+      }
+    },
+    {
+      "event_id": "evt-009",
+      "event_kind": "replay_completion",
+      "room_sequence": 19,
+      "logical_tick": 109,
+      "actor_id": "host-scheduler",
+      "payload_digest": "sha256:0c2870496ded81a94f377603ddb45a5da1ea7dfd2ba3c9f561babc7d8ea5e590",
+      "payload": {
+        "replay_result_ref": {
+          "id": "replay-result-0001",
+          "version": 1,
+          "digest": "sha256:164de674481d59e6b3425f86c38e7464233db20b1c1119ffd98d53f4e1c23af7"
+        }
+      }
+    }
+  ],
+  "causal_links": [
+    {
+      "link_id": "lnk-001",
+      "link_kind": "room_sequence",
+      "from_event": "evt-001",
+      "to_event": "evt-002"
+    },
+    {
+      "link_id": "lnk-002",
+      "link_kind": "room_sequence",
+      "from_event": "evt-002",
+      "to_event": "evt-003"
+    },
+    {
+      "link_id": "lnk-003",
+      "link_kind": "room_sequence",
+      "from_event": "evt-003",
+      "to_event": "evt-004"
+    },
+    {
+      "link_id": "lnk-004",
+      "link_kind": "room_sequence",
+      "from_event": "evt-004",
+      "to_event": "evt-005"
+    },
+    {
+      "link_id": "lnk-005",
+      "link_kind": "room_sequence",
+      "from_event": "evt-005",
+      "to_event": "evt-006"
+    },
+    {
+      "link_id": "lnk-006",
+      "link_kind": "room_sequence",
+      "from_event": "evt-006",
+      "to_event": "evt-007"
+    },
+    {
+      "link_id": "lnk-007",
+      "link_kind": "room_sequence",
+      "from_event": "evt-007",
+      "to_event": "evt-008"
+    },
+    {
+      "link_id": "lnk-008",
+      "link_kind": "room_sequence",
+      "from_event": "evt-008",
+      "to_event": "evt-009"
+    },
+    {
+      "link_id": "lnk-101",
+      "link_kind": "response_to",
+      "from_event": "evt-001",
+      "to_event": "evt-002"
+    },
+    {
+      "link_id": "lnk-102",
+      "link_kind": "response_to",
+      "from_event": "evt-001",
+      "to_event": "evt-005"
+    },
+    {
+      "link_id": "lnk-103",
+      "link_kind": "tool_call_to_result",
+      "from_event": "evt-003",
+      "to_event": "evt-004"
+    },
+    {
+      "link_id": "lnk-104",
+      "link_kind": "delivery_of",
+      "from_event": "evt-005",
+      "to_event": "evt-006"
+    },
+    {
+      "link_id": "lnk-105",
+      "link_kind": "response_to",
+      "from_event": "evt-005",
+      "to_event": "evt-007"
+    },
+    {
+      "link_id": "lnk-106",
+      "link_kind": "caused_by",
+      "from_event": "evt-007",
+      "to_event": "evt-008"
+    },
+    {
+      "link_id": "lnk-107",
+      "link_kind": "replay_of",
+      "from_event": "evt-008",
+      "to_event": "evt-009"
+    },
+    {
+      "link_id": "lnk-neg-cycle",
+      "link_kind": "caused_by",
+      "from_event": "evt-007",
+      "to_event": "evt-005"
+    }
+  ],
+  "deliveries": [
+    {
+      "delivery_id": "dlv-tool-0001",
+      "subject_event": "evt-003",
+      "terminal_state": "delivered"
+    },
+    {
+      "delivery_id": "dlv-msg-0001",
+      "subject_event": "evt-005",
+      "terminal_state": "delivered"
+    }
+  ],
+  "tool_executions": [
+    {
+      "tool_call_event": "evt-003",
+      "tool_result_event": "evt-004",
+      "delivery_id": "dlv-tool-0001",
+      "tool_proxy_result": {
+        "schema_version": "host.tool-proxy-result.v1",
+        "proxy_request_id": "tpr-success-0001",
+        "status": "succeeded",
+        "result": {
+          "schema_version": "gms.explore-result.v1",
+          "explore_session_id": "explore-success-0001",
+          "query_digest": "sha256:edfa9e9cbcda14ce9438705ff916525532ebfdc9b14bcca10b142dc1aa0da8fe",
+          "ranker_policy_ref": {
+            "id": "gms.ranker-policy",
+            "version": 1,
+            "digest": "sha256:d462f568242733bffea345b6b502394e8437dc24c82aa65497f581b257da3b1e"
+          },
+          "watermark": {
+            "schema_version": "gms.projection-watermark.v1",
+            "projection_stream": "runtime",
+            "projection_schema_version": "gms.projection.v1",
+            "projection_head": "head-0007",
+            "projected_through_activation_sequence": 7,
+            "source_ledger_digest": "sha256:5b0e5b288c84a7e8d9de1a6cfaa4769ed38977a0beb02966456dd1c895d7afa0",
+            "state": "current",
+            "watermark_digest": "sha256:46c7ad3e4efb5e2c9c581c63fa83d553a32f489ca42e8d1902f10db14fe697f3"
+          },
+          "evidence_results": [],
+          "skill_results": [],
+          "served_fences": {
+            "evidence_fence_digest": "sha256:eb8f03ab3377a20e7583632c75920c004983696976ceaed1f2ab267c6330f5a0",
+            "skill_fence_digest": "sha256:72037a668f125fa6c16df09d19d0b9a7550625044858416ce8d0699812ba2f44"
+          },
+          "budgets": {
+            "total_cap": 10,
+            "evidence_subcap": 5,
+            "skill_subcap": 5,
+            "guidance_token_budget": 200,
+            "total_used": 0
+          },
+          "truncation_reason_codes": []
+        },
+        "upstream_result_digest": "sha256:880f0ece2654e92a40c8151ce2ef942eca8ebee6688d287ee5c59b873671c541",
+        "proxy_result_digest": "sha256:7b7be5e17c447c59baec8bfeafe20a09c525aa78387fb25c168dfbcbff927a4f"
+      }
+    }
+  ],
+  "checkpoint_identity": {
+    "checkpoint_id": "ckpt-success-0001",
+    "checkpoint_sequence": 1
+  },
+  "evidence_seal_body": {
+    "schema_version": "host.evidence-seal.v1",
+    "room_id": "room-alpha-0001",
+    "segment_id": "seg-neg-dag-cycle",
+    "segment_version": 1,
+    "sequence_interval": {
+      "start_room_sequence": 10,
+      "end_room_sequence": 19
+    },
+    "ordered_event_refs": [
+      {
+        "event_id": "evt-001",
+        "room_sequence": 11,
+        "payload_digest": "sha256:d703d6b76d1010d207e902c142824400698dfed5bf6226143490ad23377a8df9"
+      },
+      {
+        "event_id": "evt-002",
+        "room_sequence": 12,
+        "payload_digest": "sha256:661df07f923d47167722e65b4c6298e83cf406c6438c84738ad66e03e5e4fc0f"
+      },
+      {
+        "event_id": "evt-003",
+        "room_sequence": 13,
+        "payload_digest": "sha256:be7a575574e0a2cfc89e8bbcda5170f5d2ea286e276c76b96944abd709b2c929"
+      },
+      {
+        "event_id": "evt-004",
+        "room_sequence": 14,
+        "payload_digest": "sha256:9595707e62d8dae5b6c65d76b80090c2682e782b8169418d1a87f4bddac2fba8"
+      },
+      {
+        "event_id": "evt-005",
+        "room_sequence": 15,
+        "payload_digest": "sha256:6d77bc47cec23b3bda671e476b4db6e55ed54b2fb374db06760844e8cb232680"
+      },
+      {
+        "event_id": "evt-006",
+        "room_sequence": 16,
+        "payload_digest": "sha256:398b8aafe141605f332689cadeaf83b6f7da5418c25ec2a4f6d7ffb951a6a001"
+      },
+      {
+        "event_id": "evt-007",
+        "room_sequence": 17,
+        "payload_digest": "sha256:14316061f23f07eaec9e48f41dc2be6ce5842749c469a554590c07972a831665"
+      },
+      {
+        "event_id": "evt-008",
+        "room_sequence": 18,
+        "payload_digest": "sha256:9d5166e0fff707ddd00fd44fc0aa688838a3f3b5193001bd5cf824daa4efbabe"
+      },
+      {
+        "event_id": "evt-009",
+        "room_sequence": 19,
+        "payload_digest": "sha256:0c2870496ded81a94f377603ddb45a5da1ea7dfd2ba3c9f561babc7d8ea5e590"
+      }
+    ],
+    "actor_ids": [
+      "host-lifecycle",
+      "host-scheduler",
+      "pi-agent-1",
+      "user-u1"
+    ],
+    "deliveries": [
+      {
+        "delivery_id": "dlv-tool-0001",
+        "terminal_state": "delivered"
+      },
+      {
+        "delivery_id": "dlv-msg-0001",
+        "terminal_state": "delivered"
+      }
+    ],
+    "tool_correlations": [
+      {
+        "tool_call_event": "evt-003",
+        "tool_result_event": "evt-004",
+        "tool_proxy_result_digest": "sha256:7b7be5e17c447c59baec8bfeafe20a09c525aa78387fb25c168dfbcbff927a4f"
+      }
+    ],
+    "causal_link_set_digest": "sha256:b337b6f4821ec3ee61472a5ff53ac86ff009c1925ee8415293a226cc05ac81b0",
+    "included_evidence_candidates": [
+      {
+        "event_id": "evt-005",
+        "evidence_kind": "success_path"
+      }
+    ],
+    "excluded_event_refs": [],
+    "scope_profile_ref": {
+      "id": "host.scope-profile-alpha",
+      "version": 1,
+      "digest": "sha256:2d4e2b5c744638b3473e6161ac478be022314acf85209484e199b03f8ee28bc0"
+    },
+    "close_policy": {
+      "close_policy_ref": {
+        "id": "host.segment-close-policy",
+        "version": 1,
+        "digest": "sha256:94b67600e889de610f0617f573cbbbf2ebbcccd13a9a6935663a1d12e8c68d92"
+      },
+      "canonicalization_profile": "rfc8785-jcs",
+      "schema_version": "host.sealed-segment.v1"
+    }
+  },
+  "path_seal_body": {
+    "schema_version": "host.path-seal.v1",
+    "room_id": "room-alpha-0001",
+    "segment_id": "seg-success-0001",
+    "segment_version": 1,
+    "paths": [
+      {
+        "path_id": "path-success-0001",
+        "domain": "success",
+        "ordered_event_refs": [
+          "evt-001",
+          "evt-002",
+          "evt-003",
+          "evt-004",
+          "evt-005",
+          "evt-006",
+          "evt-007"
+        ],
+        "causal_link_refs": [
+          "lnk-001",
+          "lnk-002",
+          "lnk-003",
+          "lnk-004",
+          "lnk-005",
+          "lnk-006",
+          "lnk-101",
+          "lnk-102",
+          "lnk-103",
+          "lnk-104",
+          "lnk-105"
+        ],
+        "causal_links_digest": "sha256:79259bc04c50941bd853040829ea9d8211eefa352e660126963784c7e08ce221",
+        "start_room_sequence": 11,
+        "end_room_sequence": 17,
+        "terminal_outcome": "success",
+        "tool_outcomes": [
+          {
+            "tool_call_event": "evt-003",
+            "outcome": "succeeded"
+          }
+        ],
+        "delivery_outcomes": [
+          {
+            "delivery_id": "dlv-tool-0001",
+            "outcome": "delivered"
+          },
+          {
+            "delivery_id": "dlv-msg-0001",
+            "outcome": "delivered"
+          }
+        ],
+        "checkpoint_ref_id": "ckpt-success-0001",
+        "completeness": "complete",
+        "extraction_policy_ref": {
+          "id": "host.path-extraction-policy",
+          "version": 1,
+          "digest": "sha256:661bc44ef11f1c86c6ca791543eaf73af2cc51f25513df34c07796309647e34f"
+        }
+      }
+    ]
+  }
+}

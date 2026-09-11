@@ -1,0 +1,281 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "proposal-lifecycle",
+  "title": "Contract 9.1 ordinary SkillProposal -> candidate -> release",
+  "contract_ref": "system-contract.md 9.1",
+  "machines": [
+    {
+      "machine_id": "skill-proposal",
+      "entity": "SkillProposal",
+      "contract_ref": "9.1",
+      "initial_states": [
+        "proposed"
+      ],
+      "states": [
+        {
+          "name": "proposed",
+          "terminal": false,
+          "entry_condition": "exact seals/evidence, kind, operation and policy refs committed (9.1)",
+          "legal_exits": [
+            "admitted",
+            "rejected",
+            "stale",
+            "withdrawn"
+          ]
+        },
+        {
+          "name": "admitted",
+          "terminal": false,
+          "entry_condition": "protected admission verified permissions, source refs, kind and dedup (9.1)",
+          "legal_exits": [
+            "candidate_bound",
+            "rejected",
+            "stale",
+            "withdrawn"
+          ]
+        },
+        {
+          "name": "candidate_bound",
+          "terminal": false,
+          "entry_condition": "canonicalizer wrote the unique CandidateRef (9.1)",
+          "legal_exits": [
+            "validating",
+            "stale"
+          ]
+        },
+        {
+          "name": "validating",
+          "terminal": false,
+          "entry_condition": "validator lease and exact input packet frozen (9.1)",
+          "legal_exits": [
+            "replay_pending",
+            "rejected",
+            "stale"
+          ]
+        },
+        {
+          "name": "replay_pending",
+          "terminal": false,
+          "entry_condition": "static/hard schema gates all passed (9.1)",
+          "legal_exits": [
+            "replaying",
+            "stale"
+          ]
+        },
+        {
+          "name": "replaying",
+          "terminal": false,
+          "entry_condition": "ReplayRequest registered and runtime adapter executing (9.1)",
+          "legal_exits": [
+            "decision_pending",
+            "rejected",
+            "inconclusive",
+            "stale"
+          ]
+        },
+        {
+          "name": "decision_pending",
+          "terminal": false,
+          "entry_condition": "complete ReplayResult available to the protected evaluator (9.1)",
+          "legal_exits": [
+            "activation_pending",
+            "rejected",
+            "inconclusive"
+          ]
+        },
+        {
+          "name": "activation_pending",
+          "terminal": false,
+          "entry_condition": "decision accepted, awaiting active-head CAS (9.1)",
+          "legal_exits": [
+            "released",
+            "rejected",
+            "stale"
+          ]
+        },
+        {
+          "name": "released",
+          "terminal": true,
+          "entry_condition": "CandidateRef->ReleasedRef mapping and activation event atomically committed (9.1)",
+          "legal_exits": []
+        },
+        {
+          "name": "rejected",
+          "terminal": true,
+          "entry_condition": "terminal rejection; any new attempt needs a new proposal (9.1)",
+          "legal_exits": []
+        },
+        {
+          "name": "inconclusive",
+          "terminal": true,
+          "entry_condition": "terminal inconclusive outcome (9.1)",
+          "legal_exits": []
+        },
+        {
+          "name": "stale",
+          "terminal": true,
+          "entry_condition": "frozen expectation no longer satisfied; never auto-rebased (13.4)",
+          "legal_exits": []
+        },
+        {
+          "name": "withdrawn",
+          "terminal": true,
+          "entry_condition": "withdrawn before the candidate entered protected validation (9.1)",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "proposed",
+          "to": "admitted",
+          "trigger": "admission_passed",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "rejected",
+          "trigger": "admission_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "withdrawn",
+          "trigger": "withdrawn_before_validation",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "candidate_bound",
+          "trigger": "candidate_binding_committed",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "rejected",
+          "trigger": "post_admission_rejection",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "withdrawn",
+          "trigger": "withdrawn_before_validation",
+          "authority": "gms"
+        },
+        {
+          "from": "candidate_bound",
+          "to": "validating",
+          "trigger": "validation_lease_acquired",
+          "authority": "gms"
+        },
+        {
+          "from": "candidate_bound",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "replay_pending",
+          "trigger": "static_hard_gates_passed",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "rejected",
+          "trigger": "validation_hard_failure",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "replay_pending",
+          "to": "replaying",
+          "trigger": "replay_request_registered",
+          "authority": "gms"
+        },
+        {
+          "from": "replay_pending",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "decision_pending",
+          "trigger": "replay_result_complete",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "rejected",
+          "trigger": "replay_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "inconclusive",
+          "trigger": "replay_inconclusive",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "stale",
+          "trigger": "expectation_stale",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "activation_pending",
+          "trigger": "release_decision_accepted",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "rejected",
+          "trigger": "release_decision_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "inconclusive",
+          "trigger": "decision_data_insufficient",
+          "authority": "gms"
+        },
+        {
+          "from": "activation_pending",
+          "to": "released",
+          "trigger": "activation_transaction_committed",
+          "authority": "gms"
+        },
+        {
+          "from": "activation_pending",
+          "to": "rejected",
+          "trigger": "activation_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "activation_pending",
+          "to": "stale",
+          "trigger": "active_head_cas_failed",
+          "authority": "gms"
+        }
+      ]
+    }
+  ]
+}

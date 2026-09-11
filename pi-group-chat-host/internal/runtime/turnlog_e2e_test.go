@@ -26,7 +26,7 @@ func TestTurnWritesHostEventLog(t *testing.T) {
 			"items": []any{
 				map[string]any{"content": "earlier decision", "source_space_id": "space-room-shared", "memory_version": 3,
 					"citation": map[string]any{"citation_id": "citation-1", "evidence_batch_id": "batch-1", "event_ids": []string{"event-1"}},
-					"score": 0.75},
+					"score":    0.75},
 			},
 			"degradation": map[string]any{"state": "complete", "reasons": []string{}},
 		})

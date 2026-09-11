@@ -1,0 +1,147 @@
+{
+  "applicability": {
+    "exclusions": [],
+    "predicates": [
+      {
+        "field": "repo.state",
+        "op": "equals",
+        "value": "dirty"
+      }
+    ]
+  },
+  "body": {
+    "branches": [
+      {
+        "action": {
+          "evidence_refs": [
+            {
+              "commit_state": "committed",
+              "evidence_digest": "sha256:a2398e1b9ce01a8a29a27f65f9d0f79b47f6c5603aa60a333f24584d4d2d21fb",
+              "evidence_id": "ev-0451",
+              "evidence_kind": "success_path",
+              "schema_version": "gms.evidence-ref.v1",
+              "version": 2
+            }
+          ],
+          "failure_action": "stop",
+          "guidance": "Stage the verified files and commit with the frozen message"
+        },
+        "branch_id": "b-success",
+        "future": {
+          "critical_steps": [
+            {
+              "condition": {
+                "field": "repo.hooks",
+                "op": "equals",
+                "value": "installed"
+              },
+              "step_id": "fs-verify-hooks",
+              "task_impact": "prevents broken commit entering history"
+            }
+          ],
+          "expected_outcome": "clean tree, commit recorded",
+          "final_task_impact": "commit lands only after deterministic verification"
+        },
+        "when": {
+          "field": "repo.tests",
+          "op": "equals",
+          "value": "passing"
+        }
+      },
+      {
+        "action": {
+          "evidence_refs": [
+            {
+              "commit_state": "committed",
+              "evidence_digest": "sha256:2daf46b3a1e1a39549aa1a7cf128969fe27bdb828b368c76cfe8f181e9b76ffc",
+              "evidence_id": "ev-0452",
+              "evidence_kind": "failure_path",
+              "schema_version": "gms.evidence-ref.v1",
+              "version": 1
+            }
+          ],
+          "failure_action": "request_human",
+          "guidance": "Halt the commit and surface the failing hook output"
+        },
+        "branch_id": "b-failure",
+        "future": {
+          "critical_steps": [
+            {
+              "condition": {
+                "field": "repo.hooks",
+                "op": "equals",
+                "value": "installed"
+              },
+              "step_id": "fs-verify-hooks",
+              "task_impact": "prevents broken commit entering history"
+            }
+          ],
+          "expected_outcome": "no commit, failure documented",
+          "final_task_impact": "commit lands only after deterministic verification"
+        },
+        "when": {
+          "field": "repo.tests",
+          "op": "equals",
+          "value": "failing"
+        }
+      },
+      {
+        "action": {
+          "evidence_refs": [
+            {
+              "commit_state": "committed",
+              "evidence_digest": "sha256:939567e48617cf2991d25bc20b76a3903bcde5d951921eb51243d1fd1bbee428",
+              "evidence_id": "ev-0453",
+              "evidence_kind": "recovery_path",
+              "schema_version": "gms.evidence-ref.v1",
+              "version": 1
+            }
+          ],
+          "failure_action": "fallback",
+          "guidance": "Re-run only the flagged checks, then retry the commit"
+        },
+        "branch_id": "b-recovery",
+        "future": {
+          "critical_steps": [
+            {
+              "condition": {
+                "field": "repo.hooks",
+                "op": "equals",
+                "value": "installed"
+              },
+              "step_id": "fs-verify-hooks",
+              "task_impact": "prevents broken commit entering history"
+            }
+          ],
+          "expected_outcome": "either clean commit or explicit stop",
+          "final_task_impact": "commit lands only after deterministic verification"
+        },
+        "when": {
+          "field": "repo.tests",
+          "op": "equals",
+          "value": "flaky"
+        }
+      }
+    ],
+    "causal_context": {
+      "claim_refs": [
+        {
+          "digest": "sha256:f5901c83bd81b3a4eea70f7d89654aa2aca5027b4921befb4fd6ab8300a8bb3b",
+          "id": "claim-alpha-0007",
+          "version": 1
+        }
+      ],
+      "summary": "Dirty tree before commit with previously failing hook"
+    }
+  },
+  "description": "Pre-commit verification guidance",
+  "kind": "step_guidance",
+  "permissions": [
+    {
+      "capability": "memory_explore",
+      "scope": "room-shared-space"
+    }
+  ],
+  "schema_version": "gms.skill-artifact.v1",
+  "title": "Commit checklist guidance"
+}

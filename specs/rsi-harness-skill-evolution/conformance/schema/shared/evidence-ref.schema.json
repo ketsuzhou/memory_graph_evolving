@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.evidence-ref.v1.schema.json",
+  "title": "Contract 7.7 EvidenceRef",
+  "description": "staged/uncommitted evidence is never referable from Runtime relations (7.7).",
+  "contract_refs": [
+    "system-contract.md 7.7"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "version",
+    "evidence_digest",
+    "commit_state",
+    "evidence_kind"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.evidence-ref.v1"
+    },
+    "evidence_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "commit_state": {
+      "enum": [
+        "committed",
+        "sealed"
+      ]
+    },
+    "evidence_kind": {
+      "enum": [
+        "success_path",
+        "failure_path",
+        "recovery_path",
+        "observation",
+        "replay_result",
+        "human_attestation"
+      ]
+    },
+    "source_segment_ref": {
+      "$ref": "segment-ref.schema.json#"
+    }
+  }
+}

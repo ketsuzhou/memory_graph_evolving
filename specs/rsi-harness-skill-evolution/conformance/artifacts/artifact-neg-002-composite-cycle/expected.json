@@ -1,0 +1,1 @@
+{"case_id":"artifact-neg-002-composite-cycle","expected_accept":false,"expected_canonical_byte_length":1694,"expected_digest":"sha256:614ad7a7735574ae3544da44476e21c00da60c977524f12645767a968a109f94","expected_reason_code":"COMPOSITE_CYCLE","notes":"Contract §5.2.3/§8.4: composite edges must form a DAG","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

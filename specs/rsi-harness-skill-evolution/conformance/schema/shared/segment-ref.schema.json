@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.segment-ref.v1.schema.json",
+  "title": "Contract 7.5 SegmentRef",
+  "description": "Only settled Segments mint refs (Host 3.x); seal refs are exact.",
+  "contract_refs": [
+    "system-contract.md 7.5"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "room_id",
+    "segment_id",
+    "segment_version",
+    "segment_digest",
+    "evidence_seal_ref",
+    "path_seal_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "host.segment-ref.v1"
+    },
+    "room_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "segment_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "segment_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "segment_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "evidence_seal_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "path_seal_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    }
+  }
+}

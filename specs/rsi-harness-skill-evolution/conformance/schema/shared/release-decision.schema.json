@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.release-decision.v1.schema.json",
+  "title": "Contract 7.12 ReleaseDecision",
+  "description": "accepted authorizes activation_pending only (10.6); it never equals active.",
+  "contract_refs": [
+    "system-contract.md 7.12",
+    "system-contract.md 10.2-10.3"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "decision_version",
+    "decision_digest",
+    "candidate_ref",
+    "validation_record_refs",
+    "replay_result_refs",
+    "release_rule_ref",
+    "utility_comparator_ref",
+    "hard_gate_results",
+    "outcome",
+    "reason_codes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.release-decision.v1"
+    },
+    "decision_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "decision_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decision_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "candidate_ref": {
+      "$ref": "candidate-artifact-ref.schema.json#"
+    },
+    "validation_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "replay_result_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "release_rule_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "utility_comparator_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "hard_gate_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_code",
+          "passed"
+        ],
+        "properties": {
+          "gate_code": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "record_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/versioned_ref"
+            }
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "outcome": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/non_empty_string"
+      },
+      "minItems": 0
+    },
+    "source_head_expectations": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      }
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "x-digest": {
+    "digest_field": "decision_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "decision_id",
+      "decision_version",
+      "candidate_ref",
+      "validation_record_refs",
+      "replay_result_refs",
+      "release_rule_ref",
+      "utility_comparator_ref",
+      "hard_gate_results",
+      "outcome",
+      "reason_codes"
+    ],
+    "preimage_rule": "decision_digest = SHA-256(JCS(core minus decision_digest and extensions))."
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "schema_version": "gms.skill-proposal.v1",
+  "proposal_id": "prop-0001",
+  "proposal_version": 1,
+  "proposal_digest": "sha256:4a9a33e9a85e515a988d1fd5e491e66682924855b94c117ea4549a3febae0cdd",
+  "proposed_kind": "step_guidance",
+  "source_segment_refs": [
+    {
+      "schema_version": "host.segment-ref.v1",
+      "room_id": "room-01",
+      "segment_id": "seg-seg",
+      "segment_version": 1,
+      "segment_digest": "sha256:a5e0350e6c24b75f4c30e2d2f2c937d1df1fd1bd300766f9a6d6971890595cf3",
+      "evidence_seal_ref": {
+        "id": "ref-0021",
+        "version": 1,
+        "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+      },
+      "path_seal_ref": {
+        "id": "ref-0022",
+        "version": 1,
+        "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+      }
+    }
+  ],
+  "checkpoint_refs": [
+    {
+      "schema_version": "host.checkpoint-ref.v1",
+      "room_id": "room-01",
+      "segment_ref": {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-01",
+        "segment_id": "seg-seg",
+        "segment_version": 1,
+        "segment_digest": "sha256:a5e0350e6c24b75f4c30e2d2f2c937d1df1fd1bd300766f9a6d6971890595cf3",
+        "evidence_seal_ref": {
+          "id": "ref-0021",
+          "version": 1,
+          "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+        },
+        "path_seal_ref": {
+          "id": "ref-0022",
+          "version": 1,
+          "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+        }
+      },
+      "checkpoint_id": "cp-0001",
+      "checkpoint_sequence": 1,
+      "checkpoint_digest": "sha256:c8756f30b457eea5085144e82b36e2ab4efba1a6d9249930d541bc7fdc7596f4"
+    }
+  ],
+  "evidence_refs": [
+    {
+      "schema_version": "gms.evidence-ref.v1",
+      "evidence_id": "ev-p1",
+      "version": 1,
+      "evidence_digest": "sha256:68f18b663d194b30731c330f66be3fd1c340cfb4279b9be548e9486f850d61a3",
+      "commit_state": "sealed",
+      "evidence_kind": "success_path",
+      "source_segment_ref": {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-01",
+        "segment_id": "seg-p1",
+        "segment_version": 1,
+        "segment_digest": "sha256:2d5a1593ce4c69fb22b469cbc20f2027a8aae5901d9ed5d79cd98cd0805432cd",
+        "evidence_seal_ref": {
+          "id": "ref-0021",
+          "version": 1,
+          "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+        },
+        "path_seal_ref": {
+          "id": "ref-0022",
+          "version": 1,
+          "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+        }
+      }
+    },
+    {
+      "schema_version": "gms.evidence-ref.v1",
+      "evidence_id": "ev-p2",
+      "version": 1,
+      "evidence_digest": "sha256:7a0af73d92cdd6223f168e89ffccd05c3781ea7f2be1823ba4cddf20921fe186",
+      "commit_state": "sealed",
+      "evidence_kind": "failure_path",
+      "source_segment_ref": {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-01",
+        "segment_id": "seg-p2",
+        "segment_version": 1,
+        "segment_digest": "sha256:2fce33a8a14d79441afe34bcc191922404a6890b96891c35b617345b3b018012",
+        "evidence_seal_ref": {
+          "id": "ref-0021",
+          "version": 1,
+          "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+        },
+        "path_seal_ref": {
+          "id": "ref-0022",
+          "version": 1,
+          "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+        }
+      }
+    }
+  ],
+  "requested_operation": "create_lineage",
+  "origin": {
+    "initiator_type": "model",
+    "initiator_ref": "agent-memory-01",
+    "request_ref": "req-0001"
+  },
+  "policy_refs": [
+    {
+      "id": "ref-0041",
+      "version": 1,
+      "digest": "sha256:c8c3e3bc8f0e495dfd45007c7dfd2a6eabe713e54ec84251238e2460357bad5e"
+    }
+  ],
+  "extensions": {
+    "ai.example.required": {
+      "required": true,
+      "value": {}
+    }
+  }
+}

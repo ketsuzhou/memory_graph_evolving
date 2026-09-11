@@ -1,0 +1,1 @@
+{"case_id":"event-002-deactivation","expected_accept":true,"expected_canonical_byte_length":701,"expected_digest":"sha256:c65a0aeaaa644d3858b2a6870bbb56283f39b28a4e164ea32942206980c1b12c","notes":"Contract §16.4 #9: compensating deactivate; the historical exact skill_ref stays resolvable","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

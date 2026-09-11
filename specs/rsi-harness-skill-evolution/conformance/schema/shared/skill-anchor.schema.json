@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-anchor.v1.schema.json",
+  "title": "Contract 7.8 SkillAnchor",
+  "description": "Immutable Host-sealed anchor consumed by the anchored_at relation (11.3-11.4).",
+  "contract_refs": [
+    "system-contract.md 7.8"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "anchor_id",
+    "skill_ref",
+    "checkpoint_ref",
+    "anchor_digest",
+    "created_from_ref"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.skill-anchor.v1"
+    },
+    "anchor_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "skill_ref": {
+      "$ref": "skill-artifact-ref.schema.json#"
+    },
+    "checkpoint_ref": {
+      "$ref": "checkpoint-ref.schema.json#"
+    },
+    "anchor_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "created_from_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    }
+  }
+}

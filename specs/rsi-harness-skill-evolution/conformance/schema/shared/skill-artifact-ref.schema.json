@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-artifact-ref.v1.schema.json",
+  "title": "Contract 7.3 SkillArtifactRef",
+  "description": "Exact identity is (lineage_id, version, artifact_digest); all three MUST match on resolution.",
+  "contract_refs": [
+    "system-contract.md 7.3",
+    "system-contract.md 6.2"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "lineage_id",
+    "version",
+    "kind",
+    "artifact_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.skill-artifact-ref.v1"
+    },
+    "lineage_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "kind": {
+      "$ref": "common-types.schema.json#/$defs/canonical_kind"
+    },
+    "artifact_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    }
+  }
+}

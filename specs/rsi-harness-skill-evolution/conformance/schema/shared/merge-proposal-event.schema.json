@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.merge-proposal-event.v1.schema.json",
+  "title": "Contract 7.23 MergeProposalEvent",
+  "description": "States advance only via protected CAS appends of this event; terminal states never reopen (7.23/9.4).",
+  "contract_refs": [
+    "system-contract.md 7.23",
+    "system-contract.md 9.4"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proposal_ref",
+    "event_sequence",
+    "event_id",
+    "event_digest",
+    "from_state",
+    "to_state",
+    "reason_codes",
+    "authority_ref",
+    "record_refs",
+    "observed_source_heads",
+    "expected_previous_event_sequence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.merge-proposal-event.v1"
+    },
+    "proposal_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "event_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "event_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "from_state": {
+      "enum": [
+        "none",
+        "proposed",
+        "admitted",
+        "synthesizing",
+        "candidate_bound",
+        "validating",
+        "replaying",
+        "decision_pending",
+        "activation_pending"
+      ]
+    },
+    "to_state": {
+      "enum": [
+        "proposed",
+        "admitted",
+        "synthesizing",
+        "candidate_bound",
+        "validating",
+        "replaying",
+        "decision_pending",
+        "activation_pending",
+        "released",
+        "duplicate",
+        "rejected",
+        "inconclusive",
+        "stale",
+        "withdrawn"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/non_empty_string"
+      },
+      "minItems": 0
+    },
+    "authority_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 0
+    },
+    "observed_source_heads": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      },
+      "minItems": 0
+    },
+    "expected_previous_event_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "x-digest": {
+    "digest_field": "event_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "proposal_ref",
+      "event_sequence",
+      "event_id",
+      "from_state",
+      "to_state",
+      "reason_codes",
+      "authority_ref",
+      "record_refs",
+      "observed_source_heads",
+      "expected_previous_event_sequence"
+    ],
+    "preimage_rule": "event_digest = SHA-256(JCS(core minus event_digest and extensions))."
+  }
+}

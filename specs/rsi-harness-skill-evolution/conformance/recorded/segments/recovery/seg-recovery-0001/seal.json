@@ -1,0 +1,87 @@
+{
+  "schema_version": "host.segment-seal.v1",
+  "segment_id": "seg-recovery-0001",
+  "terminal_state": "settled",
+  "canonical_byte_length": 14084,
+  "segment_digest": "sha256:3e34bb9b8b42d2536c2f461883cd51eef8dba6c733307278b379a4b834abf60b",
+  "evidence_seal": {
+    "seal_id": "evseal-seg-recovery-0001",
+    "seal_version": 1,
+    "seal_digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297",
+    "evidence_ref": {
+      "schema_version": "gms.evidence-ref.v1",
+      "evidence_id": "evseal-seg-recovery-0001",
+      "version": 1,
+      "evidence_digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297",
+      "commit_state": "sealed",
+      "evidence_kind": "recovery_path",
+      "source_segment_ref": {
+        "schema_version": "host.segment-ref.v1",
+        "room_id": "room-alpha-0001",
+        "segment_id": "seg-recovery-0001",
+        "segment_version": 1,
+        "segment_digest": "sha256:3e34bb9b8b42d2536c2f461883cd51eef8dba6c733307278b379a4b834abf60b",
+        "evidence_seal_ref": {
+          "id": "evseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297"
+        },
+        "path_seal_ref": {
+          "id": "pathseal-seg-recovery-0001",
+          "version": 1,
+          "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+        }
+      }
+    }
+  },
+  "path_seal": {
+    "seal_id": "pathseal-seg-recovery-0001",
+    "seal_version": 1,
+    "seal_digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d",
+    "path_ids": [
+      "path-failure-0001",
+      "path-recovery-0001"
+    ]
+  },
+  "segment_ref": {
+    "schema_version": "host.segment-ref.v1",
+    "room_id": "room-alpha-0001",
+    "segment_id": "seg-recovery-0001",
+    "segment_version": 1,
+    "segment_digest": "sha256:3e34bb9b8b42d2536c2f461883cd51eef8dba6c733307278b379a4b834abf60b",
+    "evidence_seal_ref": {
+      "id": "evseal-seg-recovery-0001",
+      "version": 1,
+      "digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297"
+    },
+    "path_seal_ref": {
+      "id": "pathseal-seg-recovery-0001",
+      "version": 1,
+      "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+    }
+  },
+  "checkpoint_ref": {
+    "schema_version": "host.checkpoint-ref.v1",
+    "room_id": "room-alpha-0001",
+    "segment_ref": {
+      "schema_version": "host.segment-ref.v1",
+      "room_id": "room-alpha-0001",
+      "segment_id": "seg-recovery-0001",
+      "segment_version": 1,
+      "segment_digest": "sha256:3e34bb9b8b42d2536c2f461883cd51eef8dba6c733307278b379a4b834abf60b",
+      "evidence_seal_ref": {
+        "id": "evseal-seg-recovery-0001",
+        "version": 1,
+        "digest": "sha256:ebb5e88ea9fb4492e4373e47d67de97a7d4c26a25c161c90313a3ec144ee9297"
+      },
+      "path_seal_ref": {
+        "id": "pathseal-seg-recovery-0001",
+        "version": 1,
+        "digest": "sha256:c4e13a9f3526bcb969f2d7067c5e802f854ffa7bb1eca72773221f1f8ce9265d"
+      }
+    },
+    "checkpoint_id": "ckpt-recovery-0001",
+    "checkpoint_sequence": 2,
+    "checkpoint_digest": "sha256:f17cceff49416cc69ceec29bb375841ca80ff8383dc6eb9235c9181866e83dbd"
+  }
+}

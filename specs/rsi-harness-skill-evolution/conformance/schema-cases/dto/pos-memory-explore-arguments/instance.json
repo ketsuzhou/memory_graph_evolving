@@ -1,0 +1,28 @@
+{
+  "schema_version": "gms.memory-explore-arguments.v1",
+  "explore_session_id": "exps-0001",
+  "query_text": "commit checklist",
+  "runtime_context_hash": "sha256:35d4c64962405515bd956605170f4126409a39ae967332b08f86abe2d63aa073",
+  "ranker_policy_ref": {
+    "id": "ref-0181",
+    "version": 1,
+    "digest": "sha256:e306a93173e72ac3f2060a1a50536262f7e08df5b51d37b7f17c5107b889378c"
+  },
+  "budgets": {
+    "total_cap": 10,
+    "evidence_subcap": 5,
+    "skill_subcap": 5,
+    "guidance_token_budget": 2048
+  },
+  "served_fences": {
+    "evidence_fence_digest": "sha256:7135cacd9420ed93a5cbaeccd4fb2ba21e76919eb4d99b6feb32e601f2a3a6cd",
+    "skill_fence_digest": "sha256:58d066951cc86f53364cfe8b6db83e2a59f1b625166610570a08292c73f8be14"
+  },
+  "filters": {
+    "active_only": true,
+    "kinds": [
+      "step_guidance"
+    ]
+  },
+  "continuation_of_query_digest": "sha256:57aeab9ab4a4baa77318b2a6a4ffa6a911ebecc7b9a8dbe9b0d710098cfbabad"
+}

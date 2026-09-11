@@ -1,0 +1,1 @@
+{"case_id":"pos-no-omission-empty-carrier","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:29fc7601efeef0d1a1fcaa89aeb1cecc7ce97efa420e1a0e7a1bc55671d27038","notes":"no omission: omissions == [] (determined, not absent) and codes == []","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

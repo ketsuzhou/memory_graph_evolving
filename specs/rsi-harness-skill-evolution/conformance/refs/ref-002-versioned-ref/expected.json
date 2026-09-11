@@ -1,0 +1,1 @@
+{"case_id":"ref-002-versioned-ref","expected_accept":true,"expected_canonical_byte_length":126,"expected_digest":"sha256:e365c9b34740ff86c4b09a16ecc3b5294ba5fda65ef81add35f2ae4f4f1e0266","notes":"VersionedRef {id, version, digest} exact form","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

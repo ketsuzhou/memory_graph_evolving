@@ -1,0 +1,1 @@
+{"case_id":"canon-neg-001-float-value","expected_accept":false,"expected_reason_code":"NON_INTEGER_NUMBER","notes":"Contract §6.1.4: hashed core must not contain non-integer numbers","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

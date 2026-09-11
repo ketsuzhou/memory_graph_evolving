@@ -1,0 +1,70 @@
+{
+ "case_id": "neg-skill-get-scope-violation",
+ "read_audit": {
+  "active_head_activation_sequence": 12,
+  "agent_id": "agent-ctr002-a1",
+  "proxy_request_id": "pr-ctr002-0001",
+  "room_id": "room-ctr002-other",
+  "schema_version": "host.read-audit.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+   "id": "scope-memory-room-ctr002",
+   "version": 1
+  }
+ },
+ "request": {
+  "agent_id": "agent-ctr002-a1",
+  "arguments": {},
+  "delivery_id": "delivery-ctr002-0001",
+  "idempotency_key": "sha256:79da9f33a1d180e06b800862feb6c356d9ce86894ef847b2f271e83919ab3705",
+  "proxy_request_id": "pr-ctr002-0001",
+  "room_id": "room-ctr002-r1",
+  "schema_version": "host.tool-proxy-request.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+   "id": "scope-memory-room-ctr002",
+   "version": 1
+  },
+  "timeout_millis": 5000,
+  "tool_name": "skill_get"
+ },
+ "result_payload": {
+  "content": "Guidance: reconcile weekly digest citations against sealed evidence before proposing a Skill revision.",
+  "content_token_count": 18,
+  "expandable_refs": [
+   {
+    "ref": {
+     "branch_id": "branch-ctr002-a1"
+    },
+    "ref_type": "branch"
+   }
+  ],
+  "included_branch_refs": [
+   "branch-ctr002-a1"
+  ],
+  "omitted_branch_refs": [],
+  "policy_ref": {
+   "digest": "sha256:e8c0891959144f05f533813f43f8b5760726f4a635bdfc3d46230294be08403f",
+   "id": "gms.guidance-policy.default.v1",
+   "version": 1
+  },
+  "render_profile_ref": {
+   "digest": "sha256:9b3794ee3e2f935abc7ab8291ab89310e04898315e992154c7e320bdd124de72",
+   "id": "rsih.render-profile.default.v1",
+   "version": 2
+  },
+  "runtime_context_hash": "sha256:f3787883f34f39526cc5e5bfa3d10c3f6158e6cf5d61c6fce911e1531bad9d7e",
+  "schema_version": "gms.guidance-view.v1",
+  "source_skill_ref": {
+   "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
+   "kind": "human_procedure",
+   "lineage_id": "lin-ctr002-skill-a",
+   "schema_version": "gms.skill-artifact-ref.v1",
+   "version": 3
+  },
+  "truncated": false,
+  "view_hash": "sha256:258f8690df46749599cad7dbed47ef44f4ab2943e0fb83a2c215f544f600b038"
+ },
+ "schema_version": "rsih-skill-evolution.tool-binding-case.v1",
+ "tool_name": "skill_get"
+}

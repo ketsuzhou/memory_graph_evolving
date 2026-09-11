@@ -1,0 +1,107 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "candidate-lifecycle",
+  "title": "Contract 9.2 activation/deactivation",
+  "contract_ref": "system-contract.md 9.2",
+  "machines": [
+    {
+      "machine_id": "candidate-artifact",
+      "entity": "Candidate artifact",
+      "contract_ref": "9.2",
+      "initial_states": [
+        "candidate"
+      ],
+      "states": [
+        {
+          "name": "candidate",
+          "terminal": false,
+          "entry_condition": "immutable candidate body bound to a unique CandidateRef (7.4)",
+          "legal_exits": [
+            "released"
+          ]
+        },
+        {
+          "name": "released",
+          "terminal": true,
+          "entry_condition": "released ref, mapping and activation event atomically committed (9.2.1)",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "candidate",
+          "to": "released",
+          "trigger": "activation_committed",
+          "authority": "gms"
+        }
+      ]
+    },
+    {
+      "machine_id": "runtime-revision",
+      "entity": "Released revision runtime state",
+      "contract_ref": "9.2",
+      "initial_states": [
+        "released_inactive"
+      ],
+      "states": [
+        {
+          "name": "released_inactive",
+          "terminal": false,
+          "entry_condition": "released but not the current active head (may be a historical exact read)",
+          "legal_exits": [
+            "active"
+          ]
+        },
+        {
+          "name": "active",
+          "terminal": false,
+          "entry_condition": "current active head of its lineage",
+          "legal_exits": [
+            "superseded",
+            "deactivated"
+          ]
+        },
+        {
+          "name": "superseded",
+          "terminal": true,
+          "entry_condition": "replaced by a newer same-lineage activation; node and history retained (5.4)",
+          "legal_exits": []
+        },
+        {
+          "name": "deactivated",
+          "terminal": false,
+          "entry_condition": "protected deactivate committed; head cleared, node retained (9.2.3); reactivation requires a NEW protected authorization/release decision and a new activate event (9.2.7), never an edit of the old event",
+          "legal_exits": [
+            "active"
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from": "released_inactive",
+          "to": "active",
+          "trigger": "activate",
+          "authority": "gms"
+        },
+        {
+          "from": "active",
+          "to": "superseded",
+          "trigger": "superseded_by_newer_revision",
+          "authority": "gms"
+        },
+        {
+          "from": "active",
+          "to": "deactivated",
+          "trigger": "protected_deactivate",
+          "authority": "gms"
+        },
+        {
+          "from": "deactivated",
+          "to": "active",
+          "trigger": "protected_reactivate",
+          "authority": "gms"
+        }
+      ]
+    }
+  ]
+}

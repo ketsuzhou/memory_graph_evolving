@@ -1,0 +1,301 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "merge-lifecycle",
+  "title": "Contract 9.4 MergeProposal lifecycle (decisions M1-M9)",
+  "contract_ref": "system-contract.md 9.4",
+  "machines": [
+    {
+      "machine_id": "merge-proposal",
+      "entity": "MergeProposal",
+      "contract_ref": "9.4",
+      "initial_states": [
+        "proposed"
+      ],
+      "states": [
+        {
+          "name": "proposed",
+          "terminal": false,
+          "entry_condition": "exact SimilarityAssessment, two canonical source refs, bilateral evidence and versioned policies committed (9.4.1)",
+          "legal_exits": [
+            "admitted",
+            "duplicate",
+            "rejected",
+            "stale",
+            "withdrawn"
+          ]
+        },
+        {
+          "name": "admitted",
+          "terminal": false,
+          "entry_condition": "both sources active non-probation released step_guidance; policy band reached; unique group in-flight winner via CAS (9.4.2)",
+          "legal_exits": [
+            "synthesizing",
+            "rejected",
+            "stale",
+            "withdrawn"
+          ]
+        },
+        {
+          "name": "synthesizing",
+          "terminal": false,
+          "entry_condition": "protected builder froze the bilateral synthesis packet (9.4.3)",
+          "legal_exits": [
+            "candidate_bound",
+            "inconclusive",
+            "rejected",
+            "stale"
+          ]
+        },
+        {
+          "name": "candidate_bound",
+          "terminal": false,
+          "entry_condition": "unique CandidateRef written with complete provenance coverage (9.4.4)",
+          "legal_exits": [
+            "validating",
+            "stale"
+          ]
+        },
+        {
+          "name": "validating",
+          "terminal": false,
+          "entry_condition": "merge-specific static validation under lease (9.4.5)",
+          "legal_exits": [
+            "replaying",
+            "rejected",
+            "stale"
+          ]
+        },
+        {
+          "name": "replaying",
+          "terminal": false,
+          "entry_condition": "A-only/B-only/overlap-conflict fixture families executing (9.4.6)",
+          "legal_exits": [
+            "decision_pending",
+            "rejected",
+            "inconclusive",
+            "stale"
+          ]
+        },
+        {
+          "name": "decision_pending",
+          "terminal": false,
+          "entry_condition": "complete bilateral ReplayResult available to the protected evaluator (9.4.7)",
+          "legal_exits": [
+            "activation_pending",
+            "rejected",
+            "inconclusive"
+          ]
+        },
+        {
+          "name": "activation_pending",
+          "terminal": false,
+          "entry_condition": "U1 accepted; awaiting dual source-head CAS (9.4.8)",
+          "legal_exits": [
+            "released",
+            "stale"
+          ]
+        },
+        {
+          "name": "released",
+          "terminal": true,
+          "entry_condition": "M@1 atomically activated with two derived_from refs; A/B retained (9.4.9)",
+          "legal_exits": []
+        },
+        {
+          "name": "duplicate",
+          "terminal": true,
+          "entry_condition": "exact duplicate pointed at the canonical group winner (9.4.10)",
+          "legal_exits": []
+        },
+        {
+          "name": "rejected",
+          "terminal": true,
+          "entry_condition": "terminal rejection",
+          "legal_exits": []
+        },
+        {
+          "name": "inconclusive",
+          "terminal": true,
+          "entry_condition": "terminal inconclusive outcome",
+          "legal_exits": []
+        },
+        {
+          "name": "stale",
+          "terminal": true,
+          "entry_condition": "source head changed before activation; no partial release (M5)",
+          "legal_exits": []
+        },
+        {
+          "name": "withdrawn",
+          "terminal": true,
+          "entry_condition": "withdrawn before admission (9.4.1)",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "proposed",
+          "to": "admitted",
+          "trigger": "admission_passed",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "duplicate",
+          "trigger": "exact_duplicate",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "rejected",
+          "trigger": "incompatible_or_below_policy",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "stale",
+          "trigger": "head_or_policy_invalid",
+          "authority": "gms"
+        },
+        {
+          "from": "proposed",
+          "to": "withdrawn",
+          "trigger": "withdrawn_before_admission",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "synthesizing",
+          "trigger": "synthesis_lease_acquired",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "rejected",
+          "trigger": "admission_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "stale",
+          "trigger": "source_head_changed",
+          "authority": "gms"
+        },
+        {
+          "from": "admitted",
+          "to": "withdrawn",
+          "trigger": "withdrawn",
+          "authority": "gms"
+        },
+        {
+          "from": "synthesizing",
+          "to": "candidate_bound",
+          "trigger": "synthesis_succeeded",
+          "authority": "gms"
+        },
+        {
+          "from": "synthesizing",
+          "to": "inconclusive",
+          "trigger": "bounded_attempts_failed",
+          "authority": "gms"
+        },
+        {
+          "from": "synthesizing",
+          "to": "rejected",
+          "trigger": "blocking_conflict_unresolved",
+          "authority": "gms"
+        },
+        {
+          "from": "synthesizing",
+          "to": "stale",
+          "trigger": "source_head_changed",
+          "authority": "gms"
+        },
+        {
+          "from": "candidate_bound",
+          "to": "validating",
+          "trigger": "validation_lease_acquired",
+          "authority": "gms"
+        },
+        {
+          "from": "candidate_bound",
+          "to": "stale",
+          "trigger": "source_head_changed",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "replaying",
+          "trigger": "merge_validation_passed",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "rejected",
+          "trigger": "validation_hard_failure",
+          "authority": "gms"
+        },
+        {
+          "from": "validating",
+          "to": "stale",
+          "trigger": "source_head_changed",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "decision_pending",
+          "trigger": "bilateral_replay_complete",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "rejected",
+          "trigger": "critical_regression",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "inconclusive",
+          "trigger": "results_insufficient",
+          "authority": "gms"
+        },
+        {
+          "from": "replaying",
+          "to": "stale",
+          "trigger": "source_head_changed",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "activation_pending",
+          "trigger": "u1_decision_accepted",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "rejected",
+          "trigger": "u1_decision_rejected",
+          "authority": "gms"
+        },
+        {
+          "from": "decision_pending",
+          "to": "inconclusive",
+          "trigger": "decision_data_insufficient",
+          "authority": "gms"
+        },
+        {
+          "from": "activation_pending",
+          "to": "released",
+          "trigger": "dual_source_head_cas_committed",
+          "authority": "gms"
+        },
+        {
+          "from": "activation_pending",
+          "to": "stale",
+          "trigger": "source_head_cas_failed",
+          "authority": "gms"
+        }
+      ]
+    }
+  ]
+}

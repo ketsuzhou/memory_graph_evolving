@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-proposal.v1.schema.json",
+  "title": "Contract 7.9 SkillProposal",
+  "description": "Model/human Diagnose/Propose input; never a protected record until admitted.",
+  "contract_refs": [
+    "system-contract.md 7.9"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proposal_id",
+    "proposal_version",
+    "proposal_digest",
+    "proposed_kind",
+    "source_segment_refs",
+    "evidence_refs",
+    "requested_operation",
+    "origin",
+    "policy_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.skill-proposal.v1"
+    },
+    "proposal_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "proposal_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "proposal_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "proposed_kind": {
+      "$ref": "common-types.schema.json#/$defs/canonical_kind"
+    },
+    "source_segment_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "segment-ref.schema.json#"
+      },
+      "minItems": 1
+    },
+    "checkpoint_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "checkpoint-ref.schema.json#"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "evidence-ref.schema.json#"
+      },
+      "minItems": 1
+    },
+    "parent_skill_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "skill-artifact-ref.schema.json#"
+      }
+    },
+    "requested_operation": {
+      "enum": [
+        "create_lineage",
+        "revise_lineage",
+        "derive_lineage",
+        "bind_composite"
+      ]
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initiator_type",
+        "initiator_ref",
+        "request_ref"
+      ],
+      "properties": {
+        "initiator_type": {
+          "enum": [
+            "automatic",
+            "model",
+            "human"
+          ]
+        },
+        "initiator_ref": {
+          "$ref": "common-types.schema.json#/$defs/non_empty_string"
+        },
+        "request_ref": {
+          "$ref": "common-types.schema.json#/$defs/non_empty_string"
+        }
+      },
+      "description": "Contract 7.9 origin block."
+    },
+    "policy_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/versioned_ref"
+      },
+      "minItems": 1
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "x-digest": {
+    "digest_field": "proposal_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "proposal_id",
+      "proposal_version",
+      "proposed_kind",
+      "source_segment_refs",
+      "evidence_refs",
+      "requested_operation",
+      "origin",
+      "policy_refs"
+    ],
+    "preimage_rule": "proposal_digest = SHA-256(JCS(core minus proposal_digest and extensions)); extensions never change identity (1.3.4)."
+  }
+}

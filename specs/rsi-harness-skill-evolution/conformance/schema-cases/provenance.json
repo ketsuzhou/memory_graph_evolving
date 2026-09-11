@@ -1,0 +1,258 @@
+{
+  "contract_schema_version": "rsih-skill-evolution.system-contract.v1",
+  "files": [
+    {
+      "bytes": 6505,
+      "path": "schema/conformance-manifest.schema.json",
+      "sha256": "8c479b09139ea0a4a1a2247a9fa00dff6445f7c8e96edcd615f879d3df5592ad"
+    },
+    {
+      "bytes": 16652,
+      "path": "schema/explore-result.schema.json",
+      "sha256": "03bb3cb969d681755753a53fb64d22de026ec3c3a1e23f4b18af739931d4160d"
+    },
+    {
+      "bytes": 10308,
+      "path": "schema/materialization-identity.schema.json",
+      "sha256": "779f0a6193701e2de76dd84ef7a296caf17dbad28df7152f1eb1d78402c83e33"
+    },
+    {
+      "bytes": 13445,
+      "path": "schema/q29b-runtime.schema.json",
+      "sha256": "e693762cbb59f43ea7b9db0c0aed4624b188b41272fe29dc66120fd2ff7355c0"
+    },
+    {
+      "bytes": 17139,
+      "path": "schema/sealed-segment.schema.json",
+      "sha256": "4ff20afdc016927887216a569009273bd449e92b744b4cab65dadd88add37d60"
+    },
+    {
+      "bytes": 3192,
+      "path": "schema/shared/activation-event.schema.json",
+      "sha256": "ae6527c98f78243af7dcdebb090914b36e35d36f741a9d152597be8b91ba5804"
+    },
+    {
+      "bytes": 1133,
+      "path": "schema/shared/candidate-artifact-ref.schema.json",
+      "sha256": "08304e5d25773c52b049280fae6daa92dadc5aed6063834624bf94100478dd8e"
+    },
+    {
+      "bytes": 1034,
+      "path": "schema/shared/checkpoint-ref.schema.json",
+      "sha256": "d6f37b8b8cd4c1e418ce1332888270a670acc6f8fd71f16a471f6b26784f5093"
+    },
+    {
+      "bytes": 3948,
+      "path": "schema/shared/common-types.schema.json",
+      "sha256": "bb2150273e712eb14cd0ad06a03f3e5db8af9119fe0739e48ffd7970f1d40ea8"
+    },
+    {
+      "bytes": 4885,
+      "path": "schema/shared/composite-artifact-body.schema.json",
+      "sha256": "1c5a74687551d9b85669d6fdf6cd087df33cdeaf8fe11e4fdd9f4d52cdba0ac4"
+    },
+    {
+      "bytes": 3718,
+      "path": "schema/shared/deactivation-event.schema.json",
+      "sha256": "c4a7472bccac2eed61d464c991cf94ec904002ead6eae1584479358a14803638"
+    },
+    {
+      "bytes": 1224,
+      "path": "schema/shared/evidence-ref.schema.json",
+      "sha256": "b54090a634545d4d7f691a81ac9908fdbbb7aaecd17b87f9105b410cadc91dc9"
+    },
+    {
+      "bytes": 732,
+      "path": "schema/shared/explore-result.schema.json",
+      "sha256": "e8770b9a18c036d2ddfab185ad248ee11666513a8032584dd8696412acf3af2d"
+    },
+    {
+      "bytes": 1236,
+      "path": "schema/shared/guidance-view.schema.json",
+      "sha256": "4f914cb69eec69dba885fbcfdabe1977d9bfda3c0aa5db808249381e17d9780b"
+    },
+    {
+      "bytes": 756,
+      "path": "schema/shared/materialization-manifest.schema.json",
+      "sha256": "ad2f7291a526d740701ffdd3aac98c5077711a539bad9cf8ed657f7b966c3890"
+    },
+    {
+      "bytes": 3561,
+      "path": "schema/shared/memory-expand-arguments.schema.json",
+      "sha256": "87f40ce174d36d5c877ec6bfbca1cf808f7a205cb94df7e98a74fd4ab66e4d4f"
+    },
+    {
+      "bytes": 4480,
+      "path": "schema/shared/memory-explore-arguments.schema.json",
+      "sha256": "e6d63c68de2ff5a98d6b6b769ea47e84a634abde5b284c803ccd3c6daf26cbb0"
+    },
+    {
+      "bytes": 3025,
+      "path": "schema/shared/merge-proposal-event.schema.json",
+      "sha256": "9fc3a69fa34b70d1a33963ce4deebf5f5893dfbe73f740109a8faccddfd2bb61"
+    },
+    {
+      "bytes": 11179,
+      "path": "schema/shared/merge-proposal.schema.json",
+      "sha256": "74555c23c2557d1aab83b4e2b38332af9edc5d7791cf8a7b15c9ed5323db6a05"
+    },
+    {
+      "bytes": 1780,
+      "path": "schema/shared/procedure-body.schema.json",
+      "sha256": "9ac50739abf034a70592c84acf2e82065b1cb236c934855dffe52f4b02de89d7"
+    },
+    {
+      "bytes": 1109,
+      "path": "schema/shared/projection-watermark.schema.json",
+      "sha256": "e7e856b1be2c9e0adee89a33ad530e52820a7c084f846a9664e17bc7a8b8a828"
+    },
+    {
+      "bytes": 3234,
+      "path": "schema/shared/proposal-event.schema.json",
+      "sha256": "3f8764871b068fb7b7d589f3213b0b5a639bc8259ea03ed340c8a35f33dab264"
+    },
+    {
+      "bytes": 3319,
+      "path": "schema/shared/release-decision.schema.json",
+      "sha256": "445434243ef168c6d5fa3b341018415cf231d63ed2c5c25602a036e64aa8205b"
+    },
+    {
+      "bytes": 2437,
+      "path": "schema/shared/replay-request.schema.json",
+      "sha256": "af61416fb5bc623e5571421aa682d5ddb04c409a889cfa48df6a1675ee212842"
+    },
+    {
+      "bytes": 4367,
+      "path": "schema/shared/replay-result.schema.json",
+      "sha256": "fb116b2dc05def47b3ced9ec12b49c0b0b1da6defaefc3dfa72adc880c73b57f"
+    },
+    {
+      "bytes": 1149,
+      "path": "schema/shared/segment-ref.schema.json",
+      "sha256": "a501508e39f89fef1c1520c14e08374bbcf8901afa2a788d1ccc1edc543df3df"
+    },
+    {
+      "bytes": 3643,
+      "path": "schema/shared/similarity-assessment.schema.json",
+      "sha256": "703395be881d6f6259a5933170f72aee51bb913d0b51e38d4534d28413fc2056"
+    },
+    {
+      "bytes": 1031,
+      "path": "schema/shared/skill-anchor.schema.json",
+      "sha256": "925c35b954547798254e6d236f8dea462564e15a63c98db542b33e97db15adc4"
+    },
+    {
+      "bytes": 1758,
+      "path": "schema/shared/skill-artifact-envelope.schema.json",
+      "sha256": "92d244ebad690b911d02eb37a00217828d0fd543d87396602165c6cb63f13d7e"
+    },
+    {
+      "bytes": 971,
+      "path": "schema/shared/skill-artifact-ref.schema.json",
+      "sha256": "1d24df8c9fed5403148af47d13aa2a27760ea812d927fcfb30ee9c69e9ead5ef"
+    },
+    {
+      "bytes": 1508,
+      "path": "schema/shared/skill-get-arguments.schema.json",
+      "sha256": "99c85516a01385928008f8556957931773ca8273ebccdcca0e28de87bacf85f8"
+    },
+    {
+      "bytes": 1185,
+      "path": "schema/shared/skill-lock.schema.json",
+      "sha256": "551356746bdda1d10a279c42a0681dfe47b518f1088cac07852f5ea43770ee87"
+    },
+    {
+      "bytes": 3112,
+      "path": "schema/shared/skill-proposal.schema.json",
+      "sha256": "3e43a92056aba1674180319448ab9d3e79ed1488697d47c8fb90e807f0c767e4"
+    },
+    {
+      "bytes": 3652,
+      "path": "schema/shared/step-guidance-body.schema.json",
+      "sha256": "3896c4f1f94912f25b05ff9ff2217c0c0f1809ae94518012bfb34a9c8e471207"
+    },
+    {
+      "bytes": 1643,
+      "path": "schema/shared/tool-proxy-request.schema.json",
+      "sha256": "206a697763c99d2f894a2bc3fbe1778d7d554c9788e82f486d8d871aea229248"
+    },
+    {
+      "bytes": 2898,
+      "path": "schema/shared/tool-proxy-result.schema.json",
+      "sha256": "9cefa96c9019b14dee2290299db6f2c78fb0ea39b5102a9de57db0213fa603e3"
+    },
+    {
+      "bytes": 3015,
+      "path": "schema/state/candidate-lifecycle.schema.json",
+      "sha256": "738e23660174f67b2a601cafc82f7aa42bf424e397a486addd02ba036b4174c5"
+    },
+    {
+      "bytes": 7940,
+      "path": "schema/state/composite-run.schema.json",
+      "sha256": "14991de725ffb57ddf7725e45e906a047a04031346eb58b729cc9c950c68c110"
+    },
+    {
+      "bytes": 8385,
+      "path": "schema/state/merge-lifecycle.schema.json",
+      "sha256": "6f057c39e621d09904b7f06a4560b4af7e0ce4eaebf33a3dbe4acc886dad156f"
+    },
+    {
+      "bytes": 3279,
+      "path": "schema/state/projection-lifecycle.schema.json",
+      "sha256": "b31614b45665ae81f38881c7b971d12cbdf08525374dbd4296275949358da5f2"
+    },
+    {
+      "bytes": 7783,
+      "path": "schema/state/proposal-lifecycle.schema.json",
+      "sha256": "ac33c763c9e67da30a16bf9fa9230fffe0a66b9eb321215ad7c2ac27f4121952"
+    },
+    {
+      "bytes": 1724,
+      "path": "schema/state/segment-lifecycle.schema.json",
+      "sha256": "de832502eb31bc60eebfdf2bd99f641917696ba748dfac9728260e2d5c368208"
+    },
+    {
+      "bytes": 5215,
+      "path": "policy/host-proxy-reason-codes.v1.json",
+      "sha256": "fba76b93cade57bd13faebf7d67f2ca4d770706870bbc8708c642b5e81c3d45f"
+    },
+    {
+      "bytes": 40359,
+      "path": "policy/system-reason-codes.v1.json",
+      "sha256": "1effed904a0fca6d84ce0970a6fec43ba9dbf06f9bfc9876880da4cbc55f0968"
+    },
+    {
+      "bytes": 13726,
+      "path": "policy/tool-success-validation.v1.json",
+      "sha256": "7ba32e86ff88a452ff648b7519990a090008074a53462402467c5843dd779ae7"
+    },
+    {
+      "bytes": 2229,
+      "path": "policy/profiles/permission-profile.v1.json",
+      "sha256": "4c90efc2abc35b26ba2c61a2f05b48e0deb32dc68e2824533a374d9b72520036"
+    },
+    {
+      "bytes": 2373,
+      "path": "policy/profiles/render-profile.v1.json",
+      "sha256": "21c7230ebecc04c78ed186f6ccfdcdac18ef91268177182bbb2339e6213efd42"
+    },
+    {
+      "bytes": 1814,
+      "path": "policy/profiles/resource-profile.v1.json",
+      "sha256": "bf82a4f47e8177cf0e13e79f065cb8e45be9722e8826db62c27e1d755a758f19"
+    },
+    {
+      "bytes": 2202,
+      "path": "policy/profiles/runtime-profile.v1.json",
+      "sha256": "36fde62a8ccfdda8a82f5c71b5b1f0deb3208a91571e81ed4d61dd91f605b3ea"
+    }
+  ],
+  "generated_by": {
+    "artifact_type": "generated",
+    "generator": "validate_contract.py (CTR-005)",
+    "task": "CTR-005 machine-readable contract freeze"
+  },
+  "manifest_digest": "sha256:2fac2106aa80bed147cac70ee3d9e9b6e573b2b0158f619874517e37d20be545",
+  "schema_version": "rsih-skill-evolution.contract-provenance.v1",
+  "source_of_truth": "hand-written schemas under schema/ and policy/ are the source of truth; this manifest is a derived artifact"
+}

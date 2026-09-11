@@ -1,0 +1,1 @@
+{"case_id":"canon-neg-002-exponent-number","expected_accept":false,"expected_reason_code":"NON_INTEGER_NUMBER","notes":"exponent form fails closed even when integer-valued (cross-language precision hazard)","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

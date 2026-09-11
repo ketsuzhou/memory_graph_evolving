@@ -1,0 +1,10 @@
+{
+  "schema_version": "host.tool-proxy-result.v1",
+  "proxy_request_id": "pr-0001",
+  "status": "succeeded",
+  "result": {
+    "schema_version": "gms.explore-result.v1"
+  },
+  "upstream_result_digest": "sha256:873b8e96bd3e76cd7e27fe8cdae7e16ec675a7a986c43d29ee61479acfe69df7",
+  "proxy_result_digest": "sha256:d086c91f706d96b716b299d90be8f53855a7cd4da7cd758e3243cfacb64ea239"
+}

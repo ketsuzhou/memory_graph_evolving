@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.explore-result.v1.schema.json",
+  "title": "Contract 7.16 ExploreResult (+ 12.7.2 omissions carrier)",
+  "description": "CTR-005 machine-readable freeze of System Contract ['system-contract.md 7.16', 'system-contract.md 12.7.2']. Closed JSON Schema subset: additionalProperties false, explicit enums, integer-only numbers, conditional required fields via if/then. Hand-written file; the source of truth for the Go Host / Go GMS / TS RSIH adapters (HST-101/GMS-101/RSI-101).",
+  "contract_refs": [
+    "system-contract.md 7.16",
+    "system-contract.md 12.7.2"
+  ],
+  "$ref": "../explore-result.schema.json#/$defs/explore_result"
+}

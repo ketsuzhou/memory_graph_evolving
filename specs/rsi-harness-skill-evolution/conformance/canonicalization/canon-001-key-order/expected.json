@@ -1,0 +1,1 @@
+{"case_id":"canon-001-key-order","expected_accept":true,"expected_canonical_byte_length":13,"expected_digest":"sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777","notes":"keys are emitted in sorted UTF-16 order regardless of input order","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

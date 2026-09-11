@@ -1,0 +1,34 @@
+{
+  "schema_version": "rsih-skill-evolution.state-events.v1",
+  "case_id": "pos-composite-child-retry-path",
+  "bundle": "composite-run",
+  "machine": "composite-child-attempt",
+  "initial_state": "pending",
+  "events": [
+    {
+      "event_sequence": 1,
+      "from_state": "pending",
+      "to_state": "ready"
+    },
+    {
+      "event_sequence": 2,
+      "from_state": "ready",
+      "to_state": "running"
+    },
+    {
+      "event_sequence": 3,
+      "from_state": "running",
+      "to_state": "retry_wait"
+    },
+    {
+      "event_sequence": 4,
+      "from_state": "retry_wait",
+      "to_state": "running"
+    },
+    {
+      "event_sequence": 5,
+      "from_state": "running",
+      "to_state": "succeeded"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-omission-reason-without-refs",
+ "expected_accept": false,
+ "expected_reason_code": "TOOL_RESULT_BINDING_INVALID",
+ "expected_result_digest": null,
+ "notes": "reason without refs: codes non-empty while omissions == []",
+ "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

@@ -1,0 +1,1 @@
+{"case_id":"canon-005-nested-empty","expected_accept":true,"expected_canonical_byte_length":160,"expected_digest":"sha256:84184c7ee5634ad1ba2954e0c82f11db049b576487c6a62edb58d5888c3266de","notes":"nested containers, empty object/array, true/false/null; array order is semantic and preserved","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

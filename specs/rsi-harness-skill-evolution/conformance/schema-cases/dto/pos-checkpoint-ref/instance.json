@@ -1,0 +1,24 @@
+{
+  "schema_version": "host.checkpoint-ref.v1",
+  "room_id": "room-01",
+  "segment_ref": {
+    "schema_version": "host.segment-ref.v1",
+    "room_id": "room-01",
+    "segment_id": "seg-seg",
+    "segment_version": 1,
+    "segment_digest": "sha256:a5e0350e6c24b75f4c30e2d2f2c937d1df1fd1bd300766f9a6d6971890595cf3",
+    "evidence_seal_ref": {
+      "id": "ref-0021",
+      "version": 1,
+      "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+    },
+    "path_seal_ref": {
+      "id": "ref-0022",
+      "version": 1,
+      "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+    }
+  },
+  "checkpoint_id": "cp-0001",
+  "checkpoint_sequence": 1,
+  "checkpoint_digest": "sha256:c8756f30b457eea5085144e82b36e2ab4efba1a6d9249930d541bc7fdc7596f4"
+}

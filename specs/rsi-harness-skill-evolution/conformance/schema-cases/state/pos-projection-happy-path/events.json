@@ -1,0 +1,44 @@
+{
+  "schema_version": "rsih-skill-evolution.state-events.v1",
+  "case_id": "pos-projection-happy-path",
+  "bundle": "projection-lifecycle",
+  "machine": "projector",
+  "initial_state": "uninitialized",
+  "events": [
+    {
+      "event_sequence": 1,
+      "from_state": "uninitialized",
+      "to_state": "catching_up"
+    },
+    {
+      "event_sequence": 2,
+      "from_state": "catching_up",
+      "to_state": "current"
+    },
+    {
+      "event_sequence": 3,
+      "from_state": "current",
+      "to_state": "catching_up"
+    },
+    {
+      "event_sequence": 4,
+      "from_state": "catching_up",
+      "to_state": "blocked"
+    },
+    {
+      "event_sequence": 5,
+      "from_state": "blocked",
+      "to_state": "rebuilding"
+    },
+    {
+      "event_sequence": 6,
+      "from_state": "rebuilding",
+      "to_state": "catching_up"
+    },
+    {
+      "event_sequence": 7,
+      "from_state": "catching_up",
+      "to_state": "current"
+    }
+  ]
+}

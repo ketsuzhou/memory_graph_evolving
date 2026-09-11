@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.memory-expand-arguments.v1.schema.json",
+  "title": "GMS 10.3 MemoryExpandArgumentsV1",
+  "description": "served fences MUST continue the source query's fences; source_view_hash is REQUIRED when expanding branch/child_skill targets; v1 max_graph_depth is exactly 1.",
+  "contract_refs": [
+    "graph-memory-service.md 10.3",
+    "system-contract.md 12"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "explore_session_id",
+    "source_query_digest",
+    "target",
+    "runtime_context_hash",
+    "ranker_policy_ref",
+    "budgets",
+    "served_fences",
+    "max_graph_depth"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.memory-expand-arguments.v1"
+    },
+    "explore_session_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "source_query_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref_type",
+        "ref"
+      ],
+      "properties": {
+        "ref_type": {
+          "enum": [
+            "branch",
+            "evidence",
+            "checkpoint",
+            "child_skill"
+          ]
+        },
+        "ref": {
+          "type": "object"
+        }
+      },
+      "description": "Tagged union: ref binds the exact DTO matching ref_type."
+    },
+    "source_view_hash": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "runtime_context_hash": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "ranker_policy_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_cap",
+        "evidence_subcap",
+        "skill_subcap",
+        "guidance_token_budget"
+      ],
+      "properties": {
+        "total_cap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_subcap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skill_subcap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "guidance_token_budget": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "GMS 10.2 budgets; subcaps must not overrun total_cap (validator/semantic layer)."
+    },
+    "served_fences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_fence_digest",
+        "skill_fence_digest"
+      ],
+      "properties": {
+        "evidence_fence_digest": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        },
+        "skill_fence_digest": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "max_graph_depth": {
+      "const": 1
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "required": [
+              "ref_type"
+            ],
+            "properties": {
+              "ref_type": {
+                "enum": [
+                  "branch",
+                  "child_skill"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "source_view_hash"
+        ]
+      }
+    }
+  ]
+}

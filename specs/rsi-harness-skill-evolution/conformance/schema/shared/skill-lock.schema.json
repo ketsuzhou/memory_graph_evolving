@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-lock.v1.schema.json",
+  "title": "Contract 7.20 SkillLock (7.20.1 binding)",
+  "description": "CTR-005 machine-readable freeze of System Contract ['system-contract.md 7.20', 'system-contract.md 7.20.1']. Closed JSON Schema subset: additionalProperties false, explicit enums, integer-only numbers, conditional required fields via if/then. Hand-written file; the source of truth for the Go Host / Go GMS / TS RSIH adapters (HST-101/GMS-101/RSI-101).",
+  "contract_refs": [
+    "system-contract.md 7.20",
+    "system-contract.md 7.20.1"
+  ],
+  "$ref": "../materialization-identity.schema.json#/$defs/lock_document",
+  "x-digest": {
+    "digest_field": "lock_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "session_id",
+      "materialization_ref",
+      "root_skill_refs",
+      "locked_closure",
+      "activation_sequence_at_freeze"
+    ],
+    "preimage_rule": "lock_digest = SHA-256(JCS(lock document minus lock_digest)) (7.20.1); materialization_ref.digest is the manifest exact identity digest, never bundle_digest."
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "steps": [
+    {
+      "step_id": "s1",
+      "instruction": "Run the checklist",
+      "preconditions": [
+        {
+          "ready": true
+        }
+      ],
+      "postconditions": [
+        {
+          "checked": true
+        }
+      ],
+      "failure_action": "stop"
+    }
+  ],
+  "input_port_schema": {
+    "schema_id": "gms.child-io.v1",
+    "version": 1,
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4"
+  },
+  "output_port_schema": {
+    "schema_id": "gms.child-io.v1",
+    "version": 1,
+    "digest": "sha256:80dd504edcce2deaf89806dfbff871a5a109d5027f1d6f42e86777d5faf542a4"
+  }
+}

@@ -1,0 +1,749 @@
+openapi: 3.1.0
+info:
+  title: River2 GMS Skill Evolution — Closure Read and Memory Tools
+  version: 1.1.0-gms206
+  description: >-
+    Private GMS surface exposing (a) the exact materialization closure read
+    (GMS-207) consumed by the RSI-Harness materializer (Contract 6.2.1/13.7,
+    GMS 8.1/11.1/12.7-12.8, RSIH 4.2) and (b) the three v1 Memory tool
+    payloads memory_explore / memory_expand / skill_get (GMS-206; Contract
+    5.6/7.14-7.18/12.7.1-12.7.2, GMS 10-11, Host 5/7). The closure read
+    resolves the requested roots and their transitive exact dependencies from
+    the authoritative activation heads and content-addressed artifact store
+    only — never from the Graph — and returns the frozen canonical bytes,
+    ports, permissions, the freeze activation sequence and a torn-read token.
+    GMS supplies closure inputs only; it never mints manifest/lock identity.
+    The tool routes carry the exact Contract 7.17 ToolProxyRequest and return
+    the closed upstream success payload plus the authoritative read audit
+    record (GMS 10.5) — deterministic integer-only ranking over the Runtime
+    projection, ExploreSession served fences, typed omitted-refs carrier and
+    the frozen 12.7.1 tool-success validation matrix.
+servers:
+  - url: http://localhost
+security:
+  - bearerAuth: []
+paths:
+  /v1/skill-evolution/closure:read:
+    post:
+      operationId: readMaterializationClosure
+      summary: Read the exact materialization closure of active skill roots
+      description: >-
+        Fail-closed exact closure read. Every root must be the lineage's
+        CURRENT authoritative active head; every dependency edge resolves
+        exactly and currently; stored bytes must digest to the pinned
+        artifact_digest; the activation head must be identical before and
+        after the walk (torn reads return ACTIVATION_SEQUENCE_CONFLICT and no
+        closure). The response is deterministic: the same activation sequence
+        over the same roots yields the same closure and torn-read token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ClosureReadRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/ClosureReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/Unprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+  /v1/skill-evolution/tools/memory_explore:
+    post:
+      operationId: memoryExploreTool
+      summary: Deterministic lexical+graph explore over the Runtime projection
+      description: >-
+        Serves one ExploreResult page (Contract 7.16) of the closed v1 tool
+        set: deterministic integer micros ranking (lexical + graph boost,
+        frozen comparator chain — same input/head/policy/fences produce the
+        same order), budgets with the typed omitted-refs carrier (Contract
+        12.7.2: omissions ordered by kind then JCS(ref), truncation codes
+        truthful, total_used counts only served refs), cumulative served
+        fences per ExploreSession (scope-bound room/agent/profile) and the
+        Contract 7.14 watermark. Every success is self-validated against the
+        frozen 12.7.1 matrix before it leaves the service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ToolProxyRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/ToolUpstreamOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ToolUnprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/ProjectionBehind'}
+  /v1/skill-evolution/tools/memory_expand:
+    post:
+      operationId: memoryExpandTool
+      summary: Depth-1 expansion of a legally exposed target of a served page
+      description: >-
+        Continues one ExploreSession: source_query_digest must resolve to a
+        query this session served, served_fences must continue the session
+        exactly, max_graph_depth is exactly 1 (GMS 10.3), branch/child_skill
+        targets require the source view_hash, and the expansion result is an
+        ExploreResult over the same closed carrier rules.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ToolProxyRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/ToolUpstreamOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ToolUnprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/ProjectionBehind'}
+  /v1/skill-evolution/tools/skill_get:
+    post:
+      operationId: skillGetTool
+      summary: Closed GuidanceView of the authoritative active head
+      description: >-
+        Renders one closed Contract 7.15 GuidanceView of the lineage's
+        authoritative active head under the frozen tool-specific binding:
+        EXACTLY the twelve closed fields (freshness/authorization ride the
+        request + read audit, never the DTO), view_hash = SHA-256(JCS(view
+        minus view_hash)), render profile floor v2 / guidance policy floor v1,
+        current_active only (historical_exact requires an exact Host
+        authorization profile). Disabled-until-green: TOOL_UNSUPPORTED until
+        the frozen tools-corpus readiness gate passes (Contract 12.7.1 M6).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ToolProxyRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/ToolUpstreamOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ToolUnprocessable'}
+        '500': {$ref: '#/components/responses/Internal'}
+        '503': {$ref: '#/components/responses/ProjectionBehind'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    OpaqueID:
+      type: string
+      minLength: 1
+      maxLength: 128
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, details]
+          properties:
+            code:
+              type: string
+              description: Closed system reason code (Contract 13.7.1 registry).
+            message: {type: string}
+            request_id: {$ref: '#/components/schemas/OpaqueID'}
+            details:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [field, reason]
+                properties:
+                  field: {type: string}
+                  reason: {type: string}
+    Digest:
+      type: string
+      pattern: '^sha256:[0-9a-f]{64}$'
+    SkillKind:
+      type: string
+      enum: [procedure, step_guidance, composite]
+    SkillArtifactRef:
+      type: object
+      additionalProperties: false
+      required: [schema_version, lineage_id, version, kind, artifact_digest]
+      properties:
+        schema_version:
+          type: string
+          const: gms.skill-artifact-ref.v1
+        lineage_id: {$ref: '#/components/schemas/OpaqueID'}
+        version:
+          type: integer
+          minimum: 1
+          description: Exact integer version (never "latest").
+        kind: {$ref: '#/components/schemas/SkillKind'}
+        artifact_digest: {$ref: '#/components/schemas/Digest'}
+    PortSchemaRef:
+      type: object
+      additionalProperties: false
+      required: [schema_id, version, digest]
+      properties:
+        schema_id: {$ref: '#/components/schemas/OpaqueID'}
+        version:
+          type: integer
+          minimum: 1
+        digest: {$ref: '#/components/schemas/Digest'}
+    Permission:
+      type: object
+      additionalProperties: false
+      required: [capability, scope]
+      properties:
+        capability: {type: string}
+        scope: {type: string}
+    ClosureReadRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, root_skill_refs]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        root_skill_refs:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/SkillArtifactRef'}
+          description: >-
+            Exact root refs; each MUST be the lineage's current active head.
+            Duplicate roots are rejected (REF_MISMATCH). Candidate refs,
+            latest versions, naked names and Graph node forms are rejected
+            (CANDIDATE_NOT_EXECUTABLE / NON_EXACT_REF).
+        max_nodes:
+          type: integer
+          minimum: 1
+          default: 256
+          description: Optional per-request closure node budget (never above the service cap).
+    ClosureNode:
+      type: object
+      additionalProperties: false
+      required:
+        - skill_ref
+        - kind
+        - artifact_digest
+        - canonical_bytes_base64
+        - input_port_schema
+        - output_port_schema
+        - permissions
+        - dependency_refs
+      properties:
+        skill_ref: {$ref: '#/components/schemas/SkillArtifactRef'}
+        kind: {$ref: '#/components/schemas/SkillKind'}
+        artifact_digest: {$ref: '#/components/schemas/Digest'}
+        canonical_bytes_base64:
+          type: string
+          contentEncoding: base64
+          description: >-
+            The frozen canonical JCS envelope bytes; base64-decoded bytes
+            digest exactly to artifact_digest.
+        input_port_schema:
+          oneOf:
+            - {$ref: '#/components/schemas/PortSchemaRef'}
+            - {type: 'null'}
+        output_port_schema:
+          oneOf:
+            - {$ref: '#/components/schemas/PortSchemaRef'}
+            - {type: 'null'}
+        permissions:
+          type: array
+          items: {$ref: '#/components/schemas/Permission'}
+        dependency_refs:
+          type: array
+          items: {$ref: '#/components/schemas/SkillArtifactRef'}
+          description: >-
+            Explicit dependency edges (Composite exact children) in canonical
+            order; leaves carry an empty array.
+    ProjectionWatermark:
+      type: object
+      description: >-
+        The then-visible Contract 7.14 ProjectionWatermark, INFORMATIONAL only
+        (GMS 11.1): the read never waits for the Graph to catch up.
+      additionalProperties: true
+    ClosureReadResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - request_id
+        - root_skill_refs
+        - closure_nodes
+        - activation_sequence
+        - activation_head_digest
+        - torn_read_token
+      properties:
+        schema_version:
+          type: string
+          const: gms.materialization-closure-read.v1
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        root_skill_refs:
+          type: array
+          minItems: 1
+          description: The requested roots in canonical order.
+          items: {$ref: '#/components/schemas/SkillArtifactRef'}
+        closure_nodes:
+          type: array
+          minItems: 1
+          description: >-
+            DFS preorder from the canonically ordered roots, children visited
+            in canonical order, shared subtrees emitted exactly once; the
+            order depends only on the closure content.
+          items: {$ref: '#/components/schemas/ClosureNode'}
+        activation_sequence:
+          type: integer
+          minimum: 1
+          description: >-
+            The global activation stream sequence the read froze and
+            double-checked (the freeze sequence bound into the manifest and
+            SkillLock).
+        activation_head_digest: {$ref: '#/components/schemas/Digest'}
+        torn_read_token:
+          type: string
+          description: >-
+            SHA-256 over the JCS preimage {schema_version, activation_sequence,
+            activation_head_digest, root_refs, closure_refs}; the same
+            activation sequence over the same roots yields the same token.
+        projection_watermark: {$ref: '#/components/schemas/ProjectionWatermark'}
+    VersionedRef:
+      type: object
+      additionalProperties: false
+      required: [id, version, digest]
+      properties:
+        id: {$ref: '#/components/schemas/OpaqueID'}
+        version:
+          type: integer
+          minimum: 1
+        digest: {$ref: '#/components/schemas/Digest'}
+    EvidenceRef:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - evidence_id
+        - version
+        - evidence_digest
+        - commit_state
+        - evidence_kind
+      properties:
+        schema_version:
+          type: string
+          const: gms.evidence-ref.v1
+        evidence_id: {$ref: '#/components/schemas/OpaqueID'}
+        version:
+          type: integer
+          minimum: 1
+        evidence_digest: {$ref: '#/components/schemas/Digest'}
+        commit_state:
+          type: string
+          enum: [committed, sealed]
+        evidence_kind:
+          type: string
+          enum:
+            - success_path
+            - failure_path
+            - recovery_path
+            - observation
+            - replay_result
+            - human_attestation
+    ToolProxyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - proxy_request_id
+        - room_id
+        - agent_id
+        - delivery_id
+        - tool_name
+        - arguments
+        - scope_profile_ref
+        - idempotency_key
+      properties:
+        schema_version:
+          type: string
+          const: host.tool-proxy-request.v1
+        proxy_request_id: {$ref: '#/components/schemas/OpaqueID'}
+        room_id: {$ref: '#/components/schemas/OpaqueID'}
+        agent_id: {$ref: '#/components/schemas/OpaqueID'}
+        delivery_id: {$ref: '#/components/schemas/OpaqueID'}
+        tool_name:
+          type: string
+          enum: [memory_explore, memory_expand, skill_get]
+          description: >-
+            Closed tool set v1; any other name is TOOL_UNSUPPORTED (and
+            skill_get stays disabled-until-green, Contract 12.7.1 M6).
+        arguments:
+          type: object
+          description: >-
+            The tool-specific closed arguments payload (gms.memory-explore-
+            arguments.v1 / gms.memory-expand-arguments.v1 /
+            gms.skill-get-arguments.v1); integer-only JSON numbers.
+        scope_profile_ref: {$ref: '#/components/schemas/VersionedRef'}
+        idempotency_key: {type: string}
+        requested_min_activation_sequence:
+          type: integer
+          minimum: 0
+          description: >-
+            Optional freshness floor (Contract 7.17); a projection/head behind
+            the floor fails PROJECTION_BEHIND_REQUIRED_SEQUENCE (503,
+            retryable same-request).
+        timeout_millis:
+          type: integer
+          minimum: 0
+    ToolUpstreamResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - proxy_request_id
+        - tool_name
+        - status
+        - result
+        - read_audit
+        - upstream_result_digest
+      properties:
+        schema_version:
+          type: string
+          const: gms.tool-upstream-response.v1
+        proxy_request_id: {$ref: '#/components/schemas/OpaqueID'}
+        tool_name:
+          type: string
+          enum: [memory_explore, memory_expand, skill_get]
+        status:
+          type: string
+          const: success
+        result:
+          oneOf:
+            - {$ref: '#/components/schemas/ExploreResult'}
+            - {$ref: '#/components/schemas/GuidanceView'}
+          description: >-
+            The exact upstream typed payload (memory_explore/memory_expand ->
+            gms.explore-result.v1; skill_get -> gms.guidance-view.v1),
+            self-validated against the frozen 12.7.1 tool-success matrix.
+        read_audit: {$ref: '#/components/schemas/ReadAudit'}
+        upstream_result_digest:
+          allOf:
+            - {$ref: '#/components/schemas/Digest'}
+          description: SHA-256(JCS(result)) — the idempotent success identity.
+    ReadAudit:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - proxy_request_id
+        - room_id
+        - agent_id
+        - scope_profile_ref
+      properties:
+        schema_version:
+          type: string
+          const: host.read-audit.v1
+        proxy_request_id: {$ref: '#/components/schemas/OpaqueID'}
+        room_id: {$ref: '#/components/schemas/OpaqueID'}
+        agent_id: {$ref: '#/components/schemas/OpaqueID'}
+        scope_profile_ref: {$ref: '#/components/schemas/VersionedRef'}
+        watermark_projection_sequence:
+          type: integer
+          minimum: 0
+          description: >-
+            Authoritative freshness of the explore/expand read (the served
+            watermark's projected_through_activation_sequence).
+        active_head_activation_sequence:
+          type: integer
+          minimum: 0
+          description: >-
+            Authoritative freshness of the skill_get read (the active head's
+            activation sequence).
+    ExploreResult:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - explore_session_id
+        - query_digest
+        - ranker_policy_ref
+        - watermark
+        - evidence_results
+        - skill_results
+        - served_fences
+        - budgets
+        - truncation_reason_codes
+        - omissions
+      properties:
+        schema_version:
+          type: string
+          const: gms.explore-result.v1
+        explore_session_id: {$ref: '#/components/schemas/OpaqueID'}
+        query_digest: {$ref: '#/components/schemas/Digest'}
+        ranker_policy_ref: {$ref: '#/components/schemas/VersionedRef'}
+        watermark: {$ref: '#/components/schemas/ProjectionWatermark'}
+        min_activation_sequence:
+          type: integer
+          minimum: 0
+          description: Echoed request freshness floor when one was carried.
+        evidence_results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [result_type, evidence_ref, rank_score_micros, citation]
+            properties:
+              result_type:
+                type: string
+                const: evidence
+              evidence_ref: {$ref: '#/components/schemas/EvidenceRef'}
+              rank_score_micros:
+                type: integer
+                description: Integer-only lexical+graph micros (GMS 10.7).
+              citation:
+                type: object
+                additionalProperties: false
+                required: [evidence_ref, claim]
+                properties:
+                  evidence_ref: {$ref: '#/components/schemas/EvidenceRef'}
+                  claim: {type: string}
+        skill_results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - result_type
+              - skill_ref
+              - rank_score_micros
+              - guidance_view
+              - artifact_identity_citation
+              - evidence_citations
+            properties:
+              result_type:
+                type: string
+                const: skill
+              skill_ref: {$ref: '#/components/schemas/SkillArtifactRef'}
+              rank_score_micros:
+                type: integer
+              guidance_view: {$ref: '#/components/schemas/GuidanceView'}
+              artifact_identity_citation:
+                type: object
+                additionalProperties: false
+                required: [skill_ref]
+                properties:
+                  skill_ref: {$ref: '#/components/schemas/SkillArtifactRef'}
+              evidence_citations:
+                type: array
+                description: Typed provenance citations (Contract 12.6).
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [evidence_ref, claim]
+                  properties:
+                    evidence_ref: {$ref: '#/components/schemas/EvidenceRef'}
+                    claim: {type: string}
+        served_fences:
+          type: object
+          additionalProperties: false
+          required: [evidence_fence_digest, skill_fence_digest]
+          description: >-
+            Cumulative served-set fences of the ExploreSession; the next page
+            or expansion must continue with exactly these digests.
+          properties:
+            evidence_fence_digest: {$ref: '#/components/schemas/Digest'}
+            skill_fence_digest: {$ref: '#/components/schemas/Digest'}
+        budgets:
+          type: object
+          additionalProperties: false
+          required:
+            - total_cap
+            - evidence_subcap
+            - skill_subcap
+            - guidance_token_budget
+            - total_used
+          description: >-
+            Contract 12.4 accounting: total_used counts ONLY served refs
+            (omitted refs never consume budget).
+          properties:
+            total_cap: {type: integer, minimum: 0}
+            evidence_subcap: {type: integer, minimum: 0}
+            skill_subcap: {type: integer, minimum: 0}
+            guidance_token_budget: {type: integer, minimum: 0}
+            total_used: {type: integer, minimum: 0}
+        truncation_reason_codes:
+          type: array
+          description: >-
+            Order-preserving dedupe of omissions[].reason_code; non-empty iff
+            omissions is non-empty (no silent truncation, Contract 12.7.2).
+          items:
+            type: string
+            enum:
+              - TOTAL_CAP_REACHED
+              - EVIDENCE_SUBCAP_REACHED
+              - SKILL_SUBCAP_REACHED
+              - GUIDANCE_TOKEN_BUDGET_REACHED
+        omissions:
+          type: array
+          description: >-
+            The Contract 12.7.2 typed omitted-refs carrier: entries ordered by
+            (kind asc, JCS(ref) asc), deduplicated and disjoint from the
+            served set including earlier session pages.
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, ref, reason_code]
+            properties:
+              kind:
+                type: string
+                enum: [evidence, skill]
+              ref:
+                oneOf:
+                  - {$ref: '#/components/schemas/EvidenceRef'}
+                  - {$ref: '#/components/schemas/SkillArtifactRef'}
+              reason_code:
+                type: string
+                enum:
+                  - TOTAL_CAP_REACHED
+                  - EVIDENCE_SUBCAP_REACHED
+                  - SKILL_SUBCAP_REACHED
+                  - GUIDANCE_TOKEN_BUDGET_REACHED
+    GuidanceView:
+      type: object
+      additionalProperties: false
+      description: >-
+        Closed Contract 7.15 GuidanceView — EXACTLY these twelve fields;
+        freshness/authorization never ride the DTO (smuggled fields fail
+        SCHEMA_FIELD_UNKNOWN), and view_hash = SHA-256(JCS(view minus
+        view_hash)).
+      required:
+        - schema_version
+        - source_skill_ref
+        - render_profile_ref
+        - policy_ref
+        - runtime_context_hash
+        - included_branch_refs
+        - omitted_branch_refs
+        - expandable_refs
+        - content
+        - content_token_count
+        - truncated
+        - view_hash
+      properties:
+        schema_version:
+          type: string
+          const: gms.guidance-view.v1
+        source_skill_ref: {$ref: '#/components/schemas/SkillArtifactRef'}
+        render_profile_ref: {$ref: '#/components/schemas/VersionedRef'}
+        policy_ref: {$ref: '#/components/schemas/VersionedRef'}
+        runtime_context_hash: {$ref: '#/components/schemas/Digest'}
+        included_branch_refs:
+          type: array
+          items: {$ref: '#/components/schemas/OpaqueID'}
+        omitted_branch_refs:
+          type: array
+          description: Branch omission stays in the view (Contract 12.7.2).
+          items: {$ref: '#/components/schemas/OpaqueID'}
+        expandable_refs:
+          type: array
+          description: >-
+            Tagged targets continuable through memory_expand (branch /
+            evidence / checkpoint / child_skill).
+          items:
+            type: object
+            additionalProperties: false
+            required: [ref_type, ref]
+            properties:
+              ref_type:
+                type: string
+                enum: [branch, evidence, checkpoint, child_skill]
+              ref: {type: object}
+        content: {type: string}
+        content_token_count: {type: integer, minimum: 0}
+        truncated: {type: boolean}
+        view_hash: {$ref: '#/components/schemas/Digest'}
+  responses:
+    ClosureReadOK:
+      description: The exact materialization closure, deterministically ordered.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ClosureReadResponse'}
+    BadRequest:
+      description: >-
+        Malformed JSON (INVALID_JSON) or a request-shape violation
+        (INVALID_REQUEST: unknown fields, missing request_id, empty
+        root_skill_refs, non-object roots, non-positive max_nodes).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Unauthorized:
+      description: Missing or invalid bearer token (UNAUTHORIZED).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    NotFound:
+      description: >-
+        Unknown route (NOT_FOUND), or a root lineage with no active revision
+        (NO_ACTIVE_HEAD — deactivated or never activated).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Conflict:
+      description: >-
+        Torn read: the activation head moved between the read's baseline and
+        its double-check (ACTIVATION_SEQUENCE_CONFLICT; registry
+        retry_scope=new_attempt — retry with a fresh attempt, never replay
+        the same request). No closure is returned.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Unprocessable:
+      description: >-
+        Fail-closed semantic rejections: NON_EXACT_REF,
+        CANDIDATE_NOT_EXECUTABLE, REF_MISMATCH, SKILL_NOT_CURRENT_ACTIVE,
+        COMPOSITE_CHILD_NOT_ACTIVE, DIGEST_MISMATCH, ARTIFACT_BODY_INVALID,
+        SKILL_KIND_INVALID, PORT_SCHEMA_MISSING, PERMISSION_CAP_EXCEEDED,
+        UNKNOWN_REQUIRED_EXTENSION, DEPENDENCY_CYCLE, BUDGET_EXCEEDED.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    ToolUpstreamOK:
+      description: >-
+        The exact upstream typed payload (ExploreResult or closed
+        GuidanceView) plus the authoritative read audit record and the
+        canonical upstream digest — the Host adapter's Upstream result
+        (HST-201, Contract 7.18).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ToolUpstreamResponse'}
+    ToolUnprocessable:
+      description: >-
+        Fail-closed tool rejections: TOOL_UNSUPPORTED (unknown tool name or
+        the skill_get readiness gate closed), EXPLORE_SESSION_INVALID,
+        EXPLORE_SCOPE_VIOLATION, EXPLORE_QUERY_INVALID,
+        EXPLORE_CONTINUATION_INVALID, EXPLORE_FILTER_INVALID,
+        EXPLORE_FENCE_CONFLICT (409: served fences do not continue the
+        session exactly, a served ref would repeat, or a new page did not
+        advance the watermark), EXPAND_TARGET_NOT_SERVED,
+        EXPAND_SOURCE_VIEW_MISMATCH, EXPAND_DEPTH_UNSUPPORTED,
+        SKILL_NOT_CURRENT_ACTIVE,
+        HISTORICAL_READ_NOT_AUTHORIZED, GUIDANCE_RENDER_FAILED, BUDGET_INVALID,
+        CITATION_INVALID, NON_EXACT_REF, CANDIDATE_NOT_EXECUTABLE,
+        EVIDENCE_NOT_COMMITTED, ARTIFACT_BODY_INVALID,
+        SCHEMA_VERSION_UNSUPPORTED, UNKNOWN_REQUIRED_EXTENSION,
+        NO_ACTIVE_HEAD.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    ProjectionBehind:
+      description: >-
+        PROJECTION_BEHIND_REQUIRED_SEQUENCE (registry: retryable,
+        retry_scope=same_request) — the requested_min_activation_sequence is
+        ahead of the projection/head; the same request succeeds once the
+        read side catches up. Never a partial result.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    Internal:
+      description: Internal service failure (INTERNAL).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}

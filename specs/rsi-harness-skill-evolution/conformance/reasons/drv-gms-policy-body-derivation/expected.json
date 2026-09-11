@@ -1,0 +1,1 @@
+{"case_id":"drv-gms-policy-body-derivation","expected_body_digest":"sha256:998d42eba6b4b9e338497d4ed161e57eb0d804aba1e2f81c9317804cf70a98dd","expected_failure_code_count":112,"expected_truncation_code_count":4,"schema_version":"rsih-skill-evolution.reason-fixture-expected.v1"}

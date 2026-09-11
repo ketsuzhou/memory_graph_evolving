@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.composite-artifact-body.v1.schema.json",
+  "title": "Contract 8.4 composite body",
+  "description": "Acyclic DAG (cycles are COMPOSITE_CYCLE); loops only as bounded retry; permissions = children union + orchestration under the Host cap (14.2).",
+  "contract_refs": [
+    "system-contract.md 8.4",
+    "system-contract.md 9.5"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "children",
+    "edges",
+    "retry_policies",
+    "failure_handlers",
+    "orchestration_permissions",
+    "input_port_schema",
+    "output_port_schema"
+  ],
+  "properties": {
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "child_id",
+          "skill_ref",
+          "input_port",
+          "output_port"
+        ],
+        "properties": {
+          "child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "skill_ref": {
+            "$ref": "skill-artifact-ref.schema.json#"
+          },
+          "input_port": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "output_port": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_child_id",
+          "from_port",
+          "to_child_id",
+          "to_port",
+          "mapping"
+        ],
+        "properties": {
+          "from_child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "from_port": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "to_child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "to_port": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "mapping": {
+            "type": "object"
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "retry_policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "child_id",
+          "max_attempts",
+          "retryable_reason_codes",
+          "backoff_units"
+        ],
+        "properties": {
+          "child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "retryable_reason_codes": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/non_empty_string"
+            },
+            "minItems": 0
+          },
+          "backoff_units": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 0
+    },
+    "failure_handlers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "child_id",
+          "reason_codes",
+          "action"
+        ],
+        "properties": {
+          "child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/non_empty_string"
+            },
+            "minItems": 0
+          },
+          "action": {
+            "$ref": "common-types.schema.json#/$defs/failure_action"
+          },
+          "fallback_child_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          }
+        },
+        "description": "fallback_child_id REQUIRED when action=fallback and MUST reference a declared, dependency-satisfiable child (8.4/9.5).",
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "action"
+              ],
+              "properties": {
+                "action": {
+                  "const": "fallback"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "fallback_child_id"
+              ]
+            }
+          }
+        ]
+      },
+      "minItems": 0
+    },
+    "orchestration_permissions": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/permission"
+      },
+      "minItems": 0
+    },
+    "input_port_schema": {
+      "$ref": "common-types.schema.json#/$defs/json_schema_ref"
+    },
+    "output_port_schema": {
+      "$ref": "common-types.schema.json#/$defs/json_schema_ref"
+    }
+  }
+}

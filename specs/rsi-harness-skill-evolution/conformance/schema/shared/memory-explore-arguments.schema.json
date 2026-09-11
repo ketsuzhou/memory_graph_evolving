@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.memory-explore-arguments.v1.schema.json",
+  "title": "GMS 10.2 MemoryExploreArgumentsV1",
+  "description": "query_digest = SHA-256(JCS(effective payload with set-like arrays canonically sorted and active_only materialized)) (GMS 10.2).",
+  "contract_refs": [
+    "graph-memory-service.md 10.2",
+    "system-contract.md 12"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "explore_session_id",
+    "query_text",
+    "runtime_context_hash",
+    "ranker_policy_ref",
+    "budgets",
+    "filters"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.memory-explore-arguments.v1"
+    },
+    "explore_session_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "query_text": {
+      "type": "string"
+    },
+    "runtime_context_hash": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "ranker_policy_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_cap",
+        "evidence_subcap",
+        "skill_subcap",
+        "guidance_token_budget"
+      ],
+      "properties": {
+        "total_cap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_subcap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skill_subcap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "guidance_token_budget": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "GMS 10.2 budgets; subcaps must not overrun total_cap (validator/semantic layer)."
+    },
+    "served_fences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_fence_digest",
+        "skill_fence_digest"
+      ],
+      "properties": {
+        "evidence_fence_digest": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        },
+        "skill_fence_digest": {
+          "$ref": "common-types.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "active_only": {
+          "type": "boolean"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/canonical_kind"
+          },
+          "minItems": 0
+        },
+        "lineage_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "minItems": 0
+        },
+        "branch_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema_version",
+              "source_skill_ref",
+              "branch_id",
+              "branch_digest"
+            ],
+            "properties": {
+              "schema_version": {
+                "const": "gms.exact-branch-ref.v1"
+              },
+              "source_skill_ref": {
+                "$ref": "skill-artifact-ref.schema.json#"
+              },
+              "branch_id": {
+                "$ref": "common-types.schema.json#/$defs/non_empty_string"
+              },
+              "branch_digest": {
+                "$ref": "common-types.schema.json#/$defs/sha256"
+              }
+            },
+            "description": "GMS 10.2 ExactBranchRefV1; naked branch strings are rejected."
+          },
+          "minItems": 0
+        }
+      },
+      "description": "Omitted active_only materializes to true for query identity (GMS 10.2)."
+    },
+    "continuation_of_query_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "filters"
+        ],
+        "properties": {
+          "filters": {
+            "required": [
+              "active_only"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "filters": {
+            "properties": {
+              "active_only": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

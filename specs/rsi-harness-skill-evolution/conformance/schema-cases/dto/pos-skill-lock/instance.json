@@ -1,0 +1,34 @@
+{
+  "schema_version": "rsih.skill-lock.v1",
+  "session_id": "sess-0001",
+  "materialization_ref": {
+    "id": "mat-0001",
+    "version": 1,
+    "digest": "sha256:5e738df44c6ec3893234f3931aba186fa2a2dcd922caff4d1fb86e346c126ded"
+  },
+  "root_skill_refs": [
+    {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "sg-commit-checklist",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:f9fbe744a67116eb9cffcb9cc2e6801da17a8ed33454fcb3872e6b69f00fbf53"
+    }
+  ],
+  "locked_closure": [
+    {
+      "skill_ref": {
+        "schema_version": "gms.skill-artifact-ref.v1",
+        "lineage_id": "sg-commit-checklist",
+        "version": 3,
+        "kind": "step_guidance",
+        "artifact_digest": "sha256:f9fbe744a67116eb9cffcb9cc2e6801da17a8ed33454fcb3872e6b69f00fbf53"
+      },
+      "artifact_digest": "sha256:f9fbe744a67116eb9cffcb9cc2e6801da17a8ed33454fcb3872e6b69f00fbf53",
+      "materialized_path": "skills/sg-commit-checklist/SKILL.md",
+      "file_digest": "sha256:46c8fd2dfb8eb70d21ef2360907985df6948b06f5f71546452c81b4bab1a3f14"
+    }
+  ],
+  "activation_sequence_at_freeze": 7,
+  "lock_digest": "sha256:7815dc35e339c428786641306705b2f022c03db450105d52d9922ad737b44e2e"
+}

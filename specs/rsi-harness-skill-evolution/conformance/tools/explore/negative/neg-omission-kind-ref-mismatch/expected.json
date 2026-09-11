@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-omission-kind-ref-mismatch",
+ "expected_accept": false,
+ "expected_reason_code": "REF_MISMATCH",
+ "expected_result_digest": null,
+ "notes": "kind=skill carries an EvidenceRef: kind/ref schema binding violated",
+ "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

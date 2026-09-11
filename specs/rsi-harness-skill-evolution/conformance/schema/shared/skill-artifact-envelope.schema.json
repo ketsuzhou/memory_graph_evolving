@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.skill-artifact-envelope.v1.schema.json",
+  "title": "Contract 8.1 canonical artifact envelope",
+  "description": "Lineage/version are assigned by released refs, never in the canonical body; body digest equals the candidate body digest (8.1/3.7).",
+  "contract_refs": [
+    "system-contract.md 8.1"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "title",
+    "description",
+    "applicability",
+    "permissions",
+    "body"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.skill-artifact.v1"
+    },
+    "kind": {
+      "$ref": "common-types.schema.json#/$defs/canonical_kind"
+    },
+    "title": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicates",
+        "exclusions"
+      ],
+      "properties": {
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/predicate"
+          },
+          "minItems": 0
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/predicate"
+          },
+          "minItems": 0
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "$ref": "common-types.schema.json#/$defs/permission"
+      },
+      "minItems": 0
+    },
+    "body": {
+      "type": "object"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "projection-lifecycle",
+  "title": "Contract 9.3 projector",
+  "contract_ref": "system-contract.md 9.3",
+  "machines": [
+    {
+      "machine_id": "projector",
+      "entity": "Projection head",
+      "contract_ref": "9.3",
+      "initial_states": [
+        "uninitialized"
+      ],
+      "states": [
+        {
+          "name": "uninitialized",
+          "terminal": false,
+          "entry_condition": "no projection head; watermark 0",
+          "legal_exits": [
+            "catching_up",
+            "rebuilding"
+          ]
+        },
+        {
+          "name": "catching_up",
+          "terminal": false,
+          "entry_condition": "consuming activation_sequence contiguously; stops at gaps",
+          "legal_exits": [
+            "current",
+            "blocked",
+            "rebuilding"
+          ]
+        },
+        {
+          "name": "current",
+          "terminal": false,
+          "entry_condition": "processed through the ledger head known at consumption time",
+          "legal_exits": [
+            "catching_up",
+            "rebuilding"
+          ]
+        },
+        {
+          "name": "blocked",
+          "terminal": false,
+          "entry_condition": "schema/digest/gap or unrecoverable projection error; watermark never passes the failing sequence",
+          "legal_exits": [
+            "catching_up",
+            "rebuilding"
+          ]
+        },
+        {
+          "name": "rebuilding",
+          "terminal": false,
+          "entry_condition": "rebuilding a projection head from the authoritative ledger",
+          "legal_exits": [
+            "catching_up"
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from": "uninitialized",
+          "to": "catching_up",
+          "trigger": "projection_started",
+          "authority": "gms"
+        },
+        {
+          "from": "catching_up",
+          "to": "current",
+          "trigger": "caught_up",
+          "authority": "gms"
+        },
+        {
+          "from": "catching_up",
+          "to": "blocked",
+          "trigger": "projection_error",
+          "authority": "gms"
+        },
+        {
+          "from": "current",
+          "to": "catching_up",
+          "trigger": "new_events",
+          "authority": "gms"
+        },
+        {
+          "from": "blocked",
+          "to": "catching_up",
+          "trigger": "protected_retry",
+          "authority": "gms"
+        },
+        {
+          "from": "uninitialized",
+          "to": "rebuilding",
+          "trigger": "rebuild_requested",
+          "authority": "gms"
+        },
+        {
+          "from": "catching_up",
+          "to": "rebuilding",
+          "trigger": "rebuild_requested",
+          "authority": "gms"
+        },
+        {
+          "from": "current",
+          "to": "rebuilding",
+          "trigger": "rebuild_requested",
+          "authority": "gms"
+        },
+        {
+          "from": "blocked",
+          "to": "rebuilding",
+          "trigger": "rebuild_requested",
+          "authority": "gms"
+        },
+        {
+          "from": "rebuilding",
+          "to": "catching_up",
+          "trigger": "rebuild_emitted_head",
+          "authority": "gms"
+        }
+      ]
+    }
+  ]
+}

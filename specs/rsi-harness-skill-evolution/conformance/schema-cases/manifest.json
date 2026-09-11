@@ -1,0 +1,503 @@
+{
+  "schema_version": "rsih-skill-evolution.schema-cases.v1",
+  "contract_schema_version": "rsih-skill-evolution.system-contract.v1",
+  "revision": "CTR-005",
+  "cases": [
+    {
+      "case_id": "neg-composite-terminal-reopen",
+      "category": "state",
+      "kind": "negative",
+      "target": "schema/state/composite-run.schema.json",
+      "instance_path": "state/neg-composite-terminal-reopen/events.json",
+      "expected_path": "state/neg-composite-terminal-reopen/expected.json"
+    },
+    {
+      "case_id": "neg-conditional-required-deactivate-auth",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/deactivation-event.schema.json",
+      "instance_path": "dto/neg-conditional-required-deactivate-auth/instance.json",
+      "expected_path": "dto/neg-conditional-required-deactivate-auth/expected.json"
+    },
+    {
+      "case_id": "neg-digest-tamper-proposal-event",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/proposal-event.schema.json",
+      "instance_path": "dto/neg-digest-tamper-proposal-event/instance.json",
+      "expected_path": "dto/neg-digest-tamper-proposal-event/expected.json"
+    },
+    {
+      "case_id": "neg-enum-invalid-kind",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/memory-explore-arguments.schema.json",
+      "instance_path": "dto/neg-enum-invalid-kind/instance.json",
+      "expected_path": "dto/neg-enum-invalid-kind/expected.json"
+    },
+    {
+      "case_id": "neg-merge-terminal-reopen",
+      "category": "state",
+      "kind": "negative",
+      "target": "schema/state/merge-lifecycle.schema.json",
+      "instance_path": "state/neg-merge-terminal-reopen/events.json",
+      "expected_path": "state/neg-merge-terminal-reopen/expected.json"
+    },
+    {
+      "case_id": "neg-non-integer-utility",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/replay-result.schema.json",
+      "instance_path": "dto/neg-non-integer-utility/instance.json",
+      "expected_path": "dto/neg-non-integer-utility/expected.json"
+    },
+    {
+      "case_id": "neg-profile-float-limit",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-float-limit/profile.json",
+      "expected_path": "profile/neg-profile-float-limit/expected.json"
+    },
+    {
+      "case_id": "neg-profile-negative-limit",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-negative-limit/profile.json",
+      "expected_path": "profile/neg-profile-negative-limit/expected.json"
+    },
+    {
+      "case_id": "neg-profile-permission-missing-scope",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-permission-missing-scope/profile.json",
+      "expected_path": "profile/neg-profile-permission-missing-scope/expected.json"
+    },
+    {
+      "case_id": "neg-profile-preimage-missing-field",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-preimage-missing-field/profile.json",
+      "expected_path": "profile/neg-profile-preimage-missing-field/expected.json"
+    },
+    {
+      "case_id": "neg-profile-runtime-nondeterminism",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-runtime-nondeterminism/profile.json",
+      "expected_path": "profile/neg-profile-runtime-nondeterminism/expected.json"
+    },
+    {
+      "case_id": "neg-profile-undefined-unit",
+      "category": "profile",
+      "kind": "negative",
+      "target": "policy/profiles",
+      "instance_path": "profile/neg-profile-undefined-unit/profile.json",
+      "expected_path": "profile/neg-profile-undefined-unit/expected.json"
+    },
+    {
+      "case_id": "neg-proposal-illegal-jump",
+      "category": "state",
+      "kind": "negative",
+      "target": "schema/state/proposal-lifecycle.schema.json",
+      "instance_path": "state/neg-proposal-illegal-jump/events.json",
+      "expected_path": "state/neg-proposal-illegal-jump/expected.json"
+    },
+    {
+      "case_id": "neg-undefined-state",
+      "category": "state",
+      "kind": "negative",
+      "target": "schema/state/segment-lifecycle.schema.json",
+      "instance_path": "state/neg-undefined-state/events.json",
+      "expected_path": "state/neg-undefined-state/expected.json"
+    },
+    {
+      "case_id": "neg-unknown-core-field",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/skill-artifact-ref.schema.json",
+      "instance_path": "dto/neg-unknown-core-field/instance.json",
+      "expected_path": "dto/neg-unknown-core-field/expected.json"
+    },
+    {
+      "case_id": "neg-unknown-required-extension",
+      "category": "dto",
+      "kind": "negative",
+      "target": "schema/shared/skill-proposal.schema.json",
+      "instance_path": "dto/neg-unknown-required-extension/instance.json",
+      "expected_path": "dto/neg-unknown-required-extension/expected.json"
+    },
+    {
+      "case_id": "pos-activation-event",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/activation-event.schema.json",
+      "instance_path": "dto/pos-activation-event/instance.json",
+      "expected_path": "dto/pos-activation-event/expected.json"
+    },
+    {
+      "case_id": "pos-candidate-artifact-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/candidate-lifecycle.schema.json",
+      "instance_path": "state/pos-candidate-artifact-happy-path/events.json",
+      "expected_path": "state/pos-candidate-artifact-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-candidate-artifact-ref",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/candidate-artifact-ref.schema.json",
+      "instance_path": "dto/pos-candidate-artifact-ref/instance.json",
+      "expected_path": "dto/pos-candidate-artifact-ref/expected.json"
+    },
+    {
+      "case_id": "pos-checkpoint-ref",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/checkpoint-ref.schema.json",
+      "instance_path": "dto/pos-checkpoint-ref/instance.json",
+      "expected_path": "dto/pos-checkpoint-ref/expected.json"
+    },
+    {
+      "case_id": "pos-composite-artifact-body",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/composite-artifact-body.schema.json",
+      "instance_path": "dto/pos-composite-artifact-body/instance.json",
+      "expected_path": "dto/pos-composite-artifact-body/expected.json"
+    },
+    {
+      "case_id": "pos-composite-artifact-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/composite-run.schema.json",
+      "instance_path": "state/pos-composite-artifact-happy-path/events.json",
+      "expected_path": "state/pos-composite-artifact-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-composite-child-retry-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/composite-run.schema.json",
+      "instance_path": "state/pos-composite-child-retry-path/events.json",
+      "expected_path": "state/pos-composite-child-retry-path/expected.json"
+    },
+    {
+      "case_id": "pos-composite-run-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/composite-run.schema.json",
+      "instance_path": "state/pos-composite-run-happy-path/events.json",
+      "expected_path": "state/pos-composite-run-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-deactivation-event",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/deactivation-event.schema.json",
+      "instance_path": "dto/pos-deactivation-event/instance.json",
+      "expected_path": "dto/pos-deactivation-event/expected.json"
+    },
+    {
+      "case_id": "pos-evidence-ref",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/evidence-ref.schema.json",
+      "instance_path": "dto/pos-evidence-ref/instance.json",
+      "expected_path": "dto/pos-evidence-ref/expected.json"
+    },
+    {
+      "case_id": "pos-explore-result",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/explore-result.schema.json",
+      "instance_path": "dto/pos-explore-result/instance.json",
+      "expected_path": "dto/pos-explore-result/expected.json"
+    },
+    {
+      "case_id": "pos-guidance-view",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/guidance-view.schema.json",
+      "instance_path": "dto/pos-guidance-view/instance.json",
+      "expected_path": "dto/pos-guidance-view/expected.json"
+    },
+    {
+      "case_id": "pos-materialization-manifest",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/materialization-manifest.schema.json",
+      "instance_path": "dto/pos-materialization-manifest/instance.json",
+      "expected_path": "dto/pos-materialization-manifest/expected.json"
+    },
+    {
+      "case_id": "pos-memory-expand-arguments",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/memory-expand-arguments.schema.json",
+      "instance_path": "dto/pos-memory-expand-arguments/instance.json",
+      "expected_path": "dto/pos-memory-expand-arguments/expected.json"
+    },
+    {
+      "case_id": "pos-memory-explore-arguments",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/memory-explore-arguments.schema.json",
+      "instance_path": "dto/pos-memory-explore-arguments/instance.json",
+      "expected_path": "dto/pos-memory-explore-arguments/expected.json"
+    },
+    {
+      "case_id": "pos-merge-duplicate",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/merge-lifecycle.schema.json",
+      "instance_path": "state/pos-merge-duplicate/events.json",
+      "expected_path": "state/pos-merge-duplicate/expected.json"
+    },
+    {
+      "case_id": "pos-merge-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/merge-lifecycle.schema.json",
+      "instance_path": "state/pos-merge-happy-path/events.json",
+      "expected_path": "state/pos-merge-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-merge-proposal",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/merge-proposal.schema.json",
+      "instance_path": "dto/pos-merge-proposal/instance.json",
+      "expected_path": "dto/pos-merge-proposal/expected.json"
+    },
+    {
+      "case_id": "pos-merge-proposal-event",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/merge-proposal-event.schema.json",
+      "instance_path": "dto/pos-merge-proposal-event/instance.json",
+      "expected_path": "dto/pos-merge-proposal-event/expected.json"
+    },
+    {
+      "case_id": "pos-permission-profile",
+      "category": "profile",
+      "kind": "positive",
+      "target": "policy/profiles",
+      "instance_path": "profile/pos-permission-profile/profile.json",
+      "expected_path": "profile/pos-permission-profile/expected.json"
+    },
+    {
+      "case_id": "pos-procedure-body",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/procedure-body.schema.json",
+      "instance_path": "dto/pos-procedure-body/instance.json",
+      "expected_path": "dto/pos-procedure-body/expected.json"
+    },
+    {
+      "case_id": "pos-projection-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/projection-lifecycle.schema.json",
+      "instance_path": "state/pos-projection-happy-path/events.json",
+      "expected_path": "state/pos-projection-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-projection-watermark",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/projection-watermark.schema.json",
+      "instance_path": "dto/pos-projection-watermark/instance.json",
+      "expected_path": "dto/pos-projection-watermark/expected.json"
+    },
+    {
+      "case_id": "pos-proposal-event",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/proposal-event.schema.json",
+      "instance_path": "dto/pos-proposal-event/instance.json",
+      "expected_path": "dto/pos-proposal-event/expected.json"
+    },
+    {
+      "case_id": "pos-proposal-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/proposal-lifecycle.schema.json",
+      "instance_path": "state/pos-proposal-happy-path/events.json",
+      "expected_path": "state/pos-proposal-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-proposal-withdraw",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/proposal-lifecycle.schema.json",
+      "instance_path": "state/pos-proposal-withdraw/events.json",
+      "expected_path": "state/pos-proposal-withdraw/expected.json"
+    },
+    {
+      "case_id": "pos-release-decision",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/release-decision.schema.json",
+      "instance_path": "dto/pos-release-decision/instance.json",
+      "expected_path": "dto/pos-release-decision/expected.json"
+    },
+    {
+      "case_id": "pos-render-profile",
+      "category": "profile",
+      "kind": "positive",
+      "target": "policy/profiles",
+      "instance_path": "profile/pos-render-profile/profile.json",
+      "expected_path": "profile/pos-render-profile/expected.json"
+    },
+    {
+      "case_id": "pos-replay-request",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/replay-request.schema.json",
+      "instance_path": "dto/pos-replay-request/instance.json",
+      "expected_path": "dto/pos-replay-request/expected.json"
+    },
+    {
+      "case_id": "pos-replay-result",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/replay-result.schema.json",
+      "instance_path": "dto/pos-replay-result/instance.json",
+      "expected_path": "dto/pos-replay-result/expected.json"
+    },
+    {
+      "case_id": "pos-resource-profile",
+      "category": "profile",
+      "kind": "positive",
+      "target": "policy/profiles",
+      "instance_path": "profile/pos-resource-profile/profile.json",
+      "expected_path": "profile/pos-resource-profile/expected.json"
+    },
+    {
+      "case_id": "pos-runtime-profile",
+      "category": "profile",
+      "kind": "positive",
+      "target": "policy/profiles",
+      "instance_path": "profile/pos-runtime-profile/profile.json",
+      "expected_path": "profile/pos-runtime-profile/expected.json"
+    },
+    {
+      "case_id": "pos-runtime-revision-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/candidate-lifecycle.schema.json",
+      "instance_path": "state/pos-runtime-revision-happy-path/events.json",
+      "expected_path": "state/pos-runtime-revision-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-segment-failed",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/segment-lifecycle.schema.json",
+      "instance_path": "state/pos-segment-failed/events.json",
+      "expected_path": "state/pos-segment-failed/expected.json"
+    },
+    {
+      "case_id": "pos-segment-happy-path",
+      "category": "state",
+      "kind": "positive",
+      "target": "schema/state/segment-lifecycle.schema.json",
+      "instance_path": "state/pos-segment-happy-path/events.json",
+      "expected_path": "state/pos-segment-happy-path/expected.json"
+    },
+    {
+      "case_id": "pos-segment-ref",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/segment-ref.schema.json",
+      "instance_path": "dto/pos-segment-ref/instance.json",
+      "expected_path": "dto/pos-segment-ref/expected.json"
+    },
+    {
+      "case_id": "pos-similarity-assessment",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/similarity-assessment.schema.json",
+      "instance_path": "dto/pos-similarity-assessment/instance.json",
+      "expected_path": "dto/pos-similarity-assessment/expected.json"
+    },
+    {
+      "case_id": "pos-skill-anchor",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-anchor.schema.json",
+      "instance_path": "dto/pos-skill-anchor/instance.json",
+      "expected_path": "dto/pos-skill-anchor/expected.json"
+    },
+    {
+      "case_id": "pos-skill-artifact-envelope",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-artifact-envelope.schema.json",
+      "instance_path": "dto/pos-skill-artifact-envelope/instance.json",
+      "expected_path": "dto/pos-skill-artifact-envelope/expected.json"
+    },
+    {
+      "case_id": "pos-skill-artifact-ref",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-artifact-ref.schema.json",
+      "instance_path": "dto/pos-skill-artifact-ref/instance.json",
+      "expected_path": "dto/pos-skill-artifact-ref/expected.json"
+    },
+    {
+      "case_id": "pos-skill-get-arguments",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-get-arguments.schema.json",
+      "instance_path": "dto/pos-skill-get-arguments/instance.json",
+      "expected_path": "dto/pos-skill-get-arguments/expected.json"
+    },
+    {
+      "case_id": "pos-skill-lock",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-lock.schema.json",
+      "instance_path": "dto/pos-skill-lock/instance.json",
+      "expected_path": "dto/pos-skill-lock/expected.json"
+    },
+    {
+      "case_id": "pos-skill-proposal",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/skill-proposal.schema.json",
+      "instance_path": "dto/pos-skill-proposal/instance.json",
+      "expected_path": "dto/pos-skill-proposal/expected.json"
+    },
+    {
+      "case_id": "pos-step-guidance-body",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/step-guidance-body.schema.json",
+      "instance_path": "dto/pos-step-guidance-body/instance.json",
+      "expected_path": "dto/pos-step-guidance-body/expected.json"
+    },
+    {
+      "case_id": "pos-tool-proxy-request",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/tool-proxy-request.schema.json",
+      "instance_path": "dto/pos-tool-proxy-request/instance.json",
+      "expected_path": "dto/pos-tool-proxy-request/expected.json"
+    },
+    {
+      "case_id": "pos-tool-proxy-result",
+      "category": "dto",
+      "kind": "positive",
+      "target": "schema/shared/tool-proxy-result.schema.json",
+      "instance_path": "dto/pos-tool-proxy-result/instance.json",
+      "expected_path": "dto/pos-tool-proxy-result/expected.json"
+    }
+  ]
+}

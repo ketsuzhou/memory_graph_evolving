@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.conformance-manifest.v1.schema.json",
+  "title": "FND-001 shared JCS/SHA-256 golden conformance corpus manifest",
+  "description": "Machine-readable contract for conformance/manifest.json (System Contract section 16.2) and the per-case expected.json files (section 16.3). The five required case fields are exactly the Contract section 16.2 core; the optional mirror fields repeat the expected.json values for convenience and MUST agree with expected.json byte for byte (the validator cross-checks them). File conventions: source.json is arbitrary valid JSON formatting with a single trailing newline; canonical.utf8 holds the exact canonical bytes with no BOM and no trailing newline (0 bytes when the case is not canonicalizable; the digest-tamper negative deliberately holds one tampered byte and that IS the fixture); canonical.base64 is standard Base64 of canonical.utf8, single line, trailing newline (0 bytes when canonical.utf8 is empty); expected.json and manifest.json are canonical JSON (RFC 8785 JCS per Contract section 6.1, integer-only) plus a single trailing newline. expected_digest / expected_canonical_byte_length are present exactly when the case is canonicalizable and describe the canonicalization of source.json (for the digest-tamper negative, the UNTAMPERED canonical bytes). The validator implements these checks natively (stdlib only); this schema documents the same rules for Go/TypeScript consumers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_schema_version", "cases"],
+  "properties": {
+    "schema_version": {"const": "rsih-skill-evolution.conformance-manifest.v1"},
+    "contract_schema_version": {"const": "rsih-skill-evolution.system-contract.v1"},
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/caseEntry"}
+    }
+  },
+  "$defs": {
+    "category": {
+      "enum": ["canonicalization", "ref", "artifact", "event", "merge", "negative"],
+      "description": "Contract section 16.2 closed enum. Category-to-directory mapping: canonicalization -> canonicalization/, ref -> refs/, artifact -> artifacts/, event -> events/, merge -> merge/, negative -> negative/."
+    },
+    "reasonCode": {
+      "enum": [
+        "NON_INTEGER_NUMBER",
+        "UNKNOWN_REQUIRED_EXTENSION",
+        "DIGEST_MISMATCH",
+        "REF_MISMATCH",
+        "NON_EXACT_REF",
+        "COMPOSITE_CYCLE",
+        "PORT_SCHEMA_MISSING",
+        "MERGE_BLOCKING_CONFLICT",
+        "EVIDENCE_NOT_COMMITTED",
+        "PROJECTION_SEQUENCE_GAP",
+        "PERMISSION_CAP_EXCEEDED",
+        "PROJECTION_EVENT_CONFLICT",
+        "BOM_NOT_ALLOWED",
+        "INVALID_JSON",
+        "ILLEGAL_STATE_TRANSITION",
+        "SIMILARITY_BELOW_THRESHOLD"
+      ],
+      "description": "Closed reason-code registry. The first twelve are System Contract codes (sections 6.2, 9.3, 13.7, 16.4); the last four are FND-001 fixture-level extensions for fail-closed behaviors the Contract does not assign a code (BOM section 6.1.1, malformed JSON, section 9.4 terminal-state transitions, section 15.2 MT1 below-threshold admission) pending the CTR-004 system reason-code registry."
+    },
+    "sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "relativeCasePath": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+/(source\\.json|canonical\\.utf8|canonical\\.base64|expected\\.json)$",
+      "description": "POSIX relative path below the conformance root: <category-dir>/<case-id>/<file>. Absolute paths, '..' segments and backslashes are rejected."
+    },
+    "caseEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "category",
+        "source_path",
+        "canonical_utf8_path",
+        "canonical_base64_path",
+        "expected_path"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique id, e.g. canon-001-key-order, ref-neg-002-latest."
+        },
+        "category": {"$ref": "#/$defs/category"},
+        "source_path": {"$ref": "#/$defs/relativeCasePath"},
+        "canonical_utf8_path": {"$ref": "#/$defs/relativeCasePath"},
+        "canonical_base64_path": {"$ref": "#/$defs/relativeCasePath"},
+        "expected_path": {"$ref": "#/$defs/relativeCasePath"},
+        "expected_accept": {
+          "type": "boolean",
+          "description": "Optional mirror of expected.json expected_accept; must agree with it when present."
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/sha256Digest",
+          "description": "Optional mirror; present exactly when the case is canonicalizable."
+        },
+        "expected_canonical_byte_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional mirror; present exactly when the case is canonicalizable."
+        },
+        "expected_reason_code": {
+          "oneOf": [{"$ref": "#/$defs/reasonCode"}, {"type": "null"}],
+          "description": "Optional mirror; a code when the case is rejected, null or absent when accepted."
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "case_id", "expected_accept"],
+      "properties": {
+        "schema_version": {"const": "rsih-skill-evolution.conformance-expected.v1"},
+        "case_id": {"type": "string", "minLength": 1},
+        "expected_accept": {"type": "boolean"},
+        "expected_digest": {"$ref": "#/$defs/sha256Digest"},
+        "expected_canonical_byte_length": {"type": "integer", "minimum": 0},
+        "expected_reason_code": {"$ref": "#/$defs/reasonCode"},
+        "expected_normalized_fields": {
+          "type": "object",
+          "description": "Optional informational summary of DTO-level normalizations applied before JCS (e.g. the canonical symmetric source-pair order)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional non-normative explanation."
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"expected_accept": {"const": true}}},
+          "then": {"not": {"required": ["expected_reason_code"]}}
+        },
+        {
+          "if": {"properties": {"expected_accept": {"const": false}}},
+          "then": {"required": ["expected_reason_code"]}
+        }
+      ]
+    }
+  }
+}

@@ -15,11 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"river2.dev/pi-group-chat-host/internal/contract"
 	"river2.dev/pi-group-chat-host/internal/domain"
 	"river2.dev/pi-group-chat-host/internal/memoryclient"
 	"river2.dev/pi-group-chat-host/internal/pi"
 	"river2.dev/pi-group-chat-host/internal/ports"
 	memorystore "river2.dev/pi-group-chat-host/internal/store/memory"
+	"river2.dev/pi-group-chat-host/internal/toolproxy"
 	"river2.dev/pi-group-chat-host/internal/tools"
 )
 
@@ -606,6 +608,13 @@ type turnInput struct {
 	batchIDs        func(domain.EvidenceProjection) string
 	log             *turnLog
 	piStderrPath    string
+	// toolProxy, when wired, moves the Contract §7.17 Memory tools
+	// (memory_explore/memory_expand/skill_get) onto the same-call proxy
+	// plane: they are resolved Pi → Host proxy → GMS → exact
+	// ToolProxyResult → same Pi call before the tool future completes
+	// (Host §5.4). Room side-effect tools keep their post-completion
+	// semantics either way.
+	toolProxy *toolproxy.Bridge
 }
 
 type turnTrace struct {
@@ -825,6 +834,11 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 	// the invocation args, ends execute them after the ID, name, and result
 	// envelope check out. A failed or unmatched completion never publishes.
 	pendingCalls := map[string]pi.PiEvent{}
+	// Proxy-plane Memory tools (Contract §7.17) resolve same-call: their
+	// exact ToolProxyResult is delivered while the Pi tool future is still
+	// open, and the completion frame can only observe — never rewrite — the
+	// terminal result (Host §5.4/§5.8, HST-201).
+	proxyDeliveries := map[string]*toolproxy.Delivery{}
 	segment := domain.InteractionSegment{
 		ID:         segmentID,
 		TenantID:   domain.TenantID(authority.TenantID),
@@ -853,6 +867,25 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 			input.log.event("pi_tool_start", map[string]any{
 				"tool_call_id": event.ToolCallID, "tool_name": event.ToolName, "args_bytes": len(event.Content),
 			})
+			if input.toolProxy != nil && input.toolProxy.IsProxyTool(event.ToolName) {
+				// Same-call Tool Proxy (Host §5.4): the request executes now,
+				// before the tool future completes, and the exact
+				// ToolProxyResult enters the Pi return channel for this very
+				// call. Room tools never take this path.
+				if delivery := o.invokeProxyTool(ctx, proxyToolCall{
+					bridge:     input.toolProxy,
+					authority:  authority,
+					deliveryID: claimed.ID,
+					profile:    profile,
+					toolCallID: event.ToolCallID,
+					toolName:   event.ToolName,
+					arguments:  event.Content,
+					log:        input.log,
+				}); delivery != nil {
+					proxyDeliveries[event.ToolCallID] = delivery
+				}
+				return nil
+			}
 			pendingCalls[event.ToolCallID] = event
 			return nil
 		case "tool_execution_end":
@@ -860,6 +893,30 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 				"tool_call_id": event.ToolCallID, "tool_name": event.ToolName,
 				"is_error": event.IsError != nil && *event.IsError, "result_bytes": len(event.Result),
 			})
+			if delivery, proxied := proxyDeliveries[event.ToolCallID]; proxied {
+				// The same-call proxy already fixed this call's terminal
+				// result before completion: the frame is an observation and
+				// can never rewrite or re-deliver it (Host §5.8).
+				input.log.event("tool_invocation", map[string]any{
+					"tool": event.ToolName, "outcome": "observed_completion",
+					"reason":              "same_call_proxy_terminal",
+					"tool_call_id":        event.ToolCallID,
+					"proxy_result_digest": delivery.Digest,
+					"completion_is_error": event.IsError != nil && *event.IsError,
+				})
+				return nil
+			}
+			if input.toolProxy != nil && input.toolProxy.IsProxyTool(event.ToolName) {
+				// The old post-end Memory path is explicitly disabled on the
+				// proxy plane: a completion frame without a same-call result
+				// must not execute memory side effects or claim success.
+				input.log.event("tool_invocation", map[string]any{
+					"tool": event.ToolName, "outcome": "rejected",
+					"reason":       "post_end_memory_path_disabled",
+					"tool_call_id": event.ToolCallID,
+				})
+				return nil
+			}
 			start, matched := pendingCalls[event.ToolCallID]
 			if !matched || start.ToolName != event.ToolName {
 				input.log.event("tool_invocation", map[string]any{
@@ -930,7 +987,7 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 	}
 	input.log.event("segment_settled", map[string]any{
 		"delivery_id": string(claimed.ID), "segment_id": string(segmentID),
-		"outbox_entries": len(entries),
+		"outbox_entries":     len(entries),
 		"published_messages": len(trace.visibleMessages) - 1,
 	})
 
@@ -957,6 +1014,106 @@ type toolHandling struct {
 	session      *string
 	now          time.Time
 	log          *turnLog
+}
+
+// proxyToolCall is one Memory tool call entering the same-call proxy plane.
+type proxyToolCall struct {
+	bridge     *toolproxy.Bridge
+	authority  ExecutionAuthority
+	deliveryID domain.DeliveryID
+	profile    domain.AgentProfile
+	toolCallID string
+	toolName   string
+	arguments  string
+	log        *turnLog
+}
+
+// invokeProxyTool runs the same-call Tool Proxy for one Memory tool call
+// (Host §5.1/§5.3/§5.4): the ToolProxyRequest is built from Host-authoritative
+// state — room, agent, claimed delivery, scope profile derived from the
+// room's shared space, Host-capped timeout — never from model arguments,
+// which ride the request as untrusted data. The exact terminal result is
+// delivered into the Pi return channel; a nil return means the call was
+// rejected before the proxy (profile allowlist / undecodable arguments), so
+// nothing may claim success on its behalf.
+func (o *Orchestrator) invokeProxyTool(ctx context.Context, call proxyToolCall) *toolproxy.Delivery {
+	if err := pi.ValidateToolInvocation(call.profile, call.toolName); err != nil {
+		call.log.event("tool_invocation", map[string]any{
+			"tool": call.toolName, "outcome": "rejected", "reason": "tool_not_allowed_for_profile",
+			"tool_call_id": call.toolCallID,
+		})
+		return nil
+	}
+	var arguments contract.Value
+	if call.arguments != "" {
+		parsed, err := contract.ParseJSON([]byte(call.arguments))
+		if err != nil {
+			call.log.event("tool_invocation", map[string]any{
+				"tool": call.toolName, "outcome": "rejected", "reason": "undecodable_arguments",
+				"tool_call_id": call.toolCallID,
+			})
+			return nil
+		}
+		if _, isObject := parsed.(*contract.Object); !isObject {
+			call.log.event("tool_invocation", map[string]any{
+				"tool": call.toolName, "outcome": "rejected", "reason": "arguments_must_be_object",
+				"tool_call_id": call.toolCallID,
+			})
+			return nil
+		}
+		arguments = parsed
+	}
+	delivery, err := call.bridge.InvokeBeforeCompletion(ctx, toolproxy.Call{
+		ToolCallID: call.toolCallID,
+		ToolName:   call.toolName,
+		Arguments:  arguments,
+	}, toolproxy.RequestContext{
+		RoomID:          call.authority.RoomID,
+		AgentID:         call.authority.AgentID,
+		DeliveryID:      string(call.deliveryID),
+		ProxyRequestID:  o.dependencies.IDs.NewID("proxy-request"),
+		ScopeProfileRef: proxyScopeProfileRef(call.authority.SharedSpaceID),
+		TimeoutMillis:   toolproxy.DefaultTimeoutMillis,
+	})
+	if delivery == nil {
+		call.log.event("tool_proxy", map[string]any{
+			"tool_call_id": call.toolCallID, "tool": call.toolName,
+			"outcome": "error", "reason": "proxy_request_rejected", "error": fmt.Sprintf("%v", err),
+		})
+		return nil
+	}
+	fields := map[string]any{
+		"tool_call_id":                call.toolCallID,
+		"tool":                        call.toolName,
+		"status":                      delivery.Result.Status(),
+		"proxy_result_digest":         delivery.Digest,
+		"upstream_result_digest":      delivery.Result.UpstreamResultDigest(),
+		"first_delivery":              delivery.FirstDelivery,
+		"delivered_before_completion": true,
+	}
+	if code := delivery.Result.ReasonCode(); code != "" {
+		fields["reason_code"] = code
+	}
+	if err != nil {
+		fields["delivery_error"] = err.Error()
+	}
+	call.log.event("tool_proxy", fields)
+	return delivery
+}
+
+// proxyScopeProfileRef derives the Host-authoritative scope profile ref for a
+// proxy call from the room's durable shared space — deterministic and
+// replayable, never model input (Host §5.3).
+func proxyScopeProfileRef(sharedSpaceID string) contract.Value {
+	scopeID := sharedSpaceID
+	if scopeID == "" {
+		scopeID = "scope-unassigned"
+	}
+	scope := contract.NewObject()
+	scope.Set("id", contract.String("scope-space-"+scopeID))
+	scope.Set("version", contract.Number("1"))
+	scope.Set("digest", contract.String(contract.DigestBytes([]byte("scope:"+scopeID))))
+	return scope
 }
 
 // rejected emits the adjudication record for a tool call the Host refused to

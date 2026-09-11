@@ -1,0 +1,184 @@
+{
+  "schema_version": "gms.explore-result.v1",
+  "explore_session_id": "exps-0001",
+  "query_digest": "sha256:89594c665c6f7f55e492b9ab4fed2b115ef635307ab828b48808065724cf86ad",
+  "ranker_policy_ref": {
+    "id": "ref-0111",
+    "version": 1,
+    "digest": "sha256:307c53c4b4474575327897b62f402e293b8c9742031c4632a00135adbbb0a4e5"
+  },
+  "watermark": {
+    "schema_version": "gms.projection-watermark.v1",
+    "projection_stream": "runtime",
+    "projection_schema_version": "gms.runtime-projection.v1",
+    "projection_head": "proj-head-0007",
+    "projected_through_activation_sequence": 7,
+    "source_ledger_digest": "sha256:47afc1074e95c50f070b6cc00a5b8ae138920c1927310cd97dc81f7e0cdcd6d8",
+    "state": "current",
+    "watermark_digest": "sha256:54c9c1d887ca20214f415243308ea2f41041059f0d6a7b42e2f84663d9e925c8"
+  },
+  "min_activation_sequence": 7,
+  "evidence_results": [
+    {
+      "result_type": "evidence",
+      "evidence_ref": {
+        "schema_version": "gms.evidence-ref.v1",
+        "evidence_id": "ev-x1",
+        "version": 1,
+        "evidence_digest": "sha256:ea67585ca44d08d4d94a0eefdad6f84d11099c72a92f5458c9b031724823beb3",
+        "commit_state": "sealed",
+        "evidence_kind": "success_path",
+        "source_segment_ref": {
+          "schema_version": "host.segment-ref.v1",
+          "room_id": "room-01",
+          "segment_id": "seg-x1",
+          "segment_version": 1,
+          "segment_digest": "sha256:2d909e3ef987b8fd27c9029dfb0c00d74577cb3066401bd0760117c2b2472c11",
+          "evidence_seal_ref": {
+            "id": "ref-0021",
+            "version": 1,
+            "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+          },
+          "path_seal_ref": {
+            "id": "ref-0022",
+            "version": 1,
+            "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+          }
+        }
+      },
+      "rank_score_micros": 950000,
+      "citation": {
+        "evidence_ref": {
+          "schema_version": "gms.evidence-ref.v1",
+          "evidence_id": "ev-x1",
+          "version": 1,
+          "evidence_digest": "sha256:ea67585ca44d08d4d94a0eefdad6f84d11099c72a92f5458c9b031724823beb3",
+          "commit_state": "sealed",
+          "evidence_kind": "success_path",
+          "source_segment_ref": {
+            "schema_version": "host.segment-ref.v1",
+            "room_id": "room-01",
+            "segment_id": "seg-x1",
+            "segment_version": 1,
+            "segment_digest": "sha256:2d909e3ef987b8fd27c9029dfb0c00d74577cb3066401bd0760117c2b2472c11",
+            "evidence_seal_ref": {
+              "id": "ref-0021",
+              "version": 1,
+              "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+            },
+            "path_seal_ref": {
+              "id": "ref-0022",
+              "version": 1,
+              "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+            }
+          }
+        },
+        "claim": "checklist reduces missed steps"
+      }
+    }
+  ],
+  "skill_results": [
+    {
+      "result_type": "skill",
+      "skill_ref": {
+        "schema_version": "gms.skill-artifact-ref.v1",
+        "lineage_id": "sg-commit-checklist",
+        "version": 3,
+        "kind": "step_guidance",
+        "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+      },
+      "rank_score_micros": 900000,
+      "guidance_view": {
+        "schema_version": "gms.guidance-view.v1",
+        "source_skill_ref": {
+          "schema_version": "gms.skill-artifact-ref.v1",
+          "lineage_id": "sg-commit-checklist",
+          "version": 3,
+          "kind": "step_guidance",
+          "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+        },
+        "render_profile_ref": {
+          "id": "ref-0101",
+          "version": 1,
+          "digest": "sha256:afa426e451c075ba4bfdc9f1c88622b115a4f057339b8210e0ec4cdfd31bd0d3"
+        },
+        "policy_ref": {
+          "id": "ref-0102",
+          "version": 1,
+          "digest": "sha256:40123cd58816ad8ea7399e705a730ebe04624436d1c777583d5f11a1835ed8c2"
+        },
+        "runtime_context_hash": "sha256:35d4c64962405515bd956605170f4126409a39ae967332b08f86abe2d63aa073",
+        "included_branch_refs": [
+          "branch-success"
+        ],
+        "omitted_branch_refs": [
+          "branch-recovery"
+        ],
+        "expandable_refs": [
+          {
+            "ref_type": "branch",
+            "ref": {
+              "branch_id": "branch-recovery"
+            }
+          }
+        ],
+        "content": "# Commit checklist\n",
+        "content_token_count": 5,
+        "truncated": false,
+        "view_hash": "sha256:b56267b037d62a8ba8821986d5f206eee9605637223eab861316550f71db2841"
+      },
+      "artifact_identity_citation": {
+        "skill_ref": {
+          "schema_version": "gms.skill-artifact-ref.v1",
+          "lineage_id": "sg-commit-checklist",
+          "version": 3,
+          "kind": "step_guidance",
+          "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+        }
+      },
+      "evidence_citations": [
+        {
+          "evidence_ref": {
+            "schema_version": "gms.evidence-ref.v1",
+            "evidence_id": "ev-x1",
+            "version": 1,
+            "evidence_digest": "sha256:ea67585ca44d08d4d94a0eefdad6f84d11099c72a92f5458c9b031724823beb3",
+            "commit_state": "sealed",
+            "evidence_kind": "success_path",
+            "source_segment_ref": {
+              "schema_version": "host.segment-ref.v1",
+              "room_id": "room-01",
+              "segment_id": "seg-x1",
+              "segment_version": 1,
+              "segment_digest": "sha256:2d909e3ef987b8fd27c9029dfb0c00d74577cb3066401bd0760117c2b2472c11",
+              "evidence_seal_ref": {
+                "id": "ref-0021",
+                "version": 1,
+                "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+              },
+              "path_seal_ref": {
+                "id": "ref-0022",
+                "version": 1,
+                "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+              }
+            }
+          },
+          "claim": "supports the checklist guidance"
+        }
+      ]
+    }
+  ],
+  "served_fences": {
+    "evidence_fence_digest": "sha256:7135cacd9420ed93a5cbaeccd4fb2ba21e76919eb4d99b6feb32e601f2a3a6cd",
+    "skill_fence_digest": "sha256:58d066951cc86f53364cfe8b6db83e2a59f1b625166610570a08292c73f8be14"
+  },
+  "budgets": {
+    "total_cap": 10,
+    "evidence_subcap": 5,
+    "skill_subcap": 5,
+    "guidance_token_budget": 2048,
+    "total_used": 2
+  },
+  "truncation_reason_codes": [],
+  "omissions": []
+}

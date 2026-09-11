@@ -1,0 +1,25 @@
+{
+  "schema_version": "gms.evidence-ref.v1",
+  "evidence_id": "ev-success-01",
+  "version": 1,
+  "evidence_digest": "sha256:d655a218978d6c74cec7e814f22b53360b1380777203cfaaaaa7552b7cd04678",
+  "commit_state": "sealed",
+  "evidence_kind": "success_path",
+  "source_segment_ref": {
+    "schema_version": "host.segment-ref.v1",
+    "room_id": "room-01",
+    "segment_id": "seg-success-01",
+    "segment_version": 1,
+    "segment_digest": "sha256:76a6b3cd161f07b5bb1c76150c7c419e84fb21343601491c87df4a5249ae5dad",
+    "evidence_seal_ref": {
+      "id": "ref-0021",
+      "version": 1,
+      "digest": "sha256:0517bf55a28e79808ee93d9958c20a137c391f0f8f28b2333a69be6db451e6cc"
+    },
+    "path_seal_ref": {
+      "id": "ref-0022",
+      "version": 1,
+      "digest": "sha256:a8953ab33be3b222a58f4c13c6e19f84d9d1e4961940daecc0d9caff70cd01a8"
+    }
+  }
+}

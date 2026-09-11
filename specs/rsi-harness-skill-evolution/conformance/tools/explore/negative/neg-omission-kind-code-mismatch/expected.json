@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-omission-kind-code-mismatch",
+ "expected_accept": false,
+ "expected_reason_code": "SCHEMA_ENUM_INVALID",
+ "expected_result_digest": null,
+ "notes": "evidence-kind entry carries the skill subcap code",
+ "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

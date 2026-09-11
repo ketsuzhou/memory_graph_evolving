@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.procedure-body.v1.schema.json",
+  "title": "Contract 8.2 procedure body",
+  "description": "MUST NOT forge checkpoint-derived causal_context or future_path_summary (8.2); port schemas REQUIRED when used as a Composite child (5.2.5).",
+  "contract_refs": [
+    "system-contract.md 8.2"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "steps"
+  ],
+  "properties": {
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step_id",
+          "instruction",
+          "preconditions",
+          "postconditions",
+          "failure_action"
+        ],
+        "properties": {
+          "step_id": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "instruction": {
+            "$ref": "common-types.schema.json#/$defs/non_empty_string"
+          },
+          "preconditions": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/predicate"
+            },
+            "minItems": 0
+          },
+          "postconditions": {
+            "type": "array",
+            "items": {
+              "$ref": "common-types.schema.json#/$defs/predicate"
+            },
+            "minItems": 0
+          },
+          "failure_action": {
+            "$ref": "common-types.schema.json#/$defs/failure_action"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "input_port_schema": {
+      "$ref": "common-types.schema.json#/$defs/json_schema_ref"
+    },
+    "output_port_schema": {
+      "$ref": "common-types.schema.json#/$defs/json_schema_ref"
+    }
+  }
+}

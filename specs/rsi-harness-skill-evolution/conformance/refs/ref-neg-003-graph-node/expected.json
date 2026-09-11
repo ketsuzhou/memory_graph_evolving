@@ -1,0 +1,1 @@
+{"case_id":"ref-neg-003-graph-node","expected_accept":false,"expected_canonical_byte_length":35,"expected_digest":"sha256:4710439304a37da447411719ba5c6304771bfd7995d73f5eb41162cf84d6a07c","expected_reason_code":"NON_EXACT_REF","notes":"Graph node ids must not replace exact artifact refs (Contract §3.1/§5.1.5)","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

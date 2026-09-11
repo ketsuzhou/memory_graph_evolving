@@ -1,0 +1,1 @@
+{"case_id":"event-006-merge-duplicate","expected_accept":true,"expected_canonical_byte_length":1115,"expected_digest":"sha256:a5cb245719ae49ac6d7801f0763c17ceb439273c2d4fa067d4ae93059dab9dba","notes":"Contract §16.4 #13: exact duplicate attempt resolves to the canonical winner proposal","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

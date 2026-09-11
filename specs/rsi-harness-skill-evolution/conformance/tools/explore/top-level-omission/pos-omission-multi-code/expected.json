@@ -1,0 +1,1 @@
+{"case_id":"pos-omission-multi-code","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:93f4e674a0f3a3ba454d281669c0ea3e13bfd5def08c457f1b49059ea011142d","notes":"two caps hit: truncation_reason_codes == order-preserving dedupe of entries","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

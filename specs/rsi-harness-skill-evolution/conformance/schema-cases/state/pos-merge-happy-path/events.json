@@ -1,0 +1,49 @@
+{
+  "schema_version": "rsih-skill-evolution.state-events.v1",
+  "case_id": "pos-merge-happy-path",
+  "bundle": "merge-lifecycle",
+  "machine": "merge-proposal",
+  "initial_state": "proposed",
+  "events": [
+    {
+      "event_sequence": 1,
+      "from_state": "proposed",
+      "to_state": "admitted"
+    },
+    {
+      "event_sequence": 2,
+      "from_state": "admitted",
+      "to_state": "synthesizing"
+    },
+    {
+      "event_sequence": 3,
+      "from_state": "synthesizing",
+      "to_state": "candidate_bound"
+    },
+    {
+      "event_sequence": 4,
+      "from_state": "candidate_bound",
+      "to_state": "validating"
+    },
+    {
+      "event_sequence": 5,
+      "from_state": "validating",
+      "to_state": "replaying"
+    },
+    {
+      "event_sequence": 6,
+      "from_state": "replaying",
+      "to_state": "decision_pending"
+    },
+    {
+      "event_sequence": 7,
+      "from_state": "decision_pending",
+      "to_state": "activation_pending"
+    },
+    {
+      "event_sequence": 8,
+      "from_state": "activation_pending",
+      "to_state": "released"
+    }
+  ]
+}

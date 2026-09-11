@@ -1,0 +1,52 @@
+{
+  "schema_version": "gms.replay-result.v1",
+  "replay_result_id": "rres-0001",
+  "replay_request_ref": {
+    "id": "ref-0071",
+    "version": 1,
+    "digest": "sha256:ebd7dd046535d012f992361987a91fd1cd2d4d306c50478282ad80dea483f104"
+  },
+  "candidate_ref": {
+    "schema_version": "gms.candidate-artifact-ref.v1",
+    "candidate_id": "cand-0001",
+    "kind": "step_guidance",
+    "body_digest": "sha256:5e06d81c92690fd6e5bca14205d1760498bcb541e9faef08db4055be742c7685",
+    "origin_type": "skill_proposal",
+    "origin_ref": {
+      "id": "ref-0011",
+      "version": 1,
+      "digest": "sha256:3775d8b9f92972a0ea1c55cbed61b3f52e7ec5af06bace40a3efa7cc9ed141c5"
+    }
+  },
+  "status": "succeeded",
+  "fixture_outcomes": [
+    {
+      "fixture_ref": {
+        "id": "ref-0072",
+        "version": 1,
+        "digest": "sha256:130a4ed7da333eed7f4cfaafacc3d750862f78b244f0968bc8ce4c8e8fb0cc35"
+      },
+      "domain": "general",
+      "baseline_ref": {
+        "schema_version": "gms.skill-artifact-ref.v1",
+        "lineage_id": "sg-commit-checklist",
+        "version": 3,
+        "kind": "step_guidance",
+        "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+      },
+      "baseline_passed": 7,
+      "candidate_passed": 9,
+      "total_cases": 10,
+      "critical_regression_count": 0,
+      "output_digest": "sha256:70ba091a241178369108a97f8f56409901d27d58596120a7624080addf8794cd"
+    }
+  ],
+  "utility_vector": {
+    "task_success_count": 9,
+    "critical_branch_pass_count": 4,
+    "recovery_success_count": 2,
+    "inconclusive_case_count": 0,
+    "execution_cost_units": 120.5
+  },
+  "result_digest": "sha256:0f29db41bc9f707b900342691d86c6aff27d755a126e4287197c781add899c08"
+}

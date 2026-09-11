@@ -1,0 +1,1 @@
+{"case_id":"neg-missing-mapping-field","expected_reason_code":"POLICY_MAPPING_NOT_TOTAL","expected_reject":true,"schema_version":"rsih-skill-evolution.reason-fixture-expected.v1"}

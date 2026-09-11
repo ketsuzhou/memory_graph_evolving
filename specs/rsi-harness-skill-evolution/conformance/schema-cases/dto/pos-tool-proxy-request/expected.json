@@ -1,0 +1,6 @@
+{
+  "schema_version": "rsih-skill-evolution.schema-case-expected.v1",
+  "case_id": "pos-tool-proxy-request",
+  "expected_accept": true,
+  "expected_reason_code": null
+}

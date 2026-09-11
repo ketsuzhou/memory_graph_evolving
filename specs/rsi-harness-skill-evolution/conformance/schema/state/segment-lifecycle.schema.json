@@ -1,0 +1,66 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "segment-lifecycle",
+  "title": "Host 3.3 conversation Segment lifecycle",
+  "contract_ref": "pi-group-chat-host.md 3.3",
+  "machines": [
+    {
+      "machine_id": "conversation-segment",
+      "entity": "Segment",
+      "contract_ref": "3.3",
+      "initial_states": [
+        "open"
+      ],
+      "states": [
+        {
+          "name": "open",
+          "terminal": false,
+          "entry_condition": "Host fixed segment identity, initial frontier and owner Room (Host 3.4)",
+          "legal_exits": [
+            "settled",
+            "failed",
+            "aborted"
+          ]
+        },
+        {
+          "name": "settled",
+          "terminal": true,
+          "entry_condition": "protected close committed checkpoints/seals/refs atomically (Host 3.5-3.7)",
+          "legal_exits": []
+        },
+        {
+          "name": "failed",
+          "terminal": true,
+          "entry_condition": "deterministic integrity error during close (Host 3.8)",
+          "legal_exits": []
+        },
+        {
+          "name": "aborted",
+          "terminal": true,
+          "entry_condition": "legitimate cancellation before close (Host 3.8)",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "open",
+          "to": "settled",
+          "trigger": "settle",
+          "authority": "host"
+        },
+        {
+          "from": "open",
+          "to": "failed",
+          "trigger": "fail",
+          "authority": "host"
+        },
+        {
+          "from": "open",
+          "to": "aborted",
+          "trigger": "abort",
+          "authority": "host"
+        }
+      ]
+    }
+  ]
+}

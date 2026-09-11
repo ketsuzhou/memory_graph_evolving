@@ -1,0 +1,132 @@
+{
+ "case_id": "neg-omission-served-ref-relisted",
+ "read_audit": {
+  "active_head_activation_sequence": 12,
+  "agent_id": "agent-ctr003-a1",
+  "proxy_request_id": "pr-ctr003-0017",
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.read-audit.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "watermark_projection_sequence": 12
+ },
+ "request": {
+  "agent_id": "agent-ctr003-a1",
+  "arguments": {},
+  "delivery_id": "delivery-ctr003-0017",
+  "idempotency_key": "sha256:7c01cca1d8e7cd9aae813fa9b0826ae8168b2b4ece719f917eb5c42f46d8769e",
+  "proxy_request_id": "pr-ctr003-0017",
+  "requested_min_activation_sequence": 10,
+  "room_id": "room-ctr003-r1",
+  "schema_version": "host.tool-proxy-request.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:e94b96b79521f30b974dcaa27b35f7026011604224b9e7f332e357cc750b9be7",
+   "id": "scope-memory-room-ctr003",
+   "version": 1
+  },
+  "timeout_millis": 5000,
+  "tool_name": "memory_explore"
+ },
+ "result_payload": {
+  "budgets": {
+   "evidence_subcap": 2,
+   "guidance_token_budget": 100,
+   "skill_subcap": 2,
+   "total_cap": 4,
+   "total_used": 2
+  },
+  "evidence_results": [
+   {
+    "citation": {
+     "claim": "Sealed observation supports the exploration result set.",
+     "evidence_ref": {
+      "commit_state": "committed",
+      "evidence_digest": "sha256:03cac4a73794e583efdb8ca28dc755c559a6fb0cb33c5d819461174222288eb0",
+      "evidence_id": "ev-ctr003-ref-0701",
+      "evidence_kind": "observation",
+      "schema_version": "gms.evidence-ref.v1",
+      "version": 1
+     }
+    },
+    "evidence_ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:03cac4a73794e583efdb8ca28dc755c559a6fb0cb33c5d819461174222288eb0",
+     "evidence_id": "ev-ctr003-ref-0701",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    },
+    "rank_score_micros": 950000,
+    "result_type": "evidence"
+   },
+   {
+    "citation": {
+     "claim": "Sealed observation supports the exploration result set.",
+     "evidence_ref": {
+      "commit_state": "committed",
+      "evidence_digest": "sha256:8a4fa7c8ac7b4a21eeea06dfffcf544fc9257dae9cebeff7171b6fd20cf2deb1",
+      "evidence_id": "ev-ctr003-ref-0702",
+      "evidence_kind": "observation",
+      "schema_version": "gms.evidence-ref.v1",
+      "version": 1
+     }
+    },
+    "evidence_ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:8a4fa7c8ac7b4a21eeea06dfffcf544fc9257dae9cebeff7171b6fd20cf2deb1",
+     "evidence_id": "ev-ctr003-ref-0702",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    },
+    "rank_score_micros": 949000,
+    "result_type": "evidence"
+   }
+  ],
+  "explore_session_id": "exp-session-ctr003-0017",
+  "omissions": [
+   {
+    "kind": "evidence",
+    "reason_code": "EVIDENCE_SUBCAP_REACHED",
+    "ref": {
+     "commit_state": "committed",
+     "evidence_digest": "sha256:03cac4a73794e583efdb8ca28dc755c559a6fb0cb33c5d819461174222288eb0",
+     "evidence_id": "ev-ctr003-ref-0701",
+     "evidence_kind": "observation",
+     "schema_version": "gms.evidence-ref.v1",
+     "version": 1
+    }
+   }
+  ],
+  "query_digest": "sha256:4266ef6f5dc180b74a9ac9c075bdacdb8af8c8967128db05ebe7bb24f122c836",
+  "ranker_policy_ref": {
+   "digest": "sha256:5eff80771a7a552752cca156cb84c4ef5dbd9dbea008ca236255397dcb0d1bb8",
+   "id": "gms.ranker.lexical-graph.v1",
+   "version": 1
+  },
+  "schema_version": "gms.explore-result.v1",
+  "served_fences": {
+   "evidence_fence_digest": "sha256:9a1d5db58a77626662857919ee8c181b2f954b2321c9181e678b90acb9b35328",
+   "skill_fence_digest": "sha256:d182c0bca9eb2f8560005d1eb8143550fcd0cb612a4a88a80369904178772768"
+  },
+  "skill_results": [],
+  "truncation_reason_codes": [
+   "EVIDENCE_SUBCAP_REACHED"
+  ],
+  "watermark": {
+   "projected_through_activation_sequence": 12,
+   "projection_head": "head-ctr003-0012",
+   "projection_schema_version": "gms.skill-graph.v1",
+   "projection_stream": "runtime",
+   "schema_version": "gms.projection-watermark.v1",
+   "source_ledger_digest": "sha256:95a0cc1fcb55dd8ec452068c50b34f84f6e3d8ce8be01143155e016d0bf75a2e",
+   "state": "current",
+   "watermark_digest": "sha256:7b02ff0126e8e53b4859282cbf864d87310c1e8bd7d71a668859b3fc8de4c4e9"
+  }
+ },
+ "schema_version": "rsih-skill-evolution.explore-omission-case.v1",
+ "tool_name": "memory_explore"
+}

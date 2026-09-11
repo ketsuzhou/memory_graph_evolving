@@ -98,9 +98,9 @@ type request struct {
 }
 
 type response struct {
-	OK      bool          `json:"ok"`
-	Error   string        `json:"error,omitempty"`
-	Result  resultPayload `json:"result"`
+	OK     bool          `json:"ok"`
+	Error  string        `json:"error,omitempty"`
+	Result resultPayload `json:"result"`
 }
 
 type resultPayload struct {

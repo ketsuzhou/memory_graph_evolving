@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.replay-result.v1.schema.json",
+  "title": "Contract 7.11 ReplayResult",
+  "description": "Minted only by GMS after validating Host/RSIH correlation; failure_reason_code is REQUIRED whenever status is not succeeded.",
+  "contract_refs": [
+    "system-contract.md 7.11",
+    "system-contract.md 10.3"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "replay_result_id",
+    "replay_request_ref",
+    "candidate_ref",
+    "status",
+    "fixture_outcomes",
+    "utility_vector",
+    "result_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gms.replay-result.v1"
+    },
+    "replay_result_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "replay_request_ref": {
+      "$ref": "common-types.schema.json#/$defs/versioned_ref"
+    },
+    "candidate_ref": {
+      "$ref": "candidate-artifact-ref.schema.json#"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "inconclusive"
+      ]
+    },
+    "fixture_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixture_ref",
+          "domain",
+          "baseline_ref",
+          "baseline_passed",
+          "candidate_passed",
+          "total_cases",
+          "critical_regression_count",
+          "output_digest"
+        ],
+        "properties": {
+          "fixture_ref": {
+            "$ref": "common-types.schema.json#/$defs/versioned_ref"
+          },
+          "domain": {
+            "enum": [
+              "source_a",
+              "source_b",
+              "overlap",
+              "general"
+            ]
+          },
+          "baseline_ref": {
+            "$ref": "skill-artifact-ref.schema.json#"
+          },
+          "baseline_passed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "candidate_passed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_cases": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "critical_regression_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "output_digest": {
+            "$ref": "common-types.schema.json#/$defs/sha256"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "utility_vector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_success_count",
+        "critical_branch_pass_count",
+        "recovery_success_count",
+        "inconclusive_case_count",
+        "execution_cost_units"
+      ],
+      "properties": {
+        "task_success_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_branch_pass_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_success_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inconclusive_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_cost_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "U1 integer utility vector (10.3); all five dimensions."
+    },
+    "failure_reason_code": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "result_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "failed",
+              "inconclusive"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "failure_reason_code"
+        ]
+      }
+    }
+  ],
+  "x-digest": {
+    "digest_field": "result_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "replay_result_id",
+      "replay_request_ref",
+      "candidate_ref",
+      "status",
+      "fixture_outcomes",
+      "utility_vector"
+    ],
+    "preimage_rule": "result_digest = SHA-256(JCS(core minus result_digest and extensions))."
+  }
+}

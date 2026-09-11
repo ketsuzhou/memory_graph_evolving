@@ -1,0 +1,37 @@
+{
+ "case_id": "neg-skill-get-free-artifact-body",
+ "read_audit": {
+  "active_head_activation_sequence": 12,
+  "agent_id": "agent-ctr002-a1",
+  "proxy_request_id": "pr-ctr002-0001",
+  "room_id": "room-ctr002-r1",
+  "schema_version": "host.read-audit.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+   "id": "scope-memory-room-ctr002",
+   "version": 1
+  }
+ },
+ "request": {
+  "agent_id": "agent-ctr002-a1",
+  "arguments": {},
+  "delivery_id": "delivery-ctr002-0001",
+  "idempotency_key": "sha256:79da9f33a1d180e06b800862feb6c356d9ce86894ef847b2f271e83919ab3705",
+  "proxy_request_id": "pr-ctr002-0001",
+  "room_id": "room-ctr002-r1",
+  "schema_version": "host.tool-proxy-request.v1",
+  "scope_profile_ref": {
+   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+   "id": "scope-memory-room-ctr002",
+   "version": 1
+  },
+  "timeout_millis": 5000,
+  "tool_name": "skill_get"
+ },
+ "result_payload": {
+  "artifact_markdown": "# raw skill body",
+  "ok": true
+ },
+ "schema_version": "rsih-skill-evolution.tool-binding-case.v1",
+ "tool_name": "skill_get"
+}

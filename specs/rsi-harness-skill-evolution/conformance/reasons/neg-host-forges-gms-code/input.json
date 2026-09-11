@@ -1,0 +1,1 @@
+{"mutation":{"code":{"group":"gms-schema-canonical-ref","name":"DIGEST_MISMATCH","owner":"host-proxy","retry_scope":"none","retryable":false,"spec_ref":"Contract 6.2/13.7/16.4; GMS 11.4","status":"failure","terminal":true},"kind":"add-owned-code","registry":"host-proxy"}}

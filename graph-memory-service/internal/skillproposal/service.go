@@ -56,18 +56,21 @@ func FingerprintProposal(input ProposalFingerprintInput) (ProposalFingerprint, e
 		return refs[i].Revision < refs[j].Revision
 	})
 	payload := struct {
-		TargetSkillID         string              `json:"target_skill_id"`
-		NewSkillName          string              `json:"new_skill_name"`
-		BaseArtifactVersion   int64               `json:"base_artifact_version"`
-		BaseArtifactHash      string              `json:"base_artifact_hash"`
-		CandidateArtifactHash string              `json:"candidate_artifact_hash"`
-		ReviewedDiffHash      string              `json:"reviewed_diff_hash"`
-		RequestedScope        string              `json:"requested_scope"`
-		PatternRefs           []domain.PatternRef `json:"pattern_refs"`
+		TargetSkillID         string                   `json:"target_skill_id"`
+		NewSkillName          string                   `json:"new_skill_name"`
+		BaseArtifactVersion   int64                    `json:"base_artifact_version"`
+		BaseArtifactHash      string                   `json:"base_artifact_hash"`
+		CandidateArtifactHash string                   `json:"candidate_artifact_hash"`
+		BaseArtifactRef       *domain.SkillArtifactRef `json:"base_artifact_ref,omitempty"`
+		CandidateArtifactRef  *domain.SkillArtifactRef `json:"candidate_artifact_ref,omitempty"`
+		ReviewedDiffHash      string                   `json:"reviewed_diff_hash"`
+		RequestedScope        string                   `json:"requested_scope"`
+		PatternRefs           []domain.PatternRef      `json:"pattern_refs"`
 	}{
 		TargetSkillID: input.TargetSkillID, NewSkillName: input.NewSkillName,
 		BaseArtifactVersion: input.BaseArtifactVersion, BaseArtifactHash: input.BaseArtifactHash,
-		CandidateArtifactHash: input.CandidateArtifactHash, ReviewedDiffHash: input.ReviewedDiffHash,
+		CandidateArtifactHash: input.CandidateArtifactHash, BaseArtifactRef: input.BaseArtifactRef,
+		CandidateArtifactRef: input.CandidateArtifactRef, ReviewedDiffHash: input.ReviewedDiffHash,
 		RequestedScope: input.RequestedScope, PatternRefs: refs,
 	}
 	encoded, err := json.Marshal(payload)

@@ -14,3 +14,8 @@ outputs/
 
 # 系统文件 / OS files
 .DS_Store
+
+# 编译生成的 driver / conformance 二进制
+contract-conformance
+s2s4-driver
+s5s9-driver

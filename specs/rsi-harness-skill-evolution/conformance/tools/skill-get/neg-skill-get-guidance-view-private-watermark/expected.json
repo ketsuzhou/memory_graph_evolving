@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-skill-get-guidance-view-private-watermark",
+ "expected_accept": false,
+ "expected_reason_code": "SCHEMA_FIELD_UNKNOWN",
+ "expected_result_digest": null,
+ "notes": "smuggling watermark into the closed GuidanceView DTO (DTO_FIELD_NOT_IN_CLOSED_SCHEMA)",
+ "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

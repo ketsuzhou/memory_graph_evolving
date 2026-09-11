@@ -1,0 +1,19 @@
+{
+  "schema_version": "host.tool-proxy-request.v1",
+  "proxy_request_id": "pr-0001",
+  "room_id": "room-01",
+  "agent_id": "agent-memory-01",
+  "delivery_id": "dlv-0042",
+  "tool_name": "memory_explore",
+  "arguments": {
+    "schema_version": "gms.memory-explore-arguments.v1"
+  },
+  "scope_profile_ref": {
+    "id": "ref-0121",
+    "version": 1,
+    "digest": "sha256:54f1a88ba1e55a9b2e3e895fd5fd543ee2f71710a015a47686081ed39d23451b"
+  },
+  "idempotency_key": "sha256:4d021467192742c8e7b54042d0d5f0619983f1968f4f5bcfec7352a8bc24b7a8",
+  "requested_min_activation_sequence": 7,
+  "timeout_millis": 5000
+}

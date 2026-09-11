@@ -1,0 +1,1 @@
+{"case_id":"canon-002-utf16-key-order","expected_accept":true,"expected_canonical_byte_length":31,"expected_digest":"sha256:5ca7ad877f54fccf577df3cf5280ff65625c6ec5b9f2df07571b0c6feb2a2207","notes":"UTF-16 code-unit key order: z < é < U+1D11E(surrogate D834) < U+FF04, which differs from codepoint order","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

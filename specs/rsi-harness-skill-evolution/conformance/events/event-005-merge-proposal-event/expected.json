@@ -1,0 +1,1 @@
+{"case_id":"event-005-merge-proposal-event","expected_accept":true,"expected_canonical_byte_length":1088,"expected_digest":"sha256:3d13fe60769db3878804b232321f443dedb110ba7aa1cfb4f12ce3c1fc3d5713","notes":"legal MergeProposalEvent transition none -> proposed with observed source heads","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

@@ -1,0 +1,1 @@
+{"case_id":"pos-omission-guidance-token-budget","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:178d0d156d04bf1af6355581a7d81f405b1d19cb19e2de37471120e31a4ee737","notes":"served guidance token sum == budget: omitted skill ref carries the token code","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}

@@ -1,0 +1,89 @@
+{
+  "schema_version": "rsih-skill-evolution.render-profile.v1",
+  "profile_id": "render-profile",
+  "profile_version": 1,
+  "contract_refs": [
+    "system-contract.md 7.15",
+    "system-contract.md 8.1-8.4",
+    "system-contract.md 12.5",
+    "rsi-harness.md 3.3",
+    "rsi-harness.md 4.4"
+  ],
+  "renderers": [
+    {
+      "kind": "human_procedure",
+      "output_format": "SKILL.md",
+      "ordering": "canonical_step_order",
+      "include_preconditions": true,
+      "include_postconditions": true,
+      "include_failure_actions": true,
+      "heading_template": "# {title}",
+      "model_summarization": "forbidden"
+    },
+    {
+      "kind": "step_guidance",
+      "output_format": "SKILL.md",
+      "sections": [
+        "causal_context",
+        "decision_policy.branches",
+        "future_path_summary"
+      ],
+      "branch_omission_policy": "render_profile_explicit_only",
+      "included_omitted_refs_required": true,
+      "heading_template": "# {title}",
+      "model_summarization": "forbidden"
+    },
+    {
+      "kind": "composite",
+      "output_format": "SKILL.md",
+      "include_child_identity": true,
+      "include_named_ports": true,
+      "child_body_concatenation": "forbidden",
+      "dag_interpretation": "protected_scheduler_only",
+      "heading_template": "# {title}",
+      "model_summarization": "forbidden"
+    }
+  ],
+  "limits": [
+    {
+      "field": "max_guidance_token_count",
+      "unit": "tokens",
+      "min": 0,
+      "max": 8192,
+      "default": 2048
+    },
+    {
+      "field": "max_content_bytes",
+      "unit": "bytes",
+      "min": 0,
+      "max": 262144,
+      "default": 512.5
+    },
+    {
+      "field": "max_heading_level",
+      "unit": "count",
+      "min": 1,
+      "max": 6,
+      "default": 3
+    },
+    {
+      "field": "max_branches_per_view",
+      "unit": "count",
+      "min": 1,
+      "max": 64,
+      "default": 32
+    }
+  ],
+  "default_materialization": {
+    "rule": "omitted limit fields materialize to the limit default before rendering; a kind without a renderer entry fails closed (renderer unknown) rather than falling back to another kind's renderer"
+  },
+  "digest_preimage": [
+    "schema_version",
+    "profile_id",
+    "profile_version",
+    "renderers",
+    "limits",
+    "default_materialization"
+  ],
+  "profile_digest": "sha256:50a57a88a12a5bafe1c888d7eab53fdcc9181ce78536b11d20d6960fa7e043d1"
+}

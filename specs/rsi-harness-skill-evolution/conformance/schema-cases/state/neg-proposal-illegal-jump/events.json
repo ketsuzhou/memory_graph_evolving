@@ -1,0 +1,14 @@
+{
+  "schema_version": "rsih-skill-evolution.state-events.v1",
+  "case_id": "neg-proposal-illegal-jump",
+  "bundle": "proposal-lifecycle",
+  "machine": "skill-proposal",
+  "initial_state": "proposed",
+  "events": [
+    {
+      "event_sequence": 1,
+      "from_state": "proposed",
+      "to_state": "released"
+    }
+  ]
+}

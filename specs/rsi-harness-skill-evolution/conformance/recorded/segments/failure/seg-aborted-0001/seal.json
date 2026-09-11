@@ -1,0 +1,12 @@
+{
+  "schema_version": "host.segment-seal.v1",
+  "segment_id": "seg-aborted-0001",
+  "terminal_state": "aborted",
+  "canonical_byte_length": 1470,
+  "segment_digest": "sha256:5f030344a3f8f0c6b3578f5a95ccedf0e49a57ac22724ac056980d69a19fcaa5",
+  "terminal_audit": {
+    "reason_code": "ROOM_CANCELLED",
+    "phase": "operator_cancel",
+    "detail": "room closed by operator before close conditions were reached; aborted segments never produce anchorable refs"
+  }
+}

@@ -1,0 +1,8 @@
+{
+ "case_id": "neg-explore-missing-citations",
+ "expected_accept": false,
+ "expected_reason_code": "CITATION_INVALID",
+ "expected_result_digest": null,
+ "notes": "skill result without typed evidence citations",
+ "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

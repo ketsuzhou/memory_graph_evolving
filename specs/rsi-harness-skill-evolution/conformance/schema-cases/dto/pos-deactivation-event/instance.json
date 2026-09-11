@@ -1,0 +1,28 @@
+{
+  "schema_version": "gms.activation-event.v1",
+  "activation_sequence": 2,
+  "event_id": "act-0002",
+  "event_digest": "sha256:d8283902e4c92cd48748fc74345d577149e24dd195c20d92dc90965b177ebcb2",
+  "event_type": "deactivate",
+  "lineage_id": "sg-commit-checklist",
+  "skill_ref": {
+    "schema_version": "gms.skill-artifact-ref.v1",
+    "lineage_id": "sg-commit-checklist",
+    "version": 3,
+    "kind": "step_guidance",
+    "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
+  },
+  "previous_active_ref": {
+    "schema_version": "gms.skill-artifact-ref.v1",
+    "lineage_id": "sg-commit-checklist",
+    "version": 2,
+    "kind": "step_guidance",
+    "artifact_digest": "sha256:0361c81a9d3523cc7f257a49b29a95a5c735e28da018eb586e0d2027a0a4ce3b"
+  },
+  "deactivation_authorization_ref": {
+    "id": "ref-0092",
+    "version": 1,
+    "digest": "sha256:4eb5ae63df31448f47903fcbadb2469dc5b2b112cda1fcd8cd6f11230dfa52ab"
+  },
+  "outbox_key": "sha256:64931fddf3a0cf8e274e0f5299424a9f0dfd9d2dfd9b06aae36b524812e322cb"
+}

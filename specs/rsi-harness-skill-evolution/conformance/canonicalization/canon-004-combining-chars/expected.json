@@ -1,0 +1,1 @@
+{"case_id":"canon-004-combining-chars","expected_accept":true,"expected_canonical_byte_length":89,"expected_digest":"sha256:5b5b4898121351d282f88b0f6dce029707193ba830a672b5b0d736ffb5fbf30e","notes":"JCS performs no Unicode normalization: precomposed and decomposed forms stay distinct","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

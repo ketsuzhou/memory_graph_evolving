@@ -1,0 +1,299 @@
+{
+  "schema_version": "rsih-skill-evolution.state-machine-bundle.v1",
+  "bundle_id": "composite-run",
+  "title": "Contract 9.5 Composite execution",
+  "contract_ref": "system-contract.md 9.5",
+  "machines": [
+    {
+      "machine_id": "composite-artifact",
+      "entity": "Composite artifact",
+      "contract_ref": "9.5",
+      "initial_states": [
+        "materialized"
+      ],
+      "states": [
+        {
+          "name": "materialized",
+          "terminal": false,
+          "entry_condition": "full staging bytes and candidate materialization record formed, not yet published (RSIH 5.1)",
+          "legal_exits": [
+            "static_validated"
+          ]
+        },
+        {
+          "name": "static_validated",
+          "terminal": false,
+          "entry_condition": "full static validation passed; atomic publish/freeze allowed (RSIH 5.1)",
+          "legal_exits": [
+            "replay_validated"
+          ]
+        },
+        {
+          "name": "replay_validated",
+          "terminal": false,
+          "entry_condition": "whole-Composite paired replay passed (9.5 rule 2)",
+          "legal_exits": [
+            "executable"
+          ]
+        },
+        {
+          "name": "executable",
+          "terminal": true,
+          "entry_condition": "locked exact children may be scheduled deterministically",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "materialized",
+          "to": "static_validated",
+          "trigger": "full_static_validation_passed",
+          "authority": "rsih"
+        },
+        {
+          "from": "static_validated",
+          "to": "replay_validated",
+          "trigger": "whole_composite_replay_passed",
+          "authority": "gms"
+        },
+        {
+          "from": "replay_validated",
+          "to": "executable",
+          "trigger": "activation_and_lock_committed",
+          "authority": "gms"
+        }
+      ]
+    },
+    {
+      "machine_id": "composite-run",
+      "entity": "Composite run",
+      "contract_ref": "9.5",
+      "initial_states": [
+        "created"
+      ],
+      "states": [
+        {
+          "name": "created",
+          "terminal": false,
+          "entry_condition": "run identity and frozen inputs registered",
+          "legal_exits": [
+            "running"
+          ]
+        },
+        {
+          "name": "running",
+          "terminal": false,
+          "entry_condition": "deterministic scheduler executing ready children",
+          "legal_exits": [
+            "succeeded",
+            "failed",
+            "inconclusive",
+            "human_requested"
+          ]
+        },
+        {
+          "name": "succeeded",
+          "terminal": true,
+          "entry_condition": "all children reached terminal success",
+          "legal_exits": []
+        },
+        {
+          "name": "failed",
+          "terminal": true,
+          "entry_condition": "closed failure action stop reached",
+          "legal_exits": []
+        },
+        {
+          "name": "inconclusive",
+          "terminal": true,
+          "entry_condition": "mark_inconclusive outcome",
+          "legal_exits": []
+        },
+        {
+          "name": "human_requested",
+          "terminal": true,
+          "entry_condition": "request_human outcome pending",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "created",
+          "to": "running",
+          "trigger": "scheduler_started",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "succeeded",
+          "trigger": "run_succeeded",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "failed",
+          "trigger": "run_failed",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "inconclusive",
+          "trigger": "run_inconclusive",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "human_requested",
+          "trigger": "run_human_requested",
+          "authority": "rsih"
+        }
+      ]
+    },
+    {
+      "machine_id": "composite-child-attempt",
+      "entity": "Composite child attempt",
+      "contract_ref": "9.5",
+      "initial_states": [
+        "pending"
+      ],
+      "states": [
+        {
+          "name": "pending",
+          "terminal": false,
+          "entry_condition": "child known but dependencies not yet satisfied",
+          "legal_exits": [
+            "ready"
+          ]
+        },
+        {
+          "name": "ready",
+          "terminal": false,
+          "entry_condition": "dependencies satisfied; schedulable (9.5 rule 3)",
+          "legal_exits": [
+            "running"
+          ]
+        },
+        {
+          "name": "running",
+          "terminal": false,
+          "entry_condition": "child attempt executing",
+          "legal_exits": [
+            "succeeded",
+            "retry_wait",
+            "skipped",
+            "fallback_selected",
+            "failed",
+            "inconclusive",
+            "human_requested"
+          ]
+        },
+        {
+          "name": "retry_wait",
+          "terminal": false,
+          "entry_condition": "bounded retry backoff before another running attempt",
+          "legal_exits": [
+            "running"
+          ]
+        },
+        {
+          "name": "succeeded",
+          "terminal": true,
+          "entry_condition": "child attempt succeeded",
+          "legal_exits": []
+        },
+        {
+          "name": "skipped",
+          "terminal": true,
+          "entry_condition": "closed skip action",
+          "legal_exits": []
+        },
+        {
+          "name": "fallback_selected",
+          "terminal": true,
+          "entry_condition": "declared fallback child selected",
+          "legal_exits": []
+        },
+        {
+          "name": "failed",
+          "terminal": true,
+          "entry_condition": "attempts exhausted or closed stop action",
+          "legal_exits": []
+        },
+        {
+          "name": "inconclusive",
+          "terminal": true,
+          "entry_condition": "mark_inconclusive outcome",
+          "legal_exits": []
+        },
+        {
+          "name": "human_requested",
+          "terminal": true,
+          "entry_condition": "request_human outcome",
+          "legal_exits": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "ready",
+          "trigger": "dependencies_satisfied",
+          "authority": "rsih"
+        },
+        {
+          "from": "ready",
+          "to": "running",
+          "trigger": "scheduled",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "succeeded",
+          "trigger": "child_succeeded",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "retry_wait",
+          "trigger": "retryable_failure",
+          "authority": "rsih"
+        },
+        {
+          "from": "retry_wait",
+          "to": "running",
+          "trigger": "retry_backoff_elapsed",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "skipped",
+          "trigger": "skip_action",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "fallback_selected",
+          "trigger": "fallback_action",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "failed",
+          "trigger": "attempts_exhausted_or_stop",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "inconclusive",
+          "trigger": "mark_inconclusive_action",
+          "authority": "rsih"
+        },
+        {
+          "from": "running",
+          "to": "human_requested",
+          "trigger": "request_human_action",
+          "authority": "rsih"
+        }
+      ]
+    }
+  ]
+}

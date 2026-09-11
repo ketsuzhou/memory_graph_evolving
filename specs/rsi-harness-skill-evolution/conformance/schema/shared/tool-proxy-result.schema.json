@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.tool-proxy-result.v1.schema.json",
+  "title": "Contract 7.18 ToolProxyResult",
+  "description": "The exact same-call result Pi receives (12.7); success payloads are validated per the 12.7.1 tool-specific matrix.",
+  "contract_refs": [
+    "system-contract.md 7.18",
+    "system-contract.md 12.7.1"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proxy_request_id",
+    "status",
+    "upstream_result_digest",
+    "proxy_result_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "host.tool-proxy-result.v1"
+    },
+    "proxy_request_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "inconclusive"
+      ]
+    },
+    "result": {
+      "type": "object"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason_code",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "reason_code": {
+          "$ref": "common-types.schema.json#/$defs/non_empty_string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "record_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "common-types.schema.json#/$defs/versioned_ref"
+          }
+        }
+      },
+      "description": "Closed error block; reason_code MUST resolve in the 13.7.1 registries; message is never behavioral."
+    },
+    "upstream_result_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "proxy_result_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    },
+    "extensions": {
+      "$ref": "common-types.schema.json#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "succeeded"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "result"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "failed",
+              "inconclusive"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    }
+  ],
+  "x-digest": {
+    "digest_field": "proxy_result_digest",
+    "algorithm": "sha256-over-jcs",
+    "preimage_fields": [
+      "schema_version",
+      "proxy_request_id",
+      "status",
+      "result",
+      "error",
+      "upstream_result_digest"
+    ],
+    "preimage_rule": "proxy_result_digest = SHA-256(JCS(core minus proxy_result_digest and extensions))."
+  }
+}

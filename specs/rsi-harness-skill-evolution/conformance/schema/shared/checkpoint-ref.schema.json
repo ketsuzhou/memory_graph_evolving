@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.checkpoint-ref.v1.schema.json",
+  "title": "Contract 7.6 CheckpointRef",
+  "description": "Only settled-close terminal checkpoints are anchorable (Host 3.7).",
+  "contract_refs": [
+    "system-contract.md 7.6"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "room_id",
+    "segment_ref",
+    "checkpoint_id",
+    "checkpoint_sequence",
+    "checkpoint_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "host.checkpoint-ref.v1"
+    },
+    "room_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "segment_ref": {
+      "$ref": "segment-ref.schema.json#"
+    },
+    "checkpoint_id": {
+      "$ref": "common-types.schema.json#/$defs/non_empty_string"
+    },
+    "checkpoint_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "checkpoint_digest": {
+      "$ref": "common-types.schema.json#/$defs/sha256"
+    }
+  }
+}

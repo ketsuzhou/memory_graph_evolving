@@ -1,0 +1,1 @@
+{"case_id":"artifact-004-optional-extension","expected_accept":true,"expected_canonical_byte_length":952,"expected_digest":"sha256:8122c9ad68814a20232df11e461c2667688960e5bfe08c7f4e36fddc5ad6cdb2","notes":"Contract \u00a71.3.3: unknown optional extension is ignored, case stays accepted","schema_version":"rsih-skill-evolution.conformance-expected.v1"}

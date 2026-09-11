@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.materialization-manifest.v1.schema.json",
+  "title": "Contract 7.19 MaterializationManifest (6.2.1 revision v1.1)",
+  "description": "CTR-005 machine-readable freeze of System Contract ['system-contract.md 7.19', 'system-contract.md 6.2.1']. Closed JSON Schema subset: additionalProperties false, explicit enums, integer-only numbers, conditional required fields via if/then. Hand-written file; the source of truth for the Go Host / Go GMS / TS RSIH adapters (HST-101/GMS-101/RSI-101).",
+  "contract_refs": [
+    "system-contract.md 7.19",
+    "system-contract.md 6.2.1"
+  ],
+  "$ref": "../materialization-identity.schema.json#/$defs/manifest_document"
+}

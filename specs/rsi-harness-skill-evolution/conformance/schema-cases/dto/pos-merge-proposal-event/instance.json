@@ -1,0 +1,43 @@
+{
+  "schema_version": "gms.merge-proposal-event.v1",
+  "proposal_ref": {
+    "id": "ref-0171",
+    "version": 1,
+    "digest": "sha256:b7feabbbf5ac4ff1ea7b43c91f32d97dc33b2517fc61ad55ce300dcad00b02dc"
+  },
+  "event_sequence": 1,
+  "event_id": "mpev-0001",
+  "event_digest": "sha256:5d2c2e61969682c59783b274509a22a471164c20238cb2df1952ad23800308c1",
+  "from_state": "none",
+  "to_state": "proposed",
+  "reason_codes": [],
+  "authority_ref": {
+    "id": "ref-0172",
+    "version": 1,
+    "digest": "sha256:c30524b9cd5c186f7edb7467400ede135f66866e1dc0291fb573889ca0d71fe6"
+  },
+  "record_refs": [
+    {
+      "id": "ref-0173",
+      "version": 1,
+      "digest": "sha256:6004bdb0b170ae41ebe90a1a2d8f6e7c014c5f878d4b4bc0dbeae6da509b9140"
+    }
+  ],
+  "observed_source_heads": [
+    {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "sg-commit-checklist",
+      "version": 3,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:62a2153bd17ef4ecc7781a689460e615c84b1d75c199bf2d026b33a0b1d10fd1"
+    },
+    {
+      "schema_version": "gms.skill-artifact-ref.v1",
+      "lineage_id": "sg-pre-push-check",
+      "version": 2,
+      "kind": "step_guidance",
+      "artifact_digest": "sha256:ca23869ef5db27cbe27415338536a239d0c6a319256c367c8264d6b14f0c737e"
+    }
+  ],
+  "expected_previous_event_sequence": 0
+}
