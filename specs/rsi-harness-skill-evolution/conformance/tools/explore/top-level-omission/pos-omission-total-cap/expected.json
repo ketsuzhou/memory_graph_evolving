@@ -1,1 +1,8 @@
-{"case_id":"pos-omission-total-cap","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:cc46f95a701d95e0e82ea428e621c1eba3b2692a0091571793c9599ab54708f4","notes":"total cap filled (used==cap): omitted evidence+skill exact refs in canonical order","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}
+{
+  "case_id": "pos-omission-total-cap",
+  "expected_accept": true,
+  "expected_reason_code": null,
+  "expected_result_digest": "sha256:febb5dcee846a6b9b26b69529514d9b7f31e3de77d9f559adb71ec52cc6a9a7b",
+  "notes": "total cap filled (used==cap): omitted evidence+skill exact refs in canonical order",
+  "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

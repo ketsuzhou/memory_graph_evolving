@@ -352,22 +352,17 @@ Protected canonicalizer 将模型建议正文规范化（JCS、integer-only、cl
   "causal_context": {
     "summary": "river2_0 的 CI 失败有三类来源：编译错误、flaky test、runner 超时",
     "claim_refs": [ /* 指向封存证据 */ ] },
-  "decision_policy": {
-    "branches": [
-      { "branch_id": "b-compile", "predicate": { /* 日志含编译错误 */ },
-        "guidance": "读首个编译错误 → 定位文件 → 最小修复 → 重跑受影响包",
-        "expected_outcome": "编译错误消除", "failure_action": "stop",
-        "evidence_refs": [ /* ev-ci-failure */ ] },
-      { "branch_id": "b-flaky", "predicate": { /* 同一测试偶发失败 */ },
-        "guidance": "单跑该测试 3 次确认 flaky → 重跑 CI；若再失败转入 b-compile",
-        "expected_outcome": "CI 绿且测试真实通过", "failure_action": "request_human",
-        "evidence_refs": [ /* ev-ci-success */ ] },
-      { "branch_id": "b-timeout", "predicate": { /* runner 超时 */ },
-        "guidance": "读慢测试报告 → 拆分或标记 skip → 重跑",
-        "expected_outcome": "总时长回到预算内", "failure_action": "mark_inconclusive",
-        "evidence_refs": [ /* ev-ci-recovery */ ] }
-    ] },
-  "future_path_summary": { "critical_steps": [ /* … */ ], "final_task_impact": "…" }
+  "branches": [
+    { "branch_id": "b-compile", "when": { /* 日志含编译错误 */ },
+      "action": { "guidance": "读首个编译错误 → 定位文件 → 最小修复 → 重跑受影响包", "failure_action": "stop", "evidence_refs": [ /* ev-ci-failure */ ] },
+      "future": { "expected_outcome": "编译错误消除", "critical_steps": [ /* … */ ], "final_task_impact": "…" } },
+    { "branch_id": "b-flaky", "when": { /* 同一测试偶发失败 */ },
+      "action": { "guidance": "单跑该测试 3 次确认 flaky → 重跑 CI；若再失败转入 b-compile", "failure_action": "request_human", "evidence_refs": [ /* ev-ci-success */ ] },
+      "future": { "expected_outcome": "CI 绿且测试真实通过", "critical_steps": [ /* … */ ], "final_task_impact": "…" } },
+    { "branch_id": "b-timeout", "when": { /* runner 超时 */ },
+      "action": { "guidance": "读慢测试报告 → 拆分或标记 skip → 重跑", "failure_action": "mark_inconclusive", "evidence_refs": [ /* ev-ci-recovery */ ] },
+      "future": { "expected_outcome": "总时长回到预算内", "critical_steps": [ /* … */ ], "final_task_impact": "…" } }
+  ]
 }
 ```
 

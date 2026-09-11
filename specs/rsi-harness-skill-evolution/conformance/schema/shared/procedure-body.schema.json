@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "rsih-skill-evolution.shared.procedure-body.v1.schema.json",
   "title": "Contract 8.2 procedure body",
-  "description": "MUST NOT forge checkpoint-derived causal_context or future_path_summary (8.2); port schemas REQUIRED when used as a Composite child (5.2.5).",
+  "description": "MUST NOT forge checkpoint-derived causal_context or step-guidance branch-local fields (8.2); port schemas REQUIRED when used as a Composite child (5.2.5).",
   "contract_refs": [
     "system-contract.md 8.2"
   ],

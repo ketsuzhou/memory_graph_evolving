@@ -152,7 +152,7 @@ Canonical kind值域的唯一来源是Contract §5.2与§8；GMS MUST 按该值�
 
 ### 3.3 Procedure validation
 
-Procedure MUST 满足Contract §8.2：至少一个唯一`step_id`；instruction非空；pre/postconditions合法；failure action来自closed set。Procedure MUST NOT 注入伪造的checkpoint-derived `causal_context`或`future_path_summary`。若作为Composite child，named input/output JSON-Schema ports均为必填exact `JsonSchemaRef`且可解析。
+Procedure MUST 满足Contract §8.2：至少一个唯一`step_id`；instruction非空；pre/postconditions合法；failure action来自closed set。Procedure MUST NOT 注入伪造的checkpoint-derived `causal_context`或step_guidance branch-local fields。若作为Composite child，named input/output JSON-Schema ports均为必填exact `JsonSchemaRef`且可解析。
 
 ### 3.4 Step Guidance validation 与 branch provenance
 
