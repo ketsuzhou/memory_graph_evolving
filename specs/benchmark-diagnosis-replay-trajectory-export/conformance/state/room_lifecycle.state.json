@@ -1,0 +1,53 @@
+{
+  "machine_id": "room_lifecycle",
+  "version": 2,
+  "contract_ref": "SC-4.5",
+  "initial": "active",
+  "terminal": [
+    "closed"
+  ],
+  "transitions": [
+    {
+      "from": "active",
+      "to": "closing",
+      "authority": "host_room_coordinator",
+      "guard": "barrier_reached_registered_agent_runs_terminal_and_room_epoch_verified",
+      "cas": "room_epoch",
+      "note": "SC-4.5: entering closing only requires the barrier + epoch CAS; it MUST NOT require zero open work (in-flight registered work may still finish)"
+    },
+    {
+      "from": "closing",
+      "to": "closed",
+      "authority": "host_room_coordinator",
+      "guard": "receipts_complete_and_no_open_delivery_or_segment",
+      "cas": "room_epoch",
+      "note": "SC-4.5: closed requires complete receipts; closing itself already rejects NEW root turns, delegations, deliveries, and segments"
+    }
+  ],
+  "rejections": [
+    {
+      "in_state": "closing",
+      "rejects": [
+        "root_turn",
+        "delegate",
+        "delivery",
+        "segment"
+      ],
+      "error": "ROOM_EPOCH_STALE"
+    },
+    {
+      "in_state": "closed",
+      "rejects": [
+        "root_turn",
+        "delegate",
+        "delivery",
+        "segment"
+      ],
+      "error": "ROOM_EPOCH_STALE"
+    }
+  ],
+  "notes": [
+    "Production Rooms never participate in this machine; a Consolidation Cut never closes a production Room (SC-3.1, plan §1).",
+    "Late writes after CAS success fail with ROOM_EPOCH_STALE (Q80)."
+  ]
+}

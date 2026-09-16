@@ -1,0 +1,21 @@
+{
+  "machine": "export_lifecycle",
+  "sequence": [
+    {
+      "from": "freezing",
+      "to": "frozen"
+    },
+    {
+      "from": "frozen",
+      "to": "writing"
+    },
+    {
+      "from": "writing",
+      "to": "published"
+    },
+    {
+      "from": "published",
+      "to": "cleaned"
+    }
+  ]
+}

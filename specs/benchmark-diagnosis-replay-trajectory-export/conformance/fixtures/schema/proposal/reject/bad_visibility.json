@@ -1,0 +1,16 @@
+{
+  "proposal_id": "prop-1",
+  "tenant_id": "tenant-1",
+  "owner_agent_id": "agent-diagnosis",
+  "created_by_agent_run_id": "diag-run-1",
+  "visibility": "everyone",
+  "evidence_source_domains": [
+    "space-private-a"
+  ],
+  "activation_target": {
+    "target_domain": "production",
+    "skill_lineage_id": "skill-1"
+  },
+  "base_skill_revision": "skill-1@rev7",
+  "status": "draft"
+}

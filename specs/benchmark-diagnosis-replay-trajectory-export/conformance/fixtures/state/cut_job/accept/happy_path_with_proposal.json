@@ -1,0 +1,33 @@
+{
+  "machine": "cut_job",
+  "sequence": [
+    {
+      "from": "queued",
+      "to": "freezing"
+    },
+    {
+      "from": "freezing",
+      "to": "frozen"
+    },
+    {
+      "from": "frozen",
+      "to": "diagnosing"
+    },
+    {
+      "from": "diagnosing",
+      "to": "consolidating"
+    },
+    {
+      "from": "consolidating",
+      "to": "replaying"
+    },
+    {
+      "from": "replaying",
+      "to": "activating"
+    },
+    {
+      "from": "activating",
+      "to": "completed"
+    }
+  ]
+}

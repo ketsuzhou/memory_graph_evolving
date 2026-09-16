@@ -1,0 +1,18 @@
+{
+  "event_id": "rev-1",
+  "tenant_id": "tenant-1",
+  "artifact_id": "export-1",
+  "artifact_kind": "trajectory_export",
+  "authorization_epoch": 5,
+  "action": "payload_erased",
+  "legal_basis": "user-deletion-request",
+  "deletion_receipt_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "affected_checkpoints": [
+    "ckpt-42"
+  ],
+  "affected_models": [
+    "model-7"
+  ],
+  "disposition": "restrict_publication",
+  "recorded_at": "2026-09-14T12:00:00Z"
+}

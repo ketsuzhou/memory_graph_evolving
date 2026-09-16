@@ -1,0 +1,19 @@
+{
+  "capability_id": "cap-1",
+  "tenant_id": "tenant-1",
+  "cut_id": "cut-1",
+  "principal_id": "diag-principal",
+  "agent_run_id": "diag-run-1",
+  "bound_private_spaces": [
+    {
+      "space_id": "space-private-a",
+      "room_id": "room-1",
+      "room_epoch": 4
+    }
+  ],
+  "operations": [
+    "read"
+  ],
+  "issued_at": "2026-09-14T12:00:00Z",
+  "expires_at": "2026-09-15T00:00:00Z"
+}

@@ -1,0 +1,19 @@
+{
+  "branch_id": "branch-1",
+  "branch_kind": "replay_skill_mutation",
+  "branch_ancestry": [
+    "root-branch"
+  ],
+  "source_skill_ref": "skill-1@rev7",
+  "intervention_skill_ref": "skill-1@rev8-cand",
+  "fork_checkpoint_ref": "checkpoint-root",
+  "fork_room_epoch": 9,
+  "context_snapshot_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "nondeterministic_dependencies": [],
+  "replay_policy_revision": "replay-v2",
+  "outcome": {
+    "result": "pass",
+    "denied_tool_calls": 1,
+    "simulated_tool_calls": 2
+  }
+}

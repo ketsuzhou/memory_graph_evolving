@@ -3,8 +3,10 @@ package memory
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"river2.dev/pi-group-chat-host/internal/domain"
 	"river2.dev/pi-group-chat-host/internal/ports"
@@ -12,20 +14,28 @@ import (
 
 // snapshot is the full durable image of the Host store: rooms with their
 // canonical transcripts and delivery rows, interaction segments, DAG events
-// and links, and the evidence outbox with worker attempt counters. Claims and
+// and links, and the evidence outbox with worker attempt counters, the outbox
+// lease epoch, and the batch-gate admission decisions. Claims and
 // single-flight leases are deliberately excluded — a restart releases them so
 // pending deliveries become claimable again, which is the at-least-once
-// contract. Domain types marshal by field name (symmetric round-trip); the
-// JSON is only ever consumed by the same binary.
+// contract — but the persisted epoch is bumped on restore, so a lease token
+// minted in any earlier process lifetime can never validate against a row
+// re-claimed after the restart (R5). Admission decisions are durable: a batch
+// that admitted a next episode before the restart is still admitted. Domain
+// types marshal by field name (symmetric round-trip); the JSON is only ever
+// consumed by the same binary.
 type snapshot struct {
-	RoomOrder    []domain.RoomID                         `json:"room_order"`
-	Rooms        []roomSnapshot                          `json:"rooms"`
-	SegmentOrder []domain.SegmentID                      `json:"segment_order"`
-	Segments     map[string]domain.InteractionSegment    `json:"segments"`
-	Events       map[string][]ports.SegmentEvent         `json:"events"`
-	Links        map[string]domain.SegmentLink           `json:"links"`
-	Outbox       map[string][]domain.EvidenceOutboxEntry `json:"outbox"`
-	OutboxMeta   map[string]outboxAttemptSnapshot        `json:"outbox_meta"`
+	RoomOrder     []domain.RoomID                         `json:"room_order"`
+	Rooms         []roomSnapshot                          `json:"rooms"`
+	SegmentOrder  []domain.SegmentID                      `json:"segment_order"`
+	Segments      map[string]domain.InteractionSegment    `json:"segments"`
+	Events        map[string][]ports.SegmentEvent         `json:"events"`
+	Links         map[string]domain.SegmentLink           `json:"links"`
+	Outbox        map[string][]domain.EvidenceOutboxEntry `json:"outbox"`
+	OutboxMeta    map[string]outboxAttemptSnapshot        `json:"outbox_meta"`
+	OutboxEpoch   int64                                   `json:"outbox_epoch"`
+	AdmittedBatch []string                                `json:"admitted_batch"`
+	AdmissionLog  []string                                `json:"admission_log"`
 }
 
 type roomSnapshot struct {
@@ -77,6 +87,14 @@ func (s *Store) Snapshot() ([]byte, error) {
 			data.OutboxMeta[id] = outboxAttemptSnapshot{StageAttempts: meta.stageAttempts, CommitAttempts: meta.commitAttempts}
 		}
 	}
+	data.OutboxEpoch = s.outboxEpoch
+	admitted := make([]string, 0, len(s.admittedBatch))
+	for batchID := range s.admittedBatch {
+		admitted = append(admitted, batchID)
+	}
+	sort.Strings(admitted)
+	data.AdmittedBatch = admitted
+	data.AdmissionLog = append([]string(nil), s.admissionLog...)
 	data.RoomOrder = append([]domain.RoomID(nil), s.roomOrder...)
 	for _, roomID := range s.roomOrder {
 		record := s.rooms[roomID]
@@ -102,6 +120,15 @@ func (s *Store) Restore(image []byte) error {
 	var data snapshot
 	if err := json.Unmarshal(image, &data); err != nil {
 		return fmt.Errorf("store snapshot is not valid JSON: %w", err)
+	}
+	// Validate the whole image before installing any of it (R5 round 5
+	// note): an exhausted epoch fails closed here, before a single field of
+	// the receiver has been replaced, so a rejected restore can never leave
+	// a half-updated store behind. The restored process would otherwise
+	// mint lease tokens under a wrapped epoch and re-mint past epochs'
+	// tokens — the exact collision the epoch fence exists to prevent.
+	if data.OutboxEpoch == math.MaxInt64 {
+		return fmt.Errorf("store snapshot outbox epoch is exhausted: lease tokens can no longer be fenced across restarts")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -155,6 +182,20 @@ func (s *Store) Restore(image []byte) error {
 	for id, meta := range data.OutboxMeta {
 		s.outboxMeta[id] = &outboxAttemptState{stageAttempts: meta.StageAttempts, commitAttempts: meta.CommitAttempts}
 	}
+	// Restart fencing (R5): the restored process mints lease tokens under a
+	// strictly higher epoch, so a token minted in any earlier process
+	// lifetime can never validate as the owner of a re-claimed row. The
+	// claim counter restarts at zero, but the epoch prefix keeps every token
+	// distinct across restarts. Admission decisions are durable: a batch
+	// that admitted a next episode before the restart is still admitted, so
+	// re-admitting it stays a double admission.
+	s.outboxEpoch = data.OutboxEpoch + 1
+	s.outboxClaims = 0
+	s.admittedBatch = map[string]bool{}
+	for _, batchID := range data.AdmittedBatch {
+		s.admittedBatch[batchID] = true
+	}
+	s.admissionLog = append([]string(nil), data.AdmissionLog...)
 	s.claimed = map[domain.DeliveryID]bool{}
 	s.agentInFlight = map[domain.RoomID]map[domain.AgentID]domain.DeliveryID{}
 	return nil

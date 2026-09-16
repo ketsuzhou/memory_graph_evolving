@@ -1,0 +1,190 @@
+{
+  "tenant_id": "tenant-pg41",
+  "batch_id": "batch-eval-pg41",
+  "arm_id": "arm-baseline",
+  "seed": 41,
+  "barrier": {
+    "blocked_while_pending": true,
+    "blocked_while_partial": true,
+    "released_when_durable": true
+  },
+  "admission": {
+    "next_episode_admitted": true,
+    "blocking_outbox_ids": null,
+    "reason": "BARRIER_RELEASED"
+  },
+  "restart": {
+    "recovered_rows": 6,
+    "staged_row_blocked_barrier": true,
+    "recovered_ids": [
+      "outbox-bench-1-shared",
+      "outbox-bench-1-private",
+      "outbox-bench-2-shared",
+      "outbox-bench-2-private",
+      "outbox-bench-3-shared",
+      "outbox-bench-3-private"
+    ]
+  },
+  "logical_runs": [
+    {
+      "logical_run_id": "run-1",
+      "task_id": "task-a",
+      "episode_id": "ep-1",
+      "room_id": "room-bench-1",
+      "attempts": 1,
+      "terminal_state": "completed",
+      "room_epoch": 7,
+      "room_closed": true,
+      "sealed_segment_ids": [
+        "segment-bench-1"
+      ],
+      "receipts": [
+        {
+          "receipt_id": "receipt-segment-bench-1",
+          "segment_id": "segment-bench-1",
+          "batch_ids": [
+            "batch-room-bench-1-shared-001",
+            "batch-room-bench-1-private-001"
+          ],
+          "batch_digest": "sha256:0d6725cf7dd433f6f165850de0bd36e3967ec4d72f9c13b920a9c882c78d9e19"
+        }
+      ],
+      "spaces": [
+        {
+          "space_id": "space-bench-1-shared",
+          "scope": "shared",
+          "evidence_batch_ids": [
+            "batch-room-bench-1-shared-001"
+          ],
+          "projection_head_version": 8,
+          "query_watermark": 72
+        },
+        {
+          "space_id": "space-bench-1-private",
+          "scope": "private",
+          "evidence_batch_ids": [
+            "batch-room-bench-1-private-001"
+          ],
+          "projection_head_version": 3,
+          "query_watermark": 41
+        }
+      ],
+      "children": [
+        {
+          "agent_run_id": "agent-run-1a",
+          "status": "succeeded"
+        },
+        {
+          "agent_run_id": "agent-run-1b",
+          "status": "succeeded"
+        }
+      ]
+    },
+    {
+      "logical_run_id": "run-2",
+      "task_id": "task-b",
+      "episode_id": "ep-2",
+      "room_id": "room-bench-2",
+      "attempts": 1,
+      "terminal_state": "failed",
+      "failure_reason": "AGENT_TIMEOUT",
+      "room_epoch": 7,
+      "room_closed": true,
+      "sealed_segment_ids": [
+        "segment-bench-2"
+      ],
+      "receipts": [
+        {
+          "receipt_id": "receipt-segment-bench-2",
+          "segment_id": "segment-bench-2",
+          "batch_ids": [
+            "batch-room-bench-2-shared-001",
+            "batch-room-bench-2-private-001"
+          ],
+          "batch_digest": "sha256:a5b13e4647f089d5a121938e1569274823f325037838d19f9d1a8010a0f55652"
+        }
+      ],
+      "spaces": [
+        {
+          "space_id": "space-bench-2-shared",
+          "scope": "shared",
+          "evidence_batch_ids": [
+            "batch-room-bench-2-shared-001"
+          ],
+          "projection_head_version": 9,
+          "query_watermark": 73
+        },
+        {
+          "space_id": "space-bench-2-private",
+          "scope": "private",
+          "evidence_batch_ids": [
+            "batch-room-bench-2-private-001"
+          ],
+          "projection_head_version": 4,
+          "query_watermark": 42
+        }
+      ],
+      "children": [
+        {
+          "agent_run_id": "agent-run-2a",
+          "status": "failed",
+          "error": "AGENT_TIMEOUT"
+        },
+        {
+          "agent_run_id": "agent-run-2b",
+          "status": "succeeded"
+        }
+      ]
+    },
+    {
+      "logical_run_id": "run-3",
+      "task_id": "task-c",
+      "episode_id": "ep-3",
+      "room_id": "room-bench-3",
+      "attempts": 1,
+      "terminal_state": "completed",
+      "room_epoch": 7,
+      "room_closed": true,
+      "sealed_segment_ids": [
+        "segment-bench-3"
+      ],
+      "receipts": [
+        {
+          "receipt_id": "receipt-segment-bench-3",
+          "segment_id": "segment-bench-3",
+          "batch_ids": [
+            "batch-room-bench-3-shared-001",
+            "batch-room-bench-3-private-001"
+          ],
+          "batch_digest": "sha256:0d4557efdc53d95585b8c87e0e75887433e6db52dde1e34454ed21a963d3a16c"
+        }
+      ],
+      "spaces": [
+        {
+          "space_id": "space-bench-3-shared",
+          "scope": "shared",
+          "evidence_batch_ids": [
+            "batch-room-bench-3-shared-001"
+          ],
+          "projection_head_version": 10,
+          "query_watermark": 74
+        },
+        {
+          "space_id": "space-bench-3-private",
+          "scope": "private",
+          "evidence_batch_ids": [
+            "batch-room-bench-3-private-001"
+          ],
+          "projection_head_version": 5,
+          "query_watermark": 43
+        }
+      ],
+      "children": [
+        {
+          "agent_run_id": "agent-run-3a",
+          "status": "succeeded"
+        }
+      ]
+    }
+  ]
+}

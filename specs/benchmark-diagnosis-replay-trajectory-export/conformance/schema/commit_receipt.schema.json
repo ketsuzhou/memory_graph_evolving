@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/commit_receipt.schema.json",
+  "title": "EvidenceCommitReceipt",
+  "description": "SC-3.4 (Q52): verifiable receipt that one sealed segment's evidence batch committed; receipts for exactly the frozen segment set are what release a Cut from `freezing`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receipt_id", "tenant_id", "room_id", "segment_id", "batch_id", "batch_version", "batch_digest", "committed_at"],
+  "properties": {
+    "receipt_id": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "room_id": { "type": "string", "minLength": 1 },
+    "segment_id": { "type": "string", "minLength": 1 },
+    "space_id": { "type": "string", "minLength": 1 },
+    "batch_id": { "type": "string", "minLength": 1 },
+    "batch_version": { "type": "integer", "minimum": 1 },
+    "batch_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "stage_receipt_preserved": { "type": "boolean" },
+    "committed_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1081,8 +1081,16 @@ func loadRecordedCorpus(root string) (*recordedCorpus, error) {
 		case "q29b":
 			family := bodyString(entry, "family")
 			if bodyString(entry, "expected_outcome") == "reserved" {
+				// Placeholder declaration only (validate_recorded.py
+				// reference semantics): a reserved-outcome entry never
+				// carries a runnable runtime.json and never enters the
+				// replay corpus. It may coexist with runnable packets of
+				// the same family (the GMS-208 merge pair).
 				c.reserved[family] = true
-			} else {
+			} else if _, exists := c.familyDirs[family]; !exists {
+				// A family with several recorded packets (the merge pair)
+				// replays through its FIRST packet — the packet the RSIH
+				// runner resolves for the family name.
 				c.familyDirs[family] = path
 			}
 		}
@@ -1167,10 +1175,12 @@ func (c *recordedCorpus) Manifest(_ context.Context) (replay.FixtureManifest, er
 	var m replay.FixtureManifest
 	for _, name := range c.manifestOrder {
 		decl := replay.FamilyDeclaration{Name: name}
-		if c.reserved[name] {
-			decl.Reserved = true
-		} else if pkt, ok := c.byFamily[name]; ok {
+		if pkt, ok := c.byFamily[name]; ok {
+			// A runnable packet beats the reservation marker: the family
+			// replays through its first packet (merge pair semantics).
 			decl.PacketRefs = []replay.Ref{pkt.Ref}
+		} else if c.reserved[name] {
+			decl.Reserved = true
 		}
 		m.Families = append(m.Families, decl)
 	}

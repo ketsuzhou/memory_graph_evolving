@@ -2,7 +2,10 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
+	"math"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,7 +52,11 @@ func seedHostSnapshotStore(t *testing.T) *Store {
 	}}); err != nil {
 		t.Fatalf("settle: %v", err)
 	}
-	if err := store.MarkStaged(ctx, "outbox-1"); err != nil {
+	outboxClaim, _, err := store.ClaimPending(ctx, snapNow)
+	if err != nil {
+		t.Fatalf("claim outbox row: %v", err)
+	}
+	if err := store.MarkStaged(ctx, outboxClaim); err != nil {
 		t.Fatalf("mark staged: %v", err)
 	}
 	return store
@@ -122,5 +129,57 @@ func TestHostRestoreRejectsCorruptImage(t *testing.T) {
 	store := NewStore()
 	if err := store.Restore([]byte("{torn")); err == nil {
 		t.Fatal("corrupt snapshot must fail closed")
+	}
+}
+
+// R5 round 6: an exhausted outbox epoch fails closed at restore, before any
+// receiver state is replaced — a rejected image must leave the store exactly
+// as it was (rows still staged and present, epoch untouched), and a later
+// valid image must still install cleanly.
+func TestHostRestoreRejectsExhaustedEpochLeavingStoreUnchanged(t *testing.T) {
+	ctx := context.Background()
+	store := seedHostSnapshotStore(t)
+	image, err := store.Snapshot()
+	if err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+	// Re-encode the image with an exhausted epoch while preserving every
+	// other field verbatim.
+	var whole map[string]json.RawMessage
+	if err := json.Unmarshal(image, &whole); err != nil {
+		t.Fatalf("decode snapshot fields: %v", err)
+	}
+	exhausted, err := json.Marshal(math.MaxInt64)
+	if err != nil {
+		t.Fatalf("encode exhausted epoch: %v", err)
+	}
+	whole["outbox_epoch"] = exhausted
+	tampered, err := json.Marshal(whole)
+	if err != nil {
+		t.Fatalf("re-encode exhausted snapshot: %v", err)
+	}
+
+	// The rejected image leaves the store untouched: the staged row is
+	// still there with its workflow state, and nothing was replaced.
+	if err := store.Restore(tampered); err == nil || !strings.Contains(err.Error(), "exhausted") {
+		t.Fatalf("exhausted-epoch restore = %v, want fail-closed exhaustion error", err)
+	}
+	pending, err := store.ListPending(ctx, snapNow)
+	if err != nil {
+		t.Fatalf("list pending after rejected restore: %v", err)
+	}
+	if len(pending) != 1 || pending[0].ID != "outbox-1" || pending[0].State != "staged" {
+		t.Fatalf("rejected restore disturbed the store: %#v, want the staged row intact", pending)
+	}
+	// A later valid image still restores cleanly over the untouched store.
+	if err := store.Restore(image); err != nil {
+		t.Fatalf("restore after rejection: %v", err)
+	}
+	recovered, err := store.ListPending(ctx, snapNow)
+	if err != nil {
+		t.Fatalf("list pending after valid restore: %v", err)
+	}
+	if len(recovered) != 1 || recovered[0].ID != "outbox-1" || recovered[0].State != "staged" {
+		t.Fatalf("post-rejection restore rows = %#v, want the staged row", recovered)
 	}
 }

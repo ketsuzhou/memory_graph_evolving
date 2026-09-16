@@ -1,0 +1,16 @@
+{
+  "view_id": "view-1",
+  "tenant_id": "tenant-1",
+  "source_export_id": "export-1",
+  "source_export_content_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+  "diagnosis_annotation_revision": 1,
+  "aggregation_policy_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+  "loss_mask_policy_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+  "role_eligibility": [],
+  "exclude_branch_kinds": [],
+  "completeness_floor": "complete",
+  "allowed_training_purposes": [
+    "sft"
+  ],
+  "view_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

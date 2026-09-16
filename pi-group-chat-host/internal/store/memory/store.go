@@ -13,6 +13,19 @@ import (
 
 var (
 	ErrNotFound = errors.New("memory store: not found")
+	// ErrOutboxNotLeased fails a stage/commit/reschedule whose claim token
+	// does not match the row's live lease: an unclaimed worker, a stale
+	// pre-restart worker, or another worker's token (R5).
+	ErrOutboxNotLeased = errors.New("memory store: outbox entry is not leased to this worker")
+	// ErrOutboxAlreadyStaged refuses a re-stage of a row that already holds
+	// a durable stage receipt: recovery retries only the idempotent commit.
+	ErrOutboxAlreadyStaged = errors.New("memory store: outbox entry already staged; recovery must retry only the commit")
+	// ErrOutboxStageReceiptRequired refuses a commit from a row that never
+	// staged: commit is only ever the retry of a durable stage.
+	ErrOutboxStageReceiptRequired = errors.New("memory store: outbox commit requires a durable stage receipt")
+	// ErrOutboxDoubleAdmission refuses a second admission of the same batch:
+	// one barrier release admits exactly one next episode.
+	ErrOutboxDoubleAdmission = errors.New("memory store: batch already admitted its next episode")
 )
 
 // replyKey scopes a tool operation id to the publishing agent: the same
@@ -45,16 +58,25 @@ type Store struct {
 	links         map[string]domain.SegmentLink
 	outbox        map[domain.SegmentID][]domain.EvidenceOutboxEntry
 	outboxMeta    map[string]*outboxAttemptState
+	outboxEpoch   int64
+	outboxClaims  int64
+	admittedBatch map[string]bool
+	admissionLog  []string
 	claimed       map[domain.DeliveryID]bool
 	agentInFlight map[domain.RoomID]map[domain.AgentID]domain.DeliveryID
 }
 
 // outboxAttemptState tracks per-entry worker progress so one Store can serve
 // as both the settlement transaction and the worker-visible outbox queue.
+// leaseToken is the live claim owner (empty = unleased); every token is
+// prefixed with the store's outbox epoch, which a restore strictly bumps, so
+// a token minted in an earlier process lifetime can never validate against a
+// row re-claimed after a restart (R5).
 type outboxAttemptState struct {
 	stageAttempts  int
 	commitAttempts int
 	inFlight       bool
+	leaseToken     string
 }
 
 func NewStore() *Store {
@@ -65,6 +87,7 @@ func NewStore() *Store {
 		links:         map[string]domain.SegmentLink{},
 		outbox:        map[domain.SegmentID][]domain.EvidenceOutboxEntry{},
 		outboxMeta:    map[string]*outboxAttemptState{},
+		admittedBatch: map[string]bool{},
 		claimed:       map[domain.DeliveryID]bool{},
 		agentInFlight: map[domain.RoomID]map[domain.AgentID]domain.DeliveryID{},
 	}
@@ -395,6 +418,37 @@ func (s *Store) OutboxEntriesBySegment(_ context.Context, segmentID domain.Segme
 	return append([]domain.EvidenceOutboxEntry(nil), s.outbox[segmentID]...), nil
 }
 
+// OutboxEntries enumerates every evidence outbox row the store holds, in
+// segment order — the durable settled-evidence ledger the runtime
+// reconciles the worker queue against at the drain and restart boundaries
+// (R5 round 6): a settled row missing from the queue is a pending handoff
+// that must be healed or reported, never silently lost.
+func (s *Store) OutboxEntries(_ context.Context) ([]domain.EvidenceOutboxEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var entries []domain.EvidenceOutboxEntry
+	for _, segmentID := range s.segmentOrder {
+		entries = append(entries, s.outbox[segmentID]...)
+	}
+	return entries, nil
+}
+
+// ReconcileOutbox is the store-backed half of the mandatory handoff contract
+// (R5 round 6): settlement and the queue share this store, so every handed
+// row must already be durably present — the settlement transaction wrote it
+// under the same lock. A missing row is a contract breach and fails closed
+// instead of letting a drain green-light over lost evidence.
+func (s *Store) ReconcileOutbox(_ context.Context, entries []domain.EvidenceOutboxEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, entry := range entries {
+		if _, _, _, ok := s.outboxRowByID(entry.ID); !ok {
+			return fmt.Errorf("outbox handoff: settled evidence row %s is not durably enqueued in the store", entry.ID)
+		}
+	}
+	return nil
+}
+
 // Messages returns the room's canonical messages in sequence order.
 func (s *Store) Messages(_ context.Context, roomID domain.RoomID) ([]domain.RoomMessage, error) {
 	s.mu.Lock()
@@ -538,8 +592,9 @@ func (s *Store) outboxMetaFor(entryID string) *outboxAttemptState {
 }
 
 // ClaimPending hands one non-committed entry to the worker, respecting the
-// scheduled retry time and single-flight per entry.
-func (s *Store) ClaimPending(_ context.Context, now time.Time) (domain.EvidenceOutboxEntry, error) {
+// scheduled retry time and single-flight per entry, and returns the lease
+// claim every later stage/commit/reschedule call must present (R5).
+func (s *Store) ClaimPending(_ context.Context, now time.Time) (ports.OutboxClaim, domain.EvidenceOutboxEntry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, segmentID := range s.segmentOrder {
@@ -555,63 +610,114 @@ func (s *Store) ClaimPending(_ context.Context, now time.Time) (domain.EvidenceO
 			}
 			meta.inFlight = true
 			entry.Attempts++
-			return *entry, nil
+			s.outboxClaims++
+			// The epoch prefix fences restarts (R5): the claim counter resets
+			// on restore, but the bumped epoch keeps every token distinct
+			// across process lifetimes, so a stale pre-restart worker can
+			// never collide with a fresh lease.
+			meta.leaseToken = fmt.Sprintf("%d:%s#%d", s.outboxEpoch, entry.ID, s.outboxClaims)
+			return ports.OutboxClaim{EntryID: entry.ID, Token: meta.leaseToken}, *entry, nil
 		}
 	}
-	return domain.EvidenceOutboxEntry{}, ErrNotFound
+	return ports.OutboxClaim{}, domain.EvidenceOutboxEntry{}, ports.ErrNoOutboxClaim
 }
 
-func (s *Store) MarkStaged(_ context.Context, entryID string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	_, _, entry, ok := s.outboxRowByID(entryID)
-	if !ok {
-		return ErrNotFound
+// leaseOwnerLocked verifies the claim's token against the row's live lease.
+func (s *Store) leaseOwnerLocked(entryID string, claim ports.OutboxClaim) error {
+	meta, ok := s.outboxMeta[entryID]
+	if !ok || meta.leaseToken == "" || meta.leaseToken != claim.Token {
+		return fmt.Errorf("%w: entry %s (claim token stale, foreign, or expired)", ErrOutboxNotLeased, entryID)
 	}
-	meta := s.outboxMetaFor(entryID)
-	if entry.State == "pending" {
-		meta.stageAttempts++
-	}
-	entry.State = "staged"
-	meta.inFlight = false
 	return nil
 }
 
-func (s *Store) MarkCommitted(_ context.Context, entryID string) error {
+func (s *Store) MarkStaged(_ context.Context, claim ports.OutboxClaim) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, _, entry, ok := s.outboxRowByID(entryID)
+	_, _, entry, ok := s.outboxRowByID(claim.EntryID)
 	if !ok {
 		return ErrNotFound
 	}
-	meta := s.outboxMetaFor(entryID)
-	if entry.State != "committed" {
-		meta.commitAttempts++
+	if err := s.leaseOwnerLocked(claim.EntryID, claim); err != nil {
+		return err
 	}
+	// committed is terminal for an entry (SC-4.8): a stale worker's stage
+	// result must never downgrade durable state.
+	if entry.State == "committed" {
+		return fmt.Errorf("outbox entry %s is already committed; refusing staged downgrade", claim.EntryID)
+	}
+	// A durable stage receipt is never re-staged: recovery retries only the
+	// idempotent commit (R5).
+	if entry.State == "staged" {
+		return fmt.Errorf("%w: entry %s", ErrOutboxAlreadyStaged, claim.EntryID)
+	}
+	meta := s.outboxMetaFor(claim.EntryID)
+	meta.stageAttempts++
+	entry.State = "staged"
+	// The stage lease is RETAINED through the commit (R5 round 4): the
+	// worker that staged the row stays its only owner, so a concurrent
+	// drain can never commit the wrong row. The lease dies with an explicit
+	// release path only: Reschedule (retry), RecoverPendingOutbox
+	// (restart), or MarkCommitted (terminal).
+	return nil
+}
+
+func (s *Store) MarkCommitted(_ context.Context, claim ports.OutboxClaim) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, _, entry, ok := s.outboxRowByID(claim.EntryID)
+	if !ok {
+		return ErrNotFound
+	}
+	if err := s.leaseOwnerLocked(claim.EntryID, claim); err != nil {
+		return err
+	}
+	// Commit requires a durable stage receipt (R5): the staging worker
+	// commits under its retained lease, and only a post-restart or
+	// post-reschedule worker retries the idempotent commit under a fresh
+	// claim on the staged row.
+	if entry.State != "staged" {
+		return fmt.Errorf("%w: entry %s is %s", ErrOutboxStageReceiptRequired, claim.EntryID, entry.State)
+	}
+	meta := s.outboxMetaFor(claim.EntryID)
+	meta.commitAttempts++
 	entry.State = "committed"
 	meta.inFlight = false
+	meta.leaseToken = ""
 	return nil
 }
 
-func (s *Store) Reschedule(_ context.Context, entryID string, nextAttempt time.Time, lastError string) error {
+// Reschedule records a failed stage/commit attempt. A staged entry keeps its
+// stage receipt: recovery must retry only the idempotent commit, not re-stage
+// the batch. A committed entry stays terminal.
+func (s *Store) Reschedule(_ context.Context, claim ports.OutboxClaim, nextAttempt time.Time, lastError string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, _, entry, ok := s.outboxRowByID(entryID)
+	_, _, entry, ok := s.outboxRowByID(claim.EntryID)
 	if !ok {
 		return ErrNotFound
 	}
-	entry.State = "pending"
+	if err := s.leaseOwnerLocked(claim.EntryID, claim); err != nil {
+		return err
+	}
+	switch entry.State {
+	case "staged", "committed":
+	default:
+		entry.State = "pending"
+	}
 	entry.NextAttemptAt = nextAttempt
 	entry.LastError = lastError
-	s.outboxMetaFor(entryID).inFlight = false
+	meta := s.outboxMetaFor(claim.EntryID)
+	meta.inFlight = false
+	meta.leaseToken = ""
 	return nil
 }
 
-// RecoverPendingOutbox lists every non-committed outbox row for restart
-// draining. The separate name exists because DeliveryStore and OutboxStore
-// share the RecoverPending method name with different signatures; the
-// Outbox() wrapper maps the port onto this method.
-func (s *Store) RecoverPendingOutbox(_ context.Context, now time.Time) ([]domain.EvidenceOutboxEntry, error) {
+// ListPending is the non-destructive pending read: every non-committed outbox
+// row in segment order, without touching any lease. Recount and barrier
+// checks use it so a concurrent drain's live claims survive the read (R5);
+// only RecoverPendingOutbox — the startup-recovery boundary — clears leases.
+func (s *Store) ListPending(_ context.Context, now time.Time) ([]domain.EvidenceOutboxEntry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var pending []domain.EvidenceOutboxEntry
@@ -623,6 +729,70 @@ func (s *Store) RecoverPendingOutbox(_ context.Context, now time.Time) ([]domain
 		}
 	}
 	return pending, nil
+}
+
+// RecoverPendingOutbox is the startup-recovery boundary: it lists every
+// non-committed outbox row and clears every live lease, so rows become
+// claimable again while every pre-crash claim token dies — a stale worker
+// can no longer advance a row it no longer owns (R5). It must only run at
+// process startup: normal draining and recounts use ListPending, which never
+// clears leases, so two concurrent drains cannot kill each other's claims.
+// The separate name exists because DeliveryStore and OutboxStore share the
+// RecoverPending method name with different signatures; the Outbox() wrapper
+// maps the port onto this method.
+func (s *Store) RecoverPendingOutbox(_ context.Context, now time.Time) ([]domain.EvidenceOutboxEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var pending []domain.EvidenceOutboxEntry
+	for _, segmentID := range s.segmentOrder {
+		for _, entry := range s.outbox[segmentID] {
+			if entry.State != "committed" {
+				pending = append(pending, entry)
+			}
+		}
+	}
+	for _, meta := range s.outboxMeta {
+		meta.inFlight = false
+		meta.leaseToken = ""
+	}
+	return pending, nil
+}
+
+// AdmitNextEpisode is the batch-gate admission authority (R5): under the
+// same lock the settlement transaction writes outbox rows through, the next
+// episode of a batch is admitted only when every evidence projection row is
+// committed — a settlement landing between a check and an admission
+// serializes ahead of the admission and blocks it. One batch admits at most
+// once: the admission is recorded atomically with the check, and a second
+// call is a double admission.
+func (s *Store) AdmitNextEpisode(_ context.Context, batchID string) (bool, []string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.admittedBatch[batchID] {
+		return false, nil, ErrOutboxDoubleAdmission
+	}
+	blocking := []string{}
+	for _, segmentID := range s.segmentOrder {
+		for _, entry := range s.outbox[segmentID] {
+			if entry.State != "committed" {
+				blocking = append(blocking, entry.ID)
+			}
+		}
+	}
+	if len(blocking) > 0 {
+		return false, blocking, nil
+	}
+	s.admittedBatch[batchID] = true
+	s.admissionLog = append(s.admissionLog, batchID)
+	return true, nil, nil
+}
+
+// Admissions lists the batches that admitted a next episode, in admission
+// order.
+func (s *Store) Admissions() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.admissionLog...)
 }
 
 // Adopt merges settled outbox entries into the durable queue by ID. When the
@@ -671,24 +841,32 @@ type StoreOutbox struct {
 // Outbox returns the worker-visible outbox queue backed by this Store.
 func (s *Store) Outbox() *StoreOutbox { return &StoreOutbox{store: s} }
 
-func (o *StoreOutbox) ClaimPending(ctx context.Context, now time.Time) (domain.EvidenceOutboxEntry, error) {
+func (o *StoreOutbox) ClaimPending(ctx context.Context, now time.Time) (ports.OutboxClaim, domain.EvidenceOutboxEntry, error) {
 	return o.store.ClaimPending(ctx, now)
 }
 
-func (o *StoreOutbox) MarkStaged(ctx context.Context, entryID string) error {
-	return o.store.MarkStaged(ctx, entryID)
+func (o *StoreOutbox) MarkStaged(ctx context.Context, claim ports.OutboxClaim) error {
+	return o.store.MarkStaged(ctx, claim)
 }
 
-func (o *StoreOutbox) MarkCommitted(ctx context.Context, entryID string) error {
-	return o.store.MarkCommitted(ctx, entryID)
+func (o *StoreOutbox) MarkCommitted(ctx context.Context, claim ports.OutboxClaim) error {
+	return o.store.MarkCommitted(ctx, claim)
 }
 
-func (o *StoreOutbox) Reschedule(ctx context.Context, entryID string, nextAttempt time.Time, lastError string) error {
-	return o.store.Reschedule(ctx, entryID, nextAttempt, lastError)
+func (o *StoreOutbox) Reschedule(ctx context.Context, claim ports.OutboxClaim, nextAttempt time.Time, lastError string) error {
+	return o.store.Reschedule(ctx, claim, nextAttempt, lastError)
+}
+
+func (o *StoreOutbox) ListPending(ctx context.Context, now time.Time) ([]domain.EvidenceOutboxEntry, error) {
+	return o.store.ListPending(ctx, now)
 }
 
 func (o *StoreOutbox) RecoverPending(ctx context.Context, now time.Time) ([]domain.EvidenceOutboxEntry, error) {
 	return o.store.RecoverPendingOutbox(ctx, now)
+}
+
+func (o *StoreOutbox) Reconcile(ctx context.Context, entries []domain.EvidenceOutboxEntry) error {
+	return o.store.ReconcileOutbox(ctx, entries)
 }
 
 var (

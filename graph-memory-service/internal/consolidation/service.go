@@ -112,7 +112,15 @@ func New(store ports.ConsolidationStore, replay ReplayRunner, clock ports.Clock,
 // compare-and-swap on the head. Rejected operations and failed replays never
 // touch the published projection.
 func (s *Service) Run(ctx context.Context, input RoundInput) (RoundResult, bool, error) {
+	// The request digest covers the full submitted operation list, including
+	// post-submit operations, so a replayed round ID with a different body can
+	// never be mistaken for the original request.
+	requestDigest := digestOperations(input.Operations)
 	if existing, found, err := s.store.Round(ctx, input.TenantID, input.SpaceID, input.RoundID); err == nil && found {
+		if existing.OperationDigest != requestDigest {
+			return RoundResult{RoundID: input.RoundID, Outcome: RoundFailed, BaseVersion: input.BaseVersion, OperationDigest: requestDigest}, true,
+				fmt.Errorf("consolidation round %s: stored round was recorded with a different operation list", input.RoundID)
+		}
 		return existing, true, nil
 	}
 
@@ -131,21 +139,29 @@ func (s *Service) Run(ctx context.Context, input RoundInput) (RoundResult, bool,
 
 	shadow := cloneProjection(base)
 	var rejections []OperationRejection
-	executed := make([]Operation, 0, len(input.Operations))
+	submitted := false
 	for index, operation := range input.Operations {
-		executed = append(executed, operation)
+		if submitted {
+			// Submit closes the round's operation list; anything after it is a
+			// durable rejection, never a silently dropped mutation.
+			rejections = append(rejections, OperationRejection{Kind: operation.Kind, Index: index, Reason: "operation follows submit"})
+			continue
+		}
 		if rejection, ok := applyOperation(&shadow, operation); !ok {
 			rejection.Index = index
 			rejections = append(rejections, rejection)
 		}
 		if operation.Kind == OperationSubmit {
-			break
+			submitted = true
 		}
 	}
-	result := RoundResult{RoundID: input.RoundID, BaseVersion: input.BaseVersion, OperationDigest: digestOperations(executed)}
+	result := RoundResult{RoundID: input.RoundID, BaseVersion: input.BaseVersion, OperationDigest: requestDigest}
 	if len(rejections) > 0 {
 		result.Outcome = RoundRejected
 		result.Rejections = rejections
+		if recordErr := s.store.RecordRound(ctx, input.TenantID, input.SpaceID, result); recordErr != nil {
+			return RoundResult{}, false, fmt.Errorf("consolidation round %s: record rejected round: %w", input.RoundID, recordErr)
+		}
 		return result, false, nil
 	}
 
@@ -186,6 +202,9 @@ func (s *Service) Run(ctx context.Context, input RoundInput) (RoundResult, bool,
 	}
 	if !stats.Passed {
 		result.Outcome = RoundRejected
+		if recordErr := s.store.RecordRound(ctx, input.TenantID, input.SpaceID, result); recordErr != nil {
+			return RoundResult{}, false, fmt.Errorf("consolidation round %s: record rejected round: %w", input.RoundID, recordErr)
+		}
 		return result, false, nil
 	}
 
@@ -293,6 +312,9 @@ func applyOperation(shadow *DerivedProjection, operation Operation) (OperationRe
 				return OperationRejection{Kind: operation.Kind, Reason: "edge already exists"}, false
 			}
 		}
+		if operation.Kind == OperationAddHierarchyEdge && hierarchyReaches(shadow, operation.Edge.To, operation.Edge.From) {
+			return OperationRejection{Kind: operation.Kind, Reason: "hierarchy edge creates a cycle"}, false
+		}
 		shadow.Edges = append(shadow.Edges, *operation.Edge)
 		return OperationRejection{}, true
 	case OperationPruneEdge:
@@ -315,6 +337,39 @@ func expectedEdgeKind(kind OperationKind) EdgeKind {
 		return domain.EdgeHierarchy
 	}
 	return domain.EdgeRelation
+}
+
+// hierarchyReaches reports whether the shadow's hierarchy subgraph already
+// contains a directed path from `from` to `to`. Adding a hierarchy edge
+// from→to creates a cycle exactly when such a path exists, and the hierarchy
+// relation must stay a strict DAG.
+func hierarchyReaches(projection *DerivedProjection, from, to ProjectionNodeID) bool {
+	if from == to {
+		return true
+	}
+	adjacency := make(map[ProjectionNodeID][]ProjectionNodeID)
+	for _, edge := range projection.Edges {
+		if edge.Kind != domain.EdgeHierarchy {
+			continue
+		}
+		adjacency[edge.From] = append(adjacency[edge.From], edge.To)
+	}
+	visited := map[ProjectionNodeID]bool{from: true}
+	stack := []ProjectionNodeID{from}
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if current == to {
+			return true
+		}
+		for _, next := range adjacency[current] {
+			if !visited[next] {
+				visited[next] = true
+				stack = append(stack, next)
+			}
+		}
+	}
+	return false
 }
 
 func findNode(projection *DerivedProjection, id ProjectionNodeID) *ProjectionNode {

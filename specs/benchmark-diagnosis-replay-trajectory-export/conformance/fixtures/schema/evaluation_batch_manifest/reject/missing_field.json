@@ -1,0 +1,13 @@
+{
+  "evaluation_batch_id": "eb-1",
+  "logical_runs": [
+    {
+      "logical_run_id": "lr-1",
+      "task_id": "task-1",
+      "episode_id": "episode-1",
+      "expected_agent_runs": [
+        "agent-a"
+      ]
+    }
+  ]
+}

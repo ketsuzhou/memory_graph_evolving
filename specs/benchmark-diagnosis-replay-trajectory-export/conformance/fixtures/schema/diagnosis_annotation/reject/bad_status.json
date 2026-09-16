@@ -1,0 +1,13 @@
+{
+  "annotation_id": "ann-3",
+  "revision": 1,
+  "cut_id": "cut-1",
+  "tenant_id": "tenant-1",
+  "target": {
+    "segment_id": "segment-1",
+    "call_id": "call-9"
+  },
+  "status": "probably_fine",
+  "diagnosis_policy_revision": "diag-v3",
+  "execution_recipe_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}

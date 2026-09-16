@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/consolidation_cut.schema.json",
+  "title": "ConsolidationCutManifest",
+  "description": "SC-3.1 (Q27/Q40/Q48/Q51/Q52): the immutable, atomic Cut manifest. Immutable after `frozen`; changes create a new cut_digest and a new PG-00D fixture generation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cut_id",
+    "tenant_id",
+    "room_id",
+    "mode",
+    "trigger_source",
+    "idempotency_key",
+    "room_sequence_watermark",
+    "sealed_segment_ids",
+    "space_scopes",
+    "cut_digest",
+    "evidence_commit_receipts"
+  ],
+  "properties": {
+    "cut_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "threshold",
+        "force"
+      ]
+    },
+    "trigger_source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "previous_cut_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "room_sequence_watermark": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sealed_segment_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "space_scopes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/spaceScope"
+      }
+    },
+    "cut_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "policy_revisions": {
+      "$ref": "#/$defs/policyRevisions"
+    },
+    "evidence_commit_receipts": {
+      "description": "SC-3.4 (Q52): commit receipts for exactly the sealed segments; 1:1 with sealed_segment_ids (conformance rule cut_receipts_cover_sealed_segments).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/commitReceiptRef"
+      }
+    }
+  },
+  "$defs": {
+    "spaceScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "space_id",
+        "scope",
+        "evidence_batch_ids"
+      ],
+      "properties": {
+        "space_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "enum": [
+            "shared",
+            "private"
+          ]
+        },
+        "evidence_batch_ids": {
+          "description": "SC-3.3 (Q51): exact batch IDs selected by provenance — never a watermark upper bound.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "projection_head_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_watermark": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "policyRevisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "diagnosis_policy_revision": {
+          "type": "string"
+        },
+        "replay_policy_revision": {
+          "type": "string"
+        },
+        "aggregation_policy_digest": {
+          "type": "string"
+        }
+      }
+    },
+    "commitReceiptRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "segment_id",
+        "batch_ids",
+        "batch_digest"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "batch_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "version_note": "v2: evidence_commit_receipts added (SC-3.4, kiro review P1-2); receipts are part of the frozen manifest."
+}

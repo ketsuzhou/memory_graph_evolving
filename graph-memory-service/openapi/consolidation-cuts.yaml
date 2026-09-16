@@ -1,0 +1,256 @@
+openapi: 3.1.0
+info:
+  title: Graph Memory Service — Consolidation Cuts
+  version: 1.1.1
+  description: >
+    Production Consolidation Cut API (system-contract SC-8.1, ADR 0042).
+    POST freezes asynchronously and returns 202 with the frozen watermarks;
+    GET is the authoritative status source; signed webhooks are optional
+    notifications carrying only cut_id/stage/job_version. Error bodies use
+    reason codes from specs/benchmark-diagnosis-replay-trajectory-export/
+    conformance/reasons.yaml. Since 1.1.1 every operation declares its full
+    transport outcome inventory (flat Error envelope on all of them): the
+    ingress 400/401 gates, the stale-view 409, and the 500
+    INFRASTRUCTURE_FAILURE, so clients generated from this contract can model
+    every response the routes emit. Both the slash form
+    (/consolidation-cuts/{cut_id}/cancel) and the colon form
+    (:cancel, matching the repository-wide action convention) address the
+    same routes.
+  x-contract: benchmark-diagnosis-replay-export.system-contract v1.0.0
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /rooms/{room_id}/consolidation-cuts:
+    post:
+      operationId: createConsolidationCut
+      summary: Freeze a new Consolidation Cut (async job; threshold|force mode).
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 1 }
+          description: Scope (tenant, room, trigger_source, key). Same key + same body replays the original Cut; same key + different body is a 409 CUT_IDEMPOTENCY_CONFLICT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mode, trigger_source]
+              properties:
+                mode:
+                  type: string
+                  enum: [threshold, force]
+                trigger_source:
+                  type: string
+                  minLength: 1
+      responses:
+        '202':
+          description: Cut accepted and atomically freezing; watermarks pinned in the returned job.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CutJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/CreateConflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '500':
+          $ref: '#/components/responses/InfrastructureFailure'
+  /consolidation-cuts/{cut_id}:
+    get:
+      operationId: getConsolidationCut
+      summary: Authoritative Cut job status (SC-8.1; webhooks only notify, never carry truth).
+      parameters:
+        - name: cut_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Current job state, including per-Space results.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CutJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InfrastructureFailure'
+  /consolidation-cuts/{cut_id}/cancel:
+    post:
+      operationId: cancelConsolidationCut
+      description: Cooperative cancellation (Q88). Before freeze the request is cancelled; after freeze only not-yet-started stages stop; published facts never roll back. An already-terminal or uncancelable stage is a cooperative no-op returning 202 with the current job.
+      parameters:
+        - name: cut_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        '202':
+          description: Cancellation accepted; job moves to cancelling/cancelled/partially_cancelled (or is already terminal — cooperative no-op).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CutJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/StaleConflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '500':
+          $ref: '#/components/responses/InfrastructureFailure'
+  /consolidation-cuts/{cut_id}/rediagnose:
+    post:
+      operationId: rediagnoseConsolidationCut
+      description: Explicit rediagnose (Q76) — creates a new immutable Diagnosis annotation revision under a new diagnosis policy revision; never masquerades as new evidence.
+      parameters:
+        - name: cut_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [diagnosis_policy_revision]
+              properties:
+                diagnosis_policy_revision: { type: string, minLength: 1 }
+      responses:
+        '202':
+          description: Rediagnosis accepted against the frozen Cut input.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CutJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/StaleConflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '500':
+          $ref: '#/components/responses/InfrastructureFailure'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    BadRequest:
+      description: Ingress validation failed before a cut handler could bind the request (INVALID_REQUEST media type, INVALID_JSON malformed body, or PAYLOAD_VALIDATION_FAILED path parameter).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid bearer token (UNAUTHORIZED) — rejected before any route dispatch.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Capability missing or PRIVATE_SCOPE_VIOLATION / DISCLOSURE_DENIED.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    CreateConflict:
+      description: |
+        409 on create is either CUT_IDEMPOTENCY_CONFLICT (same Idempotency-Key, different frozen body; Q48) or
+        ROOM_EPOCH_STALE (SC-4.1 room-serial freeze: a freeze is already in flight for this room, so the caller's
+        view is stale — GET is authoritative, retry after the in-flight cut settles).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    StaleConflict:
+      description: ROOM_EPOCH_STALE — the mandatory JobVersion CAS could not acquire a stable job version within the bounded retry budget; the caller's view is stale, GET is authoritative, retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unprocessable:
+      description: Schema or domain-invariant validation failed (UNKNOWN_CORE_FIELD, MISSING_MANIFEST_FIELD, PAYLOAD_VALIDATION_FAILED, RECEIPT_MISSING).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Unknown resource.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InfrastructureFailure:
+      description: Unexpected server-side failure (INFRASTRUCTURE_FAILURE); the authoritative GET remains the retry point.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    CutJob:
+      type: object
+      additionalProperties: false
+      required: [cut_id, tenant_id, room_id, stage, job_version, space_results]
+      properties:
+        cut_id: { type: string, minLength: 1 }
+        tenant_id: { type: string, minLength: 1 }
+        room_id: { type: string, minLength: 1 }
+        stage:
+          type: string
+          enum: [queued, freezing, frozen, diagnosing, consolidating, consolidating_partial, replaying, activating, completed, partially_failed, failed, cancelling, cancelled, partially_cancelled]
+        job_version: { type: integer, minimum: 1 }
+        cut_digest: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        outcome:
+          type: string
+          enum: [published, duplicate, no_change, failed]
+        room_sequence_watermark: { type: integer, minimum: 0 }
+        space_results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [space_id, result]
+            properties:
+              space_id: { type: string, minLength: 1 }
+              result: { type: string, enum: [pending, published, duplicate, no_change, failed] }
+              reason: { type: string, minLength: 1 }
+        failure_reasons:
+          type: array
+          items: { type: string, enum: [DUPLICATE_LOGICAL_RUN, MISSING_MANIFEST_FIELD, UNKNOWN_CORE_FIELD, POST_SUBMIT_OPERATION, HIERARCHY_CYCLE, EDGE_ALREADY_EXISTS, STALE_PROJECTION_HEAD, REPLAY_PLAN_MISMATCH, RECEIPT_MISSING, CUT_IDEMPOTENCY_CONFLICT, NO_CHANGE, ROOM_EPOCH_STALE, DIAGNOSIS_FAILED, DIAGNOSIS_INCONCLUSIVE, REPLAY_FAIL, REPLAY_INCONCLUSIVE, REPLAY_BUDGET_EXHAUSTED, ACTIVATION_STALE_BASE, DISCLOSURE_DENIED, PRIVATE_SCOPE_VIOLATION, UNKNOWN_BRANCH_KIND_STRICT, INCOMPLETE_CONTEXT, EXPORT_DIGEST_CONFLICT, SINK_RECEIPT_MISSING, AUTHORIZATION_EPOCH_STALE, BUDGET_EXHAUSTED, BARRIER_REACHED, CANCEL_REQUESTED, DIAGNOSIS_FAILED_OR_INCONCLUSIVE, REPLAY_FAIL_OR_INCONCLUSIVE, INFRASTRUCTURE_FAILURE, PAYLOAD_VALIDATION_FAILED, SINK_RECEIPT_MISMATCH] }
+        updated_at: { type: string, format: date-time }
+      # Resolvable relative to this file (kiro review P1-4):
+      #   ../../specs/benchmark-diagnosis-replay-trajectory-export/conformance/schema/cut_job.schema.json
+      x-contract-schema: ../../specs/benchmark-diagnosis-replay-trajectory-export/conformance/schema/cut_job.schema.json
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: Cut-domain reason codes plus the flat transport codes emitted before a cut handler can bind or decode a request. This enum is the frozen wire snapshot for this API surface.
+          enum: [DUPLICATE_LOGICAL_RUN, MISSING_MANIFEST_FIELD, UNKNOWN_CORE_FIELD, POST_SUBMIT_OPERATION, HIERARCHY_CYCLE, EDGE_ALREADY_EXISTS, STALE_PROJECTION_HEAD, REPLAY_PLAN_MISMATCH, RECEIPT_MISSING, CUT_IDEMPOTENCY_CONFLICT, NO_CHANGE, ROOM_EPOCH_STALE, DIAGNOSIS_FAILED, DIAGNOSIS_INCONCLUSIVE, REPLAY_FAIL, REPLAY_INCONCLUSIVE, REPLAY_BUDGET_EXHAUSTED, ACTIVATION_STALE_BASE, DISCLOSURE_DENIED, PRIVATE_SCOPE_VIOLATION, UNKNOWN_BRANCH_KIND_STRICT, INCOMPLETE_CONTEXT, EXPORT_DIGEST_CONFLICT, SINK_RECEIPT_MISSING, AUTHORIZATION_EPOCH_STALE, BUDGET_EXHAUSTED, BARRIER_REACHED, CANCEL_REQUESTED, DIAGNOSIS_FAILED_OR_INCONCLUSIVE, REPLAY_FAIL_OR_INCONCLUSIVE, INFRASTRUCTURE_FAILURE, PAYLOAD_VALIDATION_FAILED, SINK_RECEIPT_MISMATCH, GRANT_EXPIRED, GRANT_MISSING, SPACE_FORBIDDEN, NOT_FOUND, TENANT_NOT_INITIALIZED, UNAUTHORIZED, INVALID_REQUEST, INVALID_JSON]
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: true

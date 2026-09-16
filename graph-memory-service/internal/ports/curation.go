@@ -33,6 +33,10 @@ type ConsolidationStore interface {
 	Projection(context.Context, domain.TenantID, domain.SpaceID, domain.ProjectionVersion) (domain.DerivedProjection, error)
 	Round(context.Context, domain.TenantID, domain.SpaceID, domain.ConsolidationRoundID) (domain.RoundResult, bool, error)
 	PublishRound(context.Context, domain.ConsolidationPublishInput) (domain.RoundResult, bool, error)
+	// RecordRound durably records a terminal non-published round verdict
+	// (rejected). A retry of the same round ID must return the recorded
+	// verdict instead of re-executing the operation list (SC-4.8).
+	RecordRound(context.Context, domain.TenantID, domain.SpaceID, domain.RoundResult) error
 }
 
 // ProjectionBuildState is one lock-consistent view of the published head and

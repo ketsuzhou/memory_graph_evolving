@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/evaluation_batch_manifest.schema.json",
+  "title": "EvaluationBatchManifest",
+  "description": "SC-4.4 (Q35/Q36/Q45): the frozen known set a benchmark completion barrier closes over. Uniqueness of (task_id, episode_id) inside logical_runs is asserted by the conformance corpus; the schema alone cannot express it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evaluation_batch_id", "arm_id", "seed", "logical_runs"],
+  "properties": {
+    "evaluation_batch_id": { "type": "string", "minLength": 1 },
+    "arm_id": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "logical_runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/logicalRun" }
+    }
+  },
+  "$defs": {
+    "logicalRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logical_run_id", "task_id", "episode_id", "expected_agent_runs"],
+      "properties": {
+        "logical_run_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "episode_id": { "type": "string", "minLength": 1 },
+        "room_id": { "type": "string", "minLength": 1 },
+        "expected_agent_runs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

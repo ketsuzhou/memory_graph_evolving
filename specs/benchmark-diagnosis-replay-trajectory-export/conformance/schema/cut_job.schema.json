@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/cut_job.schema.json",
+  "title": "ConsolidationCutJob",
+  "description": "SC-4.7/SC-8.1 (Q38/Q48/Q49/Q87/Q88): async Cut job state. Stage transitions are governed by conformance/state/cut_job.state.json; retry reuses cut/diagnosis/round/replay identities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cut_id",
+    "tenant_id",
+    "room_id",
+    "stage",
+    "space_results",
+    "job_version"
+  ],
+  "properties": {
+    "cut_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "enum": [
+        "queued",
+        "freezing",
+        "frozen",
+        "diagnosing",
+        "consolidating",
+        "consolidating_partial",
+        "replaying",
+        "activating",
+        "completed",
+        "partially_failed",
+        "failed",
+        "cancelling",
+        "cancelled",
+        "partially_cancelled"
+      ]
+    },
+    "job_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cut_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "outcome": {
+      "enum": [
+        "published",
+        "duplicate",
+        "no_change",
+        "failed"
+      ]
+    },
+    "space_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/spaceResult"
+      }
+    },
+    "failure_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "spaceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "space_id",
+        "result"
+      ],
+      "properties": {
+        "space_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "enum": [
+            "pending",
+            "published",
+            "duplicate",
+            "no_change",
+            "failed"
+          ]
+        },
+        "published_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A reason code from conformance/reasons.yaml"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/revocation.schema.json",
+  "title": "RevocationEvent",
+  "description": "SC-7.3/SC-7.4 (Q96/Q99/Q102/Q108/Q109): authorization-epoch revocation events, erasure tombstones, and deletion receipts. Append-only ledger; consumers re-validate at training start and checkpoint boundaries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "tenant_id", "artifact_id", "artifact_kind", "authorization_epoch", "action", "recorded_at"],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "artifact_id": { "type": "string", "minLength": 1 },
+    "artifact_kind": { "enum": ["trajectory_export", "training_view", "diagnosis_annotation", "skill_revision", "evidence_batch"] },
+    "authorization_epoch": { "type": "integer", "minimum": 1 },
+    "action": { "enum": ["epoch_bumped", "payload_erased", "tombstoned", "view_revoked"] },
+    "legal_basis": { "type": "string", "minLength": 1 },
+    "deletion_receipt_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "affected_checkpoints": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "affected_models": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "disposition": { "enum": ["restrict_publication", "rollback", "retrain", "none_required"] },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  }
+}

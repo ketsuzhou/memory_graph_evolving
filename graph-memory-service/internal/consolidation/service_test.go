@@ -46,6 +46,16 @@ func (s *recordingStore) Round(_ context.Context, _ domain.TenantID, _ domain.Sp
 	result, ok := s.rounds[roundID]
 	return result, ok, nil
 }
+func (s *recordingStore) RecordRound(_ context.Context, _ domain.TenantID, _ domain.SpaceID, round domain.RoundResult) error {
+	if existing, ok := s.rounds[round.RoundID]; ok {
+		if existing.Outcome == round.Outcome && existing.OperationDigest == round.OperationDigest {
+			return nil
+		}
+		return errors.New("round conflict")
+	}
+	s.rounds[round.RoundID] = round
+	return nil
+}
 func (s *recordingStore) PublishRound(_ context.Context, input domain.ConsolidationPublishInput) (domain.RoundResult, bool, error) {
 	s.publishCalls++
 	if input.ExpectedHead != s.head {
@@ -368,5 +378,50 @@ func TestConsolidationOperationFailureDiscardsShadowAndPreservesPublishedVersion
 	}
 	if replayCalled || store.publishCalls != 0 || store.head != beforeHead || !reflect.DeepEqual(store.projections[1], beforeProjection) {
 		t.Fatalf("failed shadow escaped: replay=%v publish=%d head=%#v projection=%#v", replayCalled, store.publishCalls, store.head, store.projections[1])
+	}
+}
+
+func TestConsolidationRecordedRoundBindsFullOperationList(t *testing.T) {
+	store, input := roundFixture("round-operation-digest")
+	input.Operations = []consolidation.Operation{
+		{Kind: consolidation.OperationSubmit},
+		{
+			Kind: consolidation.OperationAddNode,
+			Node: &consolidation.ProjectionNode{
+				ID: "post-submit-node", Content: "must be part of the request digest",
+			},
+		},
+	}
+	service := consolidation.New(store, passingReplay(), fixedClock{now: frozenNow}, consolidation.DefaultConfig())
+
+	first, duplicate, err := service.Run(context.Background(), input)
+	if err != nil || duplicate || first.Outcome != consolidation.RoundRejected || first.OperationDigest == "" {
+		t.Fatalf("first rejected round = (%#v, duplicate=%v, err=%v)", first, duplicate, err)
+	}
+	stored, found, err := store.Round(context.Background(), input.TenantID, input.SpaceID, input.RoundID)
+	if err != nil || !found || !reflect.DeepEqual(stored, first) {
+		t.Fatalf("stored rejected round = (%#v, found=%v, err=%v), want first result", stored, found, err)
+	}
+
+	second, duplicate, err := service.Run(context.Background(), input)
+	if err != nil || !duplicate || !reflect.DeepEqual(second, first) {
+		t.Fatalf("identical round replay = (%#v, duplicate=%v, err=%v), want stored result", second, duplicate, err)
+	}
+	if store.publishCalls != 0 {
+		t.Fatalf("rejected round was published %d times", store.publishCalls)
+	}
+
+	mutated := input
+	mutated.Operations = append([]consolidation.Operation(nil), input.Operations...)
+	mutated.Operations[1].Node = &consolidation.ProjectionNode{
+		ID: "post-submit-node", Content: "different operation list",
+	}
+	conflict, duplicate, err := service.Run(context.Background(), mutated)
+	if err == nil || !duplicate || conflict.Outcome != consolidation.RoundFailed || conflict.OperationDigest == first.OperationDigest {
+		t.Fatalf("mutated round replay = (%#v, duplicate=%v, err=%v), want digest conflict", conflict, duplicate, err)
+	}
+	stored, found, err = store.Round(context.Background(), input.TenantID, input.SpaceID, input.RoundID)
+	if err != nil || !found || !reflect.DeepEqual(stored, first) {
+		t.Fatalf("conflict overwrote stored round = (%#v, found=%v, err=%v)", stored, found, err)
 	}
 }

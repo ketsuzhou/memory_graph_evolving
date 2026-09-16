@@ -12,15 +12,15 @@ import (
 )
 
 func TestRPCContract0851(t *testing.T) {
-	t.Run("version gate accepts exact 0.85.1", func(t *testing.T) {
-		path := writeFakePi(t, fakePiOptions{version: "0.85.1"})
+	t.Run("version gate accepts required version", func(t *testing.T) {
+		path := writeFakePi(t, fakePiOptions{version: RequiredVersion})
 		output, err := probeFakePiVersion(t, path)
-		if err != nil || strings.TrimSpace(output) != "0.85.1" {
+		if err != nil || strings.TrimSpace(output) != RequiredVersion {
 			t.Fatalf("invalid fake version fixture: output=%q err=%v", output, err)
 		}
 		launcher := NewLauncher(LauncherConfig{Executable: path})
 		if err := launcher.VerifyExactVersion(context.Background(), path); err != nil {
-			t.Fatalf("exact Pi 0.85.1 must pass: %v", err)
+			t.Fatalf("exact required Pi version must pass: %v", err)
 		}
 	})
 
@@ -65,7 +65,7 @@ func TestRPCRejectsEveryOtherVersion(t *testing.T) {
 	}{
 		{name: "0.84.2 is rejected", version: "0.84.2"},
 		{name: "malformed output is rejected", version: "not-a-semver"},
-		{name: "non-zero version exit is rejected", version: "0.85.1", versionExit: 7},
+		{name: "non-zero version exit is rejected", version: RequiredVersion, versionExit: 7},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

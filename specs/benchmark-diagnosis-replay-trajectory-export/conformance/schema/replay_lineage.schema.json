@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/replay_lineage.schema.json",
+  "title": "ReplayLineage",
+  "description": "SC-5.8/SC-6.6 (Q30/Q31/Q44/Q56/Q57/Q101): the frozen branch provenance written at fork time, plus the replay execution outcome. Unknown legacy provenance is `branch_kind: unknown` and fails closed in strict exclusion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["branch_id", "branch_kind", "branch_ancestry", "fork_room_epoch"],
+  "properties": {
+    "branch_id": { "type": "string", "minLength": 1 },
+    "branch_kind": { "enum": ["replay_skill_mutation", "ordinary", "unknown"] },
+    "branch_ancestry": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "source_skill_ref": { "type": "string", "minLength": 1 },
+    "intervention_skill_ref": { "type": "string", "minLength": 1 },
+    "fork_checkpoint_ref": { "type": "string", "minLength": 1 },
+    "fork_room_epoch": { "type": "integer", "minimum": 1 },
+    "context_snapshot_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "nondeterministic_dependencies": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "replay_policy_revision": { "type": "string", "minLength": 1 },
+    "outcome": { "$ref": "#/$defs/replayOutcome" }
+  },
+  "$defs": {
+    "replayOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result"],
+      "properties": {
+        "result": { "enum": ["pass", "fail", "inconclusive", "budget_exhausted"] },
+        "baseline_stats_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "intervention_stats_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "denied_tool_calls": { "type": "integer", "minimum": 0 },
+        "simulated_tool_calls": { "type": "integer", "minimum": 0 },
+        "replay_result_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

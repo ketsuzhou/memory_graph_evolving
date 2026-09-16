@@ -1,1 +1,64 @@
-{"schema_version": "gms.skill-artifact.v1", "kind": "human_procedure", "title": "Run deterministic paired replay", "description": "Stable replay procedure", "applicability": {"predicates": [{"field": "candidate.stage", "op": "equals", "value": "replay_pending"}], "exclusions": []}, "permissions": [{"capability": "memory_expand", "scope": "room-shared-space"}], "body": {"steps": [{"step_id": "s1-freeze", "instruction": "Freeze fixture set refs and baseline mapping", "preconditions": [{"field": "candidate.stage", "op": "equals", "value": "replay_pending"}], "postconditions": [{"field": "replay.packet", "op": "equals", "value": "frozen"}], "failure_action": "stop"}, {"step_id": "s2-replay", "instruction": "Execute paired causal replay via the deterministic adapter", "preconditions": [{"field": "replay.packet", "op": "equals", "value": "frozen"}], "postconditions": [{"field": "replay.result", "op": "equals", "value": "recorded"}], "failure_action": "mark_inconclusive"}]}}
+{
+  "applicability": {
+    "exclusions": [],
+    "predicates": [
+      {
+        "field": "candidate.stage",
+        "op": "equals",
+        "value": "replay_pending"
+      }
+    ]
+  },
+  "body": {
+    "steps": [
+      {
+        "failure_action": "stop",
+        "instruction": "Freeze fixture set refs and baseline mapping",
+        "postconditions": [
+          {
+            "field": "replay.packet",
+            "op": "equals",
+            "value": "frozen"
+          }
+        ],
+        "preconditions": [
+          {
+            "field": "candidate.stage",
+            "op": "equals",
+            "value": "replay_pending"
+          }
+        ],
+        "step_id": "s1-freeze"
+      },
+      {
+        "failure_action": "mark_inconclusive",
+        "instruction": "Execute paired causal replay via the deterministic adapter",
+        "postconditions": [
+          {
+            "field": "replay.result",
+            "op": "equals",
+            "value": "recorded"
+          }
+        ],
+        "preconditions": [
+          {
+            "field": "replay.packet",
+            "op": "equals",
+            "value": "frozen"
+          }
+        ],
+        "step_id": "s2-replay"
+      }
+    ]
+  },
+  "description": "Stable replay procedure",
+  "kind": "human_procedure",
+  "permissions": [
+    {
+      "capability": "memory_expand",
+      "scope": "room-shared-space"
+    }
+  ],
+  "schema_version": "gms.skill-artifact.v1",
+  "title": "Run deterministic paired replay"
+}

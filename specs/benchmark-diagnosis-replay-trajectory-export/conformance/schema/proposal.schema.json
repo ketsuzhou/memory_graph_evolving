@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/proposal.schema.json",
+  "title": "SkillProposal",
+  "description": "SC-6.4/SC-6.5 (Q90=C/Q103/Q104/Q105/Q106): ownership, visibility, evidence permissions, approval, and activation target are independent fields. Owner is the stable Diagnosis Agent identity; the executing run is author provenance only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proposal_id", "tenant_id", "owner_agent_id", "created_by_agent_run_id", "visibility", "evidence_source_domains", "activation_target", "base_skill_revision", "status"],
+  "properties": {
+    "proposal_id": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "cut_id": { "type": "string", "minLength": 1 },
+    "owner_agent_id": { "type": "string", "minLength": 1 },
+    "created_by_agent_run_id": { "type": "string", "minLength": 1 },
+    "visibility": { "enum": ["owner_only", "governance", "target_domain", "shared_space"] },
+    "evidence_source_domains": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "activation_target": { "$ref": "#/$defs/activationTarget" },
+    "base_skill_revision": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "pending_approval", "approved", "replaying", "replay_passed", "activated", "stale", "rejected", "withdrawn"] },
+    "replay_policy_revision": { "type": "string", "minLength": 1 },
+    "approval": { "$ref": "#/$defs/approval" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "activationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_domain", "skill_lineage_id"],
+      "properties": {
+        "target_domain": { "enum": ["evaluation_namespace", "production"] },
+        "skill_lineage_id": { "type": "string", "minLength": 1 },
+        "target_agent_id": { "type": "string", "minLength": 1 },
+        "target_room_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_by", "scope"],
+      "properties": {
+        "approved_by": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["disclosure_and_target", "target_only"] },
+        "policy_revision": { "type": "string", "minLength": 1 },
+        "approved_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

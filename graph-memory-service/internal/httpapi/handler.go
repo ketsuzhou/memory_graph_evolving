@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"river2.dev/graph-memory-service/internal/authz"
+	"river2.dev/graph-memory-service/internal/consolidationcut"
 	"river2.dev/graph-memory-service/internal/domain"
 	"river2.dev/graph-memory-service/internal/evidence"
 	"river2.dev/graph-memory-service/internal/exploration"
@@ -36,6 +37,14 @@ type Dependencies struct {
 	Candidates  ports.CandidateStore
 	Curation    *skillproposal.Service
 	Clock       ports.Clock
+
+	// PG-50A consolidation-cut composition: the Room-scoped cut job service,
+	// the production freezer (deployment room→space bindings), and the signed
+	// event notifier. All three are optional — when nil, the cut routes fail
+	// closed with 404 NOT_FOUND.
+	ConsolidationCuts *consolidationcut.Service
+	CutFreezer        *RoomFreezer
+	CutEvents         *CutEventNotifier
 }
 
 type Route struct {
@@ -65,6 +74,23 @@ func Routes() []Route {
 		{http.MethodGet, "/v1/candidates/{candidate_id}"},
 		{http.MethodPost, "/v1/candidates/{candidate_id}:decide"},
 		{http.MethodPost, "/v1/candidates/{candidate_id}:activate"},
+	}
+}
+
+// ConsolidationCutRoutes documents the consolidation-cut surface, which is a
+// SEPARATE contract (openapi/consolidation-cuts.yaml) from the Memory
+// Protocol (memory-protocol.yaml). It is intentionally NOT part of Routes() —
+// a conformance test pins Routes() to the Memory Protocol spec — and is
+// instead conformance-checked against consolidation-cuts.yaml on its own.
+// The dispatch lives in ServeHTTP; cancel/rediagnose accept both the frozen
+// slash spelling (/cancel, /rediagnose) and the codebase colon convention
+// (:cancel, :rediagnose).
+func ConsolidationCutRoutes() []Route {
+	return []Route{
+		{http.MethodPost, "/v1/rooms/{room_id}/consolidation-cuts"},
+		{http.MethodGet, "/v1/consolidation-cuts/{cut_id}"},
+		{http.MethodPost, "/v1/consolidation-cuts/{cut_id}/cancel"},
+		{http.MethodPost, "/v1/consolidation-cuts/{cut_id}/rediagnose"},
 	}
 }
 
@@ -103,17 +129,31 @@ type wireErrorBody struct {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.auth.Authenticate(r.Header.Get("Authorization")); err != nil {
-		writeError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing or invalid bearer token", nil)
+		writeTransportError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing or invalid bearer token", nil)
 		return
 	}
 
 	// Every protocol route with a body speaks exactly application/json; a
 	// wrong or missing media type is rejected before the body is trusted.
+	// A POST/PUT with no body AND no Content-Type header is permitted (the
+	// PG-50A cancel route is an empty-body POST); a body without
+	// application/json is still rejected.
 	if r.Method == http.MethodPost || r.Method == http.MethodPut {
-		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-		if err != nil || mediaType != "application/json" {
-			writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Content-Type must be application/json", nil)
+		// A body is present unless Content-Length is explicitly 0 (the
+		// PG-50A cancel route is an empty-body POST). Zero length → no body →
+		// no Content-Type required. A body without application/json is still
+		// rejected. -1 (chunked/unknown) counts as having a body.
+		hasBody := r.ContentLength != 0
+		if hasBody && r.Header.Get("Content-Type") == "" {
+			writeTransportError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Content-Type must be application/json", nil)
 			return
+		}
+		if header := r.Header.Get("Content-Type"); header != "" {
+			mediaType, _, err := mime.ParseMediaType(header)
+			if err != nil || mediaType != "application/json" {
+				writeTransportError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Content-Type must be application/json", nil)
+				return
+			}
 		}
 	}
 
@@ -122,6 +162,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(body) > 0 {
 		decoded, decodeErr := decodeStrictObject(body)
 		if decodeErr != nil {
+			// Consolidation-cut routes use the flat error envelope, not the
+			// wrapped Memory Protocol transport error.
+			if isCutPath(r.URL.Path) {
+				code := "INVALID_REQUEST"
+				if decodeErr.jsonError {
+					code = "INVALID_JSON"
+				}
+				writeCutError(w, http.StatusBadRequest, code, "request violates the consolidation-cut contract")
+				return
+			}
 			h.writeInvalidRequest(w, body, decodeErr)
 			return
 		}
@@ -260,9 +310,58 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.withBinding(w, r, object, func(w http.ResponseWriter, r *http.Request, o strictObject, identity authz.Identity) {
 			h.handleCandidateActivate(w, r, o, identity, candidateID)
 		})
+	// PG-50A consolidation-cut composition.
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/rooms/") && strings.HasSuffix(r.URL.Path, "/consolidation-cuts"):
+		roomID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/rooms/"), "/consolidation-cuts")
+		if !validPathID(roomID) {
+			writeCutError(w, http.StatusBadRequest, "PAYLOAD_VALIDATION_FAILED", "room_id must be 1-128 UTF-8 bytes")
+			return
+		}
+		h.withBinding(w, r, object, func(w http.ResponseWriter, r *http.Request, o strictObject, identity authz.Identity) {
+			h.createConsolidationCut(w, r, o, identity, roomID)
+		})
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/v1/consolidation-cuts/"):
+		cutID := strings.TrimPrefix(r.URL.Path, "/v1/consolidation-cuts/")
+		if !validPathID(cutID) {
+			writeCutError(w, http.StatusBadRequest, "PAYLOAD_VALIDATION_FAILED", "cut_id must be 1-128 UTF-8 bytes")
+			return
+		}
+		h.withBindingRaw(w, r, func(w http.ResponseWriter, r *http.Request, identity authz.Identity) {
+			h.getConsolidationCut(w, r, identity, cutID)
+		})
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/consolidation-cuts/") && (strings.HasSuffix(r.URL.Path, ":cancel") || strings.HasSuffix(r.URL.Path, "/cancel")):
+		cutID := trimCutAction(r.URL.Path, "/cancel", ":cancel")
+		if !validPathID(cutID) {
+			writeCutError(w, http.StatusBadRequest, "PAYLOAD_VALIDATION_FAILED", "cut_id must be 1-128 UTF-8 bytes")
+			return
+		}
+		h.withBindingRaw(w, r, func(w http.ResponseWriter, r *http.Request, identity authz.Identity) {
+			h.cancelConsolidationCut(w, r, object, identity, cutID)
+		})
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/consolidation-cuts/") && (strings.HasSuffix(r.URL.Path, ":rediagnose") || strings.HasSuffix(r.URL.Path, "/rediagnose")):
+		cutID := trimCutAction(r.URL.Path, "/rediagnose", ":rediagnose")
+		if !validPathID(cutID) {
+			writeCutError(w, http.StatusBadRequest, "PAYLOAD_VALIDATION_FAILED", "cut_id must be 1-128 UTF-8 bytes")
+			return
+		}
+		h.withBinding(w, r, object, func(w http.ResponseWriter, r *http.Request, o strictObject, identity authz.Identity) {
+			h.rediagnoseConsolidationCut(w, r, o, identity, cutID)
+		})
 	default:
-		writeError(w, r, http.StatusNotFound, "NOT_FOUND", "unknown protocol route", nil)
+		writeTransportError(w, r, http.StatusNotFound, "NOT_FOUND", "unknown protocol route", nil)
 	}
+}
+
+// trimCutAction strips either the slash or the colon action suffix from the
+// trailing cut route, returning the cut_id. Both spellings are accepted so
+// the frozen consolidation-cuts.yaml (/cancel, /rediagnose) and the codebase
+// colon convention (:cancel, :rediagnose) both resolve.
+func trimCutAction(path, slashSuffix, colonSuffix string) string {
+	prefix := "/v1/consolidation-cuts/"
+	if strings.HasSuffix(path, colonSuffix) {
+		return strings.TrimSuffix(strings.TrimPrefix(path, prefix), colonSuffix)
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(path, prefix), slashSuffix)
 }
 
 func validPathID(id string) bool {
@@ -289,7 +388,7 @@ func (h *Handler) setBinding(tenant domain.TenantID, principal domain.PrincipalI
 func (h *Handler) withBinding(w http.ResponseWriter, r *http.Request, object strictObject, handle func(http.ResponseWriter, *http.Request, strictObject, authz.Identity)) {
 	identity, ok := h.identity()
 	if !ok {
-		writeError(w, r, http.StatusConflict, "TENANT_NOT_INITIALIZED", "tenant must be initialized before operational requests", nil)
+		writeTransportError(w, r, http.StatusConflict, "TENANT_NOT_INITIALIZED", "tenant must be initialized before operational requests", nil)
 		return
 	}
 	handle(w, r, object, identity)
@@ -298,7 +397,7 @@ func (h *Handler) withBinding(w http.ResponseWriter, r *http.Request, object str
 func (h *Handler) withBindingRaw(w http.ResponseWriter, r *http.Request, handle func(http.ResponseWriter, *http.Request, authz.Identity)) {
 	identity, ok := h.identity()
 	if !ok {
-		writeError(w, r, http.StatusConflict, "TENANT_NOT_INITIALIZED", "tenant must be initialized before operational requests", nil)
+		writeTransportError(w, r, http.StatusConflict, "TENANT_NOT_INITIALIZED", "tenant must be initialized before operational requests", nil)
 		return
 	}
 	handle(w, r, identity)
@@ -1217,6 +1316,31 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// isCutPath reports whether a request targets a consolidation-cut route,
+// which uses a FLAT error envelope ({"code","message"}) — distinct from the
+// wrapped wireError used by the Memory Protocol transport. Ingress-level
+// errors (auth, media-type, tenant binding) are routed through the transport
+// writer so a single cut operation never mixes the two wire shapes.
+func isCutPath(path string) bool {
+	if strings.HasSuffix(path, "/consolidation-cuts") { // room create
+		return true
+	}
+	if strings.HasSuffix(path, ":cancel") || strings.HasSuffix(path, ":rediagnose") {
+		return true
+	}
+	return strings.Contains(path, "/consolidation-cuts/") // get / sub-action
+}
+
+// writeTransportError writes a protocol error using the wire shape required
+// by the target route: flat for consolidation-cut routes, wrapped otherwise.
+func writeTransportError(w http.ResponseWriter, r *http.Request, status int, code, message string, details []fieldDetail) {
+	if isCutPath(r.URL.Path) {
+		writeCutError(w, status, code, message)
+		return
+	}
+	writeError(w, r, status, code, message, details)
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details []fieldDetail) {

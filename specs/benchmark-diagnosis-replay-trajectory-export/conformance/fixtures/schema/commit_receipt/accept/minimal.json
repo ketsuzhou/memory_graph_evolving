@@ -1,0 +1,12 @@
+{
+  "receipt_id": "rcpt-1",
+  "tenant_id": "tenant-1",
+  "room_id": "room-1",
+  "segment_id": "segment-1",
+  "space_id": "space-shared",
+  "batch_id": "batch-1",
+  "batch_version": 3,
+  "batch_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stage_receipt_preserved": true,
+  "committed_at": "2026-09-14T12:00:00Z"
+}

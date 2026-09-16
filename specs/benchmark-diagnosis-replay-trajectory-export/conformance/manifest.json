@@ -1,0 +1,395 @@
+{
+  "corpus_id": "benchmark-diagnosis-replay-export.conformance-corpus",
+  "version": "1.1.1",
+  "contract_ref": "../system-contract.md",
+  "notes": [
+    "Append-only after PG-00D freeze (SC-11.2). v1.1.0 applies the kiro(terra) contract-review batch (1 P0 / 8 P1 / 3 P2) pre-freeze; see system-contract.md SC-11 change log.",
+    "Schema fixtures: verdict accept/reject is judged against the referenced JSON Schema with additionalProperties:false semantics (fail closed), plus any extra_rules.",
+    "State fixtures: the `sequence` must be a legal path in the referenced state machine; reject fixtures contain at least one illegal transition. Transitions' from/to may be lists (multi-source/multi-destination shorthand) and MUST be expanded.",
+    "Cross fixtures: kind=cross entries carry {cut, capability} objects judged by the named rule only.",
+    "Uniqueness constraints not expressible in JSON Schema are asserted via extra_rules.",
+    "v1.1.1: closes kiro round-2 residuals (#6 terminal/resumable split, #7 duplicate-coverage fixture, #10 closing roster input, #12 exact private-set equality)."
+  ],
+  "extra_rule_catalog": {
+    "logical_run_episode_unique": "SC-2.1: within one manifest, the canonical identity fields shared per-manifest (evaluation_batch_id, arm_id, seed) are constant, so (task_id, episode_id) must be unique across logical_runs.",
+    "logical_run_id_unique": "SC-2.1: logical_run_id is part of the frozen six-field identity tuple and must be unique within one manifest.",
+    "cut_receipts_cover_sealed_segments": "SC-3.4: evidence_commit_receipts must be 1:1 with sealed_segment_ids — no missing, no extra, no duplicate segment coverage.",
+    "sink_receipt_matches": "SC-5.5: when sink_receipt is present, sink_id MUST equal required_sink_id and verified_digest MUST equal content_digest (mismatch reason: SINK_RECEIPT_MISMATCH).",
+    "capability_scope_within_cut": "SC-1.3/SC-6.1: capability tenant must equal the cut's tenant and bound_private_spaces must be exactly the cut's frozen private Space set — same room_id, no duplicates, no missing, no extra."
+  },
+  "fixtures": [
+    {
+      "file": "cross/capability_scope_within_cut/accept/matching_room.json",
+      "kind": "cross",
+      "target": "capability_scope_within_cut",
+      "verdict": "accept"
+    },
+    {
+      "file": "cross/capability_scope_within_cut/reject/space_from_other_room.json",
+      "kind": "cross",
+      "target": "capability_scope_within_cut",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/commit_receipt/accept/minimal.json",
+      "kind": "schema",
+      "target": "commit_receipt.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/commit_receipt/reject/bad_digest.json",
+      "kind": "schema",
+      "target": "commit_receipt.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/consolidation_cut/accept/minimal.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "accept",
+      "extra_rules": [
+        "cut_receipts_cover_sealed_segments"
+      ]
+    },
+    {
+      "file": "schema/consolidation_cut/reject/bad_cut_digest.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/consolidation_cut/reject/extra_receipt.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "cut_receipts_cover_sealed_segments"
+      ]
+    },
+    {
+      "file": "schema/consolidation_cut/reject/missing_receipt_for_sealed_segment.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "cut_receipts_cover_sealed_segments"
+      ]
+    },
+    {
+      "file": "schema/consolidation_cut/reject/unknown_field.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/cut_job/accept/frozen.json",
+      "kind": "schema",
+      "target": "cut_job.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/cut_job/reject/bad_stage.json",
+      "kind": "schema",
+      "target": "cut_job.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/diagnosis_annotation/accept/call_bound.json",
+      "kind": "schema",
+      "target": "diagnosis_annotation.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/diagnosis_annotation/accept/turn_bound.json",
+      "kind": "schema",
+      "target": "diagnosis_annotation.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/diagnosis_annotation/reject/bad_status.json",
+      "kind": "schema",
+      "target": "diagnosis_annotation.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/diagnosis_annotation/reject/target_both.json",
+      "kind": "schema",
+      "target": "diagnosis_annotation.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/diagnosis_annotation/reject/target_neither.json",
+      "kind": "schema",
+      "target": "diagnosis_annotation.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/diagnosis_capability/accept/minimal.json",
+      "kind": "schema",
+      "target": "diagnosis_capability.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/diagnosis_capability/reject/missing_audit_digest.json",
+      "kind": "schema",
+      "target": "diagnosis_capability.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/diagnosis_capability/reject/write_operation.json",
+      "kind": "schema",
+      "target": "diagnosis_capability.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/evaluation_batch_manifest/accept/minimal.json",
+      "kind": "schema",
+      "target": "evaluation_batch_manifest.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/evaluation_batch_manifest/reject/duplicate_logical_run.json",
+      "kind": "schema",
+      "target": "evaluation_batch_manifest.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "logical_run_episode_unique",
+        "logical_run_id_unique"
+      ]
+    },
+    {
+      "file": "schema/evaluation_batch_manifest/reject/duplicate_task_episode_diff_run_id.json",
+      "kind": "schema",
+      "target": "evaluation_batch_manifest.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "logical_run_episode_unique"
+      ]
+    },
+    {
+      "file": "schema/evaluation_batch_manifest/reject/missing_field.json",
+      "kind": "schema",
+      "target": "evaluation_batch_manifest.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/evaluation_batch_manifest/reject/unknown_field.json",
+      "kind": "schema",
+      "target": "evaluation_batch_manifest.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/proposal/accept/minimal.json",
+      "kind": "schema",
+      "target": "proposal.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/proposal/reject/bad_visibility.json",
+      "kind": "schema",
+      "target": "proposal.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/replay_lineage/accept/replay_skill_mutation.json",
+      "kind": "schema",
+      "target": "replay_lineage.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/replay_lineage/accept/unknown_legacy.json",
+      "kind": "schema",
+      "target": "replay_lineage.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/replay_lineage/reject/bad_result.json",
+      "kind": "schema",
+      "target": "replay_lineage.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/revocation/accept/payload_erased.json",
+      "kind": "schema",
+      "target": "revocation.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/room_lifecycle/accept/closed.json",
+      "kind": "schema",
+      "target": "room_lifecycle.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/room_lifecycle/reject/closed_without_receipt_fields.json",
+      "kind": "schema",
+      "target": "room_lifecycle.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/training_view/accept/minimal.json",
+      "kind": "schema",
+      "target": "training_view.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/training_view/reject/empty_role_eligibility.json",
+      "kind": "schema",
+      "target": "training_view.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/trajectory_export/accept/minimal.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "accept",
+      "extra_rules": [
+        "sink_receipt_matches"
+      ]
+    },
+    {
+      "file": "schema/trajectory_export/reject/bad_content_digest.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/trajectory_export/reject/diagnosis_role_payload.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/trajectory_export/reject/fidelity_not_reconstructed.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/trajectory_export/reject/missing_training_purposes.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/trajectory_export/reject/sink_receipt_mismatch.json",
+      "kind": "schema",
+      "target": "trajectory_export.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "sink_receipt_matches"
+      ]
+    },
+    {
+      "file": "state/cut_job/accept/diagnosis_failed_projection_continues.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/accept/diagnosis_failed_rediagnose.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/accept/evidence_only_no_change.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/accept/happy_path_with_proposal.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/accept/queued_budget_exhausted.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/accept/queued_start.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/cut_job/reject/diagnosis_failure_reaches_completed.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "reject"
+    },
+    {
+      "file": "state/cut_job/reject/illegal_transition.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "reject"
+    },
+    {
+      "file": "state/cut_job/reject/queued_to_diagnosing.json",
+      "kind": "state",
+      "target": "cut_job.state",
+      "verdict": "reject"
+    },
+    {
+      "file": "state/export_lifecycle/accept/happy_path.json",
+      "kind": "state",
+      "target": "export_lifecycle.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/export_lifecycle/reject/cleanup_before_ack.json",
+      "kind": "state",
+      "target": "export_lifecycle.state",
+      "verdict": "reject"
+    },
+    {
+      "file": "state/room_lifecycle/accept/close_path.json",
+      "kind": "state",
+      "target": "room_lifecycle.state",
+      "verdict": "accept"
+    },
+    {
+      "file": "state/room_lifecycle/reject/skip_to_closed.json",
+      "kind": "state",
+      "target": "room_lifecycle.state",
+      "verdict": "reject"
+    },
+    {
+      "file": "schema/consolidation_cut/reject/duplicate_receipt_coverage.json",
+      "kind": "schema",
+      "target": "consolidation_cut.schema",
+      "verdict": "reject",
+      "extra_rules": [
+        "cut_receipts_cover_sealed_segments"
+      ]
+    },
+    {
+      "file": "schema/room_lifecycle/accept/closing_entered.json",
+      "kind": "schema",
+      "target": "room_lifecycle.schema",
+      "verdict": "accept"
+    },
+    {
+      "file": "schema/room_lifecycle/reject/closing_without_roster.json",
+      "kind": "schema",
+      "target": "room_lifecycle.schema",
+      "verdict": "reject"
+    },
+    {
+      "file": "cross/capability_scope_within_cut/reject/missing_private_space.json",
+      "kind": "cross",
+      "target": "capability_scope_within_cut",
+      "verdict": "reject"
+    },
+    {
+      "file": "cross/capability_scope_within_cut/reject/extra_private_space.json",
+      "kind": "cross",
+      "target": "capability_scope_within_cut",
+      "verdict": "reject"
+    }
+  ]
+}

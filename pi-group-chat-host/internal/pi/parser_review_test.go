@@ -95,10 +95,10 @@ func TestVersionParsingRejectsPaddedOutput(t *testing.T) {
 		version string
 		wantErr bool
 	}{
-		{name: "bare version passes", version: "0.85.1"},
-		{name: "prefixed binary name passes", version: "pi 0.85.1"},
-		{name: "evil prefix is rejected", version: "evil prefix 0.85.1", wantErr: true},
-		{name: "trailing build metadata is rejected", version: "0.85.1+build", wantErr: true},
+		{name: "bare version passes", version: RequiredVersion},
+		{name: "prefixed binary name passes", version: "pi " + RequiredVersion},
+		{name: "evil prefix is rejected", version: "evil prefix " + RequiredVersion, wantErr: true},
+		{name: "trailing build metadata is rejected", version: RequiredVersion + "+build", wantErr: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

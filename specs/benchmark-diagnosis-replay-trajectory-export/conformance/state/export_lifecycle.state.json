@@ -1,0 +1,17 @@
+{
+  "machine_id": "export_lifecycle",
+  "version": 1,
+  "contract_ref": "SC-5.5",
+  "initial": "freezing",
+  "terminal": ["cleaned", "revoked"],
+  "transitions": [
+    { "from": "freezing", "to": "frozen", "guard": "sessions_trajectory_ids_dag_and_provenance_pinned" },
+    { "from": "frozen", "to": "writing", "authority": "exporter" },
+    { "from": "writing", "to": "published", "guard": "all_trainable_segments_have_payload_and_mask_and_digest_computed", "note": "atomic publish; mid-write failure pops nothing (Q32)" },
+    { "from": "writing", "to": "failed", "reason": "PAYLOAD_VALIDATION_FAILED", "retryable": true },
+    { "from": "failed", "to": "writing", "authority": "exporter", "note": "same export_id must yield same content_digest on retry" },
+    { "from": "published", "to": "acknowledged", "guard": "required_sink_receipt_verified", "note": "Q47/Q62" },
+    { "from": "acknowledged", "to": "cleaned", "guard": "source_sessions_cleanup_allowed", "note": "cleanup only after sink receipt" },
+    { "from": ["published", "acknowledged"], "to": "revoked", "reason": "AUTHORIZATION_EPOCH_STALE", "note": "Q96/Q102: revocation ledger event; consumers stop at checkpoint boundaries" }
+  ]
+}

@@ -197,3 +197,124 @@ _Avoid_: Multica Host, payload-asserted Host identity
 **Conversation Path Seal**:
 A Pi Group Chat Host declaration that freezes the exact Segment Evidence Seals, deterministic order, terminal outcome, scope, and derivation policy of one completed conversation run.
 _Avoid_: entire long-lived Room, GMS-inferred terminality
+
+
+## Runtime Advisory Skill Evolution Language
+
+**Runtime Advisory Skill Proposal**:
+An immutable, evidence-linked Skill change proposal that may be retrieved and explicitly adopted during a task, while remaining visibly non-authoritative until its exact revision passes the required evaluation, decision, and activation path.
+_Avoid_: Memory Note, Active Skill, implicit authority
+
+**Memory Explore Agent**:
+A persistent Room participant that explores memory in response to the evolving Room context or an explicit mention, then publishes exact references to applicable authoritative Skills or Runtime Advisory Skill Proposals. It may draft an adaptation proposal but does not rank, evaluate, or activate its own output authoritatively.
+_Avoid_: deterministic retrieval service, Skill activator, unbounded search loop
+
+**Replayable Context Snapshot**:
+An immutable, scope-bound capture of the task context, observable environment, and pinned state needed to reproduce a Decision Checkpoint and compare replay branches.
+_Avoid_: raw prompt only, mutable Room state, semantic context label
+
+**Skill Interaction Signal**:
+An immutable observation of one distinct stage in a Skill's relationship to a task context: matched, served, selected, adopted, verified, outcome-correlated, or causally supported. No earlier stage implies a later one.
+_Avoid_: undifferentiated usage count, exposure-as-success, self-reported causal proof
+
+**Diagnosis Verdict**:
+A post-execution critic disposition of supported, refuted, or inconclusive for an exact Skill revision in one frozen trajectory, with uncertainty and evidence references. It may contribute evaluation evidence but does not authorize replay or activation.
+_Avoid_: replay trigger, causal proof, activation decision
+
+**Replay Experiment Control**:
+An explicit, auditable authorization to run a pinned Skill proposal revision against a pinned replay case manifest. It is independent of the Diagnosis Verdict and does not itself imply successful evaluation.
+_Avoid_: Diagnosis Agent command, implicit replay enqueue, causal result
+
+
+**Skill Adoption Declaration**:
+An Agent's immutable statement that one exact Skill or proposal revision influenced its decision at one Decision Checkpoint in one Replayable Context Snapshot. A later diagnosis may support or refute the declaration without rewriting it.
+_Avoid_: recommendation, retrieval exposure, inferred success
+
+**Trajectory Diagnosis**:
+A Terminal Diagnosis result describing the overall problems, critical failures, recoveries, and outcome transitions of one frozen Conversation Path.
+_Avoid_: per-Skill causal verdict, replay result, aggregate reward only
+
+**Skill Exposure Diagnosis**:
+A Diagnosis Verdict scoped to one exact Skill or proposal revision at one Decision Checkpoint, distinct from the Trajectory Diagnosis and from other Skill exposures in the same Conversation Path.
+_Avoid_: whole-run attribution, exposure count, causal proof
+
+**Applicability Envelope**:
+The explicit, versioned boundary of task context, environment, permissions, and observable conditions within which an authoritative Skill revision has evaluation support.
+_Avoid_: global validity by default, embedding cluster alone, mutable runtime guess
+
+
+**Benchmark Completion Barrier**:
+The frozen boundary reached when every Agent assigned to one known evaluation task or task batch has reached a terminal state, allowing its conversation paths and trainable trajectories to be sealed for diagnosis and export.
+_Avoid_: long-lived Room termination, timeout-only completion, partial Agent set
+
+**Consolidation Cut**:
+An externally requested, watermark-pinned boundary over a long-lived production Room that selects immutable closed evidence for diagnosis and memory consolidation without declaring the Room terminal.
+_Avoid_: Room shutdown, mutable latest view, implicit task completion
+
+**Critic Verification**:
+A Diagnosis Agent's evidence-grounded judgment that an adopted Skill's expected behavior and claimed outcome are supported by the observable frozen trajectory. Missing or insufficient source evidence yields an inconclusive result rather than verification.
+_Avoid_: self-report, causal proof, evidence-free success label
+
+**Multi-Agent Trainable Trajectory Export**:
+An immutable export that preserves each Agent Run's trainable trajectories together with the shared Interaction DAG topology and exact Agent, Session, Segment, and branch provenance needed to interpret them.
+_Avoid_: flattened merged tensor stream, author inference from messages, destructive partial export
+
+**Replay Skill Mutation Branch**:
+A counterfactual branch whose intervention changes the Skill that a Memory Explore Agent publishes into a Room, together with every descendant interaction across Agents that may have observed that changed Skill.
+_Avoid_: Explore Agent message only, ordinary search branch, unmarked replay lineage
+
+**Replay-Excluded Training View**:
+A derived, auditable view of a Multi-Agent Trainable Trajectory Export that excludes selected Replay Skill Mutation Branch roots and all provenance-tainted descendants while preserving their shared pre-fork ancestors.
+_Avoid_: mutation of the source export, text-based branch guessing, descendant reward leakage
+
+**EvaluationBatch Manifest**:
+The frozen known set of logical runs (task/episode × arm × seed with their expected Agent rosters) that one benchmark EvaluationBatch's completion barrier closes over; it is fixed before the batch starts and never inferred from observed traffic.
+_Avoid_: dynamic completion guessing, post-hoc roster scan, mutable known set
+
+**Logical Run**:
+The canonical unit of benchmark completion identified by the frozen six-field tuple evaluation batch, task, episode, arm, seed, and logical run ID; retries create new Attempts under the same Logical Run and never new Logical Runs.
+_Avoid_: concatenated run-id string as source of truth, retry as new run, treating logical_run_id as display-only
+
+**Attempt**:
+One execution pass of a Logical Run with its own attempt identity and terminal state (succeeded, failed, or aborted); retry budget exhaustion is what terminates the Logical Run.
+_Avoid_: silent re-execution, attempt-less reruns
+
+**Room Epoch**:
+The monotonically bumped version guarding Room lifecycle transitions; the active→closing CAS atomically rejects new root turns, delegations, deliveries, and segments, and stale-epoch writes fail with an explicit error.
+_Avoid_: check-then-act closing, agent-initiated shutdown, best-effort quiet period
+
+**Consolidation Cut Job**:
+The asynchronously executed, explicitly staged lifecycle of one Production Consolidation Cut (queued, freezing, frozen, diagnosing, consolidating, consolidating_partial, replaying, activating, completed) that resumes from the failed stage, never mutates its frozen manifest, and records partial failures per Space; a diagnosis-failed Cut ends terminal `partially_failed`, never `completed`.
+_Avoid_: synchronous all-or-nothing request, hidden retry semantics, partial success as complete
+
+**Diagnosis Capability**:
+The short-lived, read-only, cut-scoped credential that enumerates exactly which Room-bound private Spaces one Diagnosis execution may read, with expiry and a digest binding it to the append-only private-read audit chain.
+_Avoid_: standing diagnosis token, scope inferred from latest Room bindings, unaudited private reads
+
+**Per-Source Cursor**:
+The per-(Space, Room/source) consumption position over evidence batches, kept as a contiguous prefix plus explicit sparse gap set, so one Room's Cut never consumes another Room's pending evidence.
+_Avoid_: single global watermark, gap-free skipping, unproven compaction
+
+**Required Durable Sink**:
+The one consumer identity frozen in an export manifest whose verified digest receipt is the only license to clean up source AReaL Sessions; all other consumers read the durable artifact.
+_Avoid_: first-consumer cleanup, TTL-as-acknowledgement, reader-held session lifetime
+
+**Trajectory Fidelity**:
+The declared class of a training payload's provenance; `reconstructed` marks data retokenized from the canonical structured transcript under a frozen recipe and restricts it to SFT, preference learning, or explicitly reconstruction-tolerant offline training.
+_Avoid_: on-policy claims over reconstructed data, fabricated logprobs or weight versions, fidelity inference from content
+
+**Disclosure Gate**:
+The deterministic, fail-closed decision point that judges whether a Diagnosis output element may move from its source authority domain to a wider one, based on declared disclosure labels rather than model judgment.
+_Avoid_: prompt-based secrecy, keyword masking as policy, post-hoc sensitivity review
+
+**Authorization Epoch**:
+The tenant/object-scoped counter bumped on deletion or permission withdrawal and validated by consumers at training start and checkpoint boundaries, so revoked artifacts and stale caches stop being consumed.
+_Avoid_: cache TTL as revocation, delete-the-row-only semantics, mid-run silent continuation
+
+**Promotion Record**:
+The independent, auditable record that moves a benchmark-activated Skill Proposal into the production namespace after validating source EvaluationBatch coverage, privacy clearance, and the exact target base Skill revision.
+_Avoid_: benchmark score as promotion license, cross-namespace pointer overwrite, unverified base revision
+
+**Replayable Context Snapshot**:
+The content-addressed freeze of every controllable dependency of a replay — Skill revisions, Agent configs, tool schemas and versions, sandbox image, file and database snapshot references, time/random source policy, and recorded tool results.
+_Avoid_: message-prefix-only replay, latest-environment reuse, unfrozen external dependencies

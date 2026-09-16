@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,13 +29,36 @@ func TestMemoryProtocolV1RoutesMatchOpenAPI(t *testing.T) {
 	}
 }
 
+// TestConsolidationCutRoutesMatchOpenAPI pins the independent cut route
+// inventory to the SEPARATE consolidated-cut OpenAPI contract. The cut
+// surface is intentionally not part of Routes() (which is pinned to the
+// Memory Protocol spec above); it is conformance-checked here on its own
+// against openapi/consolidation-cuts.yaml.
+func TestConsolidationCutRoutesMatchOpenAPI(t *testing.T) {
+	want := contractOpenAPIRoutesFrom(t, "consolidation-cuts.yaml")
+	got := httpapi.ConsolidationCutRoutes()
+	if len(got) == 0 {
+		t.Fatal("ConsolidationCutRoutes() returned no routes")
+	}
+
+	wantSet := contractRouteSet(t, want, "consolidation-cuts.yaml")
+	gotSet := contractRouteSet(t, got, "ConsolidationCutRoutes()")
+	if fmt.Sprint(gotSet) != fmt.Sprint(wantSet) {
+		t.Errorf("ConsolidationCutRoutes() =\n  %s\nOpenAPI routes =\n  %s", strings.Join(gotSet, "\n  "), strings.Join(wantSet, "\n  "))
+	}
+}
+
 func contractOpenAPIRoutes(t *testing.T) []httpapi.Route {
+	return contractOpenAPIRoutesFrom(t, "memory-protocol.yaml")
+}
+
+func contractOpenAPIRoutesFrom(t *testing.T, specFile string) []httpapi.Route {
 	t.Helper()
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("locate conformance test source")
 	}
-	protocolPath := filepath.Join(filepath.Dir(filename), "..", "..", "openapi", "memory-protocol.yaml")
+	protocolPath := filepath.Join(filepath.Dir(filename), "..", "..", "openapi", specFile)
 	file, err := os.Open(protocolPath)
 	if err != nil {
 		t.Fatalf("open frozen OpenAPI protocol: %v", err)
@@ -54,9 +78,27 @@ func contractOpenAPIRoutes(t *testing.T) []httpapi.Route {
 	var routes []httpapi.Route
 	inPaths := false
 	currentPath := ""
+	serverPath := ""
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+		if line == "servers:" {
+			continue
+		}
+		// The server base may be a bare path (consolidation-cuts.yaml uses
+		// url: /v1) or a full origin with no path (memory-protocol.yaml uses
+		// url: http://localhost). Prepend the base path so the server-relative
+		// OpenAPI paths equal the codebase's fully-qualified /v1 routes.
+		if strings.HasPrefix(strings.TrimSpace(line), "- url: ") {
+			raw := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "- url: "))
+			raw = strings.Trim(raw, `"`)
+			if !strings.Contains(raw, "//") {
+				serverPath = raw
+			} else if u, err := url.Parse(raw); err == nil {
+				serverPath = u.Path
+			}
+			continue
+		}
 		if line == "paths:" {
 			inPaths = true
 			continue
@@ -68,7 +110,7 @@ func contractOpenAPIRoutes(t *testing.T) []httpapi.Route {
 			break
 		}
 		if strings.HasPrefix(line, "  /") && !strings.HasPrefix(line, "    ") {
-			currentPath = strings.TrimSuffix(strings.TrimSpace(line), ":")
+			currentPath = serverPath + strings.TrimSuffix(strings.TrimSpace(line), ":")
 			continue
 		}
 		if currentPath == "" || !strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "      ") {

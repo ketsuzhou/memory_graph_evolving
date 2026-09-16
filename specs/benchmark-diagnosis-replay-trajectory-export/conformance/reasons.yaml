@@ -1,0 +1,153 @@
+# Reason codes for the benchmark-diagnosis-replay-export contract (SC-8.3).
+# `fail_closed: true` means the operation MUST NOT proceed or degrade silently.
+# Consumers return these codes verbatim; conformance fixtures assert them.
+version: 1
+reason_code_pattern_note: Codes are UPPER_SNAKE and stable; additions are append-only.
+codes:
+  - code: DUPLICATE_LOGICAL_RUN
+    applies_to: [evaluation_batch_manifest]
+    fail_closed: true
+    http_status_hint: 422
+  - code: MISSING_MANIFEST_FIELD
+    applies_to: [evaluation_batch_manifest, consolidation_cut, trajectory_export]
+    fail_closed: true
+    http_status_hint: 422
+  - code: UNKNOWN_CORE_FIELD
+    applies_to: [all]
+    fail_closed: true
+    note: Closed schemas reject unknown core fields (Q61).
+    http_status_hint: 422
+  - code: POST_SUBMIT_OPERATION
+    applies_to: [consolidation_round]
+    fail_closed: true
+    http_status_hint: 422
+  - code: HIERARCHY_CYCLE
+    applies_to: [consolidation_round]
+    fail_closed: true
+    http_status_hint: 422
+  - code: EDGE_ALREADY_EXISTS
+    applies_to: [consolidation_round]
+    fail_closed: true
+    http_status_hint: 422
+  - code: STALE_PROJECTION_HEAD
+    applies_to: [consolidation_round]
+    fail_closed: true
+    http_status_hint: 409
+  - code: REPLAY_PLAN_MISMATCH
+    applies_to: [consolidation_round]
+    fail_closed: true
+    http_status_hint: 409
+  - code: RECEIPT_MISSING
+    applies_to: [cut_job]
+    fail_closed: true
+    http_status_hint: 409
+  - code: CUT_IDEMPOTENCY_CONFLICT
+    applies_to: [cut_api]
+    fail_closed: true
+    note: Same idempotency key, different frozen body (Q48).
+    http_status_hint: 409
+  - code: NO_CHANGE
+    applies_to: [cut_job, consolidation_round]
+    fail_closed: false
+    note: Idempotent terminal outcome, not an error (Q39/Q76).
+    http_status_hint: 200
+  - code: ROOM_EPOCH_STALE
+    applies_to: [room_lifecycle]
+    fail_closed: true
+    http_status_hint: 409
+  - code: DIAGNOSIS_FAILED
+    applies_to: [cut_job, diagnosis]
+    fail_closed: true
+    note: Blocks proposal/replay/activation (Q89).
+  - code: DIAGNOSIS_INCONCLUSIVE
+    applies_to: [diagnosis]
+    fail_closed: true
+    note: Blocks activation; may still be recorded (Q33/Q54).
+  - code: REPLAY_FAIL
+    applies_to: [replay]
+    fail_closed: true
+  - code: REPLAY_INCONCLUSIVE
+    applies_to: [replay]
+    fail_closed: true
+  - code: REPLAY_BUDGET_EXHAUSTED
+    applies_to: [replay]
+    fail_closed: true
+  - code: ACTIVATION_STALE_BASE
+    applies_to: [activation]
+    fail_closed: true
+    note: CAS base revision no longer current; proposal becomes stale (Q58).
+    http_status_hint: 409
+  - code: DISCLOSURE_DENIED
+    applies_to: [diagnosis, proposal]
+    fail_closed: true
+    http_status_hint: 403
+  - code: PRIVATE_SCOPE_VIOLATION
+    applies_to: [diagnosis, export, training_view]
+    fail_closed: true
+    http_status_hint: 403
+  - code: UNKNOWN_BRANCH_KIND_STRICT
+    applies_to: [training_view]
+    fail_closed: true
+    note: strict_replay_exclusion fails closed on unknown provenance (Q44/Q100).
+    http_status_hint: 422
+  - code: INCOMPLETE_CONTEXT
+    applies_to: [trajectory_export, training_view]
+    fail_closed: true
+    note: Excluded from strict views (Q78).
+  - code: EXPORT_DIGEST_CONFLICT
+    applies_to: [trajectory_export]
+    fail_closed: true
+    note: Same export_id, changed frozen input (Q32).
+    http_status_hint: 409
+  - code: SINK_RECEIPT_MISSING
+    applies_to: [trajectory_export]
+    fail_closed: true
+    note: Source session cleanup stays blocked (Q47/Q62).
+    http_status_hint: 409
+  - code: AUTHORIZATION_EPOCH_STALE
+    applies_to: [all]
+    fail_closed: true
+    http_status_hint: 410
+  - code: BUDGET_EXHAUSTED
+    applies_to: [cut_job, replay]
+    fail_closed: true
+    note: Auditable terminal state, never a silent drop (Q97).
+    http_status_hint: 429
+
+  - code: BARRIER_REACHED
+    applies_to: [room_lifecycle]
+    fail_closed: true
+    note: "Benchmark Completion Barrier satisfied; Room may enter closing (SC-4.4, SC-4.5)."
+    http_status_hint: 200
+  - code: CANCEL_REQUESTED
+    applies_to: [cut_job, export_lifecycle]
+    fail_closed: true
+    note: "Cooperative cancellation requested (Q88); frozen facts remain irreversible."
+    http_status_hint: 202
+  - code: DIAGNOSIS_FAILED_OR_INCONCLUSIVE
+    applies_to: [cut_job]
+    fail_closed: true
+    note: "Q89/SC-4.3: proposal/replay/activation blocked; deterministic projection may continue; Cut ends partially_failed."
+    http_status_hint: 200
+  - code: REPLAY_FAIL_OR_INCONCLUSIVE
+    applies_to: [cut_job]
+    fail_closed: true
+    note: "Isolated replay did not pass; activation skipped (SC-4.1)."
+    http_status_hint: 200
+  - code: INFRASTRUCTURE_FAILURE
+    applies_to: [cut_job, export_lifecycle]
+    fail_closed: true
+    retryable: true
+    note: "Retryable stage failure; retries reuse frozen identities (SC-4.7)."
+    http_status_hint: 503
+  - code: PAYLOAD_VALIDATION_FAILED
+    applies_to: [export_lifecycle]
+    fail_closed: true
+    retryable: true
+    note: "SC-5.5: a trainable segment lacks a tensor-equivalent payload or loss mask; publish blocked."
+    http_status_hint: 422
+  - code: SINK_RECEIPT_MISMATCH
+    applies_to: [trajectory_export, export_lifecycle]
+    fail_closed: true
+    note: "SC-5.5: acknowledged receipt sink_id or verified_digest does not match the export manifest; cleanup MUST NOT run."
+    http_status_hint: 409

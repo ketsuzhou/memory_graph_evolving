@@ -554,6 +554,24 @@ func (s *Store) PublishRound(ctx context.Context, input domain.ConsolidationPubl
 	return cloneRoundResult(input.Round), false, nil
 }
 
+// RecordRound durably records a terminal rejected round. Re-recording an
+// identical verdict is a no-op; a different body under the same round ID is a
+// conflict, never a silent overwrite.
+func (s *Store) RecordRound(_ context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, round domain.RoundResult) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rounds := ensure3level2(s.consolidationRounds, tenantID, spaceID)
+	if existing, ok := rounds[round.RoundID]; ok {
+		if existing.Outcome == round.Outcome && existing.OperationDigest == round.OperationDigest {
+			return nil
+		}
+		return errRoundConflict
+	}
+	rounds[round.RoundID] = cloneRoundResult(round)
+	return nil
+}
+
 // RetrievalReplayStore: frozen inputs and audit outputs, idempotent on
 // identical content.
 

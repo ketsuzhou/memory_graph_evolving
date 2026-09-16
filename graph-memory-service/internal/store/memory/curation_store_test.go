@@ -224,3 +224,34 @@ func TestCandidateDecisionThenActivationVersionCas(t *testing.T) {
 		t.Fatal("activating without an accepted decision must fail")
 	}
 }
+
+func TestRecordRoundIsIdempotentAndRejectsChangedOperationDigest(t *testing.T) {
+	ctx := context.Background()
+	store := New()
+	original := domain.RoundResult{
+		RoundID: "round-1", Outcome: domain.RoundRejected, BaseVersion: 3,
+		OperationDigest: "operations-v1",
+		Rejections:      []domain.OperationRejection{{Index: 1, Kind: domain.OperationSubmit, Reason: "post-submit operation"}},
+	}
+	if err := store.RecordRound(ctx, "tenant-1", "space-1", original); err != nil {
+		t.Fatalf("record first round: %v", err)
+	}
+	if err := store.RecordRound(ctx, "tenant-1", "space-1", original); err != nil {
+		t.Fatalf("record identical round: %v", err)
+	}
+
+	stored, found, err := store.Round(ctx, "tenant-1", "space-1", original.RoundID)
+	if err != nil || !found || stored.OperationDigest != original.OperationDigest || len(stored.Rejections) != 1 {
+		t.Fatalf("stored round = (%#v, found=%v, err=%v), want original", stored, found, err)
+	}
+
+	changed := original
+	changed.OperationDigest = "operations-v2"
+	if err := store.RecordRound(ctx, "tenant-1", "space-1", changed); err == nil {
+		t.Fatal("same round ID with a changed operation digest must conflict")
+	}
+	stored, found, err = store.Round(ctx, "tenant-1", "space-1", original.RoundID)
+	if err != nil || !found || stored.OperationDigest != original.OperationDigest || len(stored.Rejections) != 1 {
+		t.Fatalf("conflicting record overwrote round = (%#v, found=%v, err=%v)", stored, found, err)
+	}
+}

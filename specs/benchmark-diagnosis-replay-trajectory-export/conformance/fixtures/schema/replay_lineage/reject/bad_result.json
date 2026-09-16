@@ -1,0 +1,9 @@
+{
+  "branch_id": "branch-1",
+  "branch_kind": "replay_skill_mutation",
+  "branch_ancestry": [],
+  "fork_room_epoch": 9,
+  "outcome": {
+    "result": "mostly_passed"
+  }
+}

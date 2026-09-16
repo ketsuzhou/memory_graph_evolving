@@ -1,0 +1,26 @@
+{
+  "evaluation_batch_id": "eb-1",
+  "arm_id": "warm",
+  "seed": 7,
+  "logical_runs": [
+    {
+      "logical_run_id": "lr-1",
+      "task_id": "task-1",
+      "episode_id": "episode-1",
+      "room_id": "room-1",
+      "expected_agent_runs": [
+        "agent-a"
+      ]
+    },
+    {
+      "logical_run_id": "lr-2",
+      "task_id": "task-1",
+      "episode_id": "episode-2",
+      "room_id": "room-1",
+      "expected_agent_runs": [
+        "agent-a",
+        "agent-b"
+      ]
+    }
+  ]
+}

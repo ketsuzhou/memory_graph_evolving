@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/trajectory_export.schema.json",
+  "title": "TrajectoryExportManifest",
+  "description": "SC-5.5/SC-5.6/SC-2.6 (Q28/Q32/Q43/Q47/Q61/Q62): immutable, composable export manifest. One shared DAG topology plus per-agent_run_id payloads; same export_id must always re-derive the same content_digest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "export_id",
+    "tenant_id",
+    "source_cut_or_barrier_id",
+    "topology_digest",
+    "agent_payloads",
+    "trajectory_fidelity",
+    "retokenization_recipe_digest",
+    "required_sink_id",
+    "content_digest",
+    "allowed_training_purposes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "export_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_cut_or_barrier_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "topology_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "agent_payloads": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/agentPayload"
+      }
+    },
+    "diagnosis_annotation_digest": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "trajectory_fidelity": {
+      "const": "reconstructed"
+    },
+    "retokenization_recipe_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "allowed_training_purposes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "sft",
+          "preference",
+          "offline_reconstruction"
+        ]
+      }
+    },
+    "excluded_branches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/excludedBranch"
+      }
+    },
+    "completeness": {
+      "enum": [
+        "strict",
+        "partial"
+      ]
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_sink_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sink_receipt": {
+      "$ref": "#/$defs/sinkReceipt"
+    },
+    "content_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "agentPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_run_id",
+        "agent_role",
+        "payload_digest",
+        "trainable"
+      ],
+      "properties": {
+        "agent_run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent_role": {
+          "enum": [
+            "business",
+            "memory_explore",
+            "consolidation",
+            "replay"
+          ]
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "trainable": {
+          "type": "boolean"
+        },
+        "store_mode": {
+          "enum": [
+            "topology_only_stub",
+            "reconstructed_transcript"
+          ]
+        }
+      }
+    },
+    "excludedBranch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "branch_kind",
+        "excluded_segments",
+        "excluded_agent_runs"
+      ],
+      "properties": {
+        "branch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch_kind": {
+          "enum": [
+            "replay_skill_mutation",
+            "unknown"
+          ]
+        },
+        "excluded_segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded_agent_runs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sinkReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sink_id",
+        "verified_digest",
+        "received_at"
+      ],
+      "properties": {
+        "sink_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verified_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "version_note": "v2: allowed_training_purposes required; diagnosis removed from agent_role (stored separately, SC-5.6/Q28); sink_receipt semantic rule added."
+}

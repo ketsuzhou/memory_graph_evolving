@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/room_lifecycle.schema.json",
+  "title": "RoomLifecycleEvent",
+  "description": "SC-4.5 (Q72/Q80): epoch-CAS lifecycle events for benchmark Rooms. Transitions are governed by conformance/state/room_lifecycle.state.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "room_id",
+    "room_epoch",
+    "event",
+    "reason"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "room_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event": {
+      "enum": [
+        "closing_entered",
+        "closed",
+        "stale_epoch_rejected"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "BARRIER_REACHED",
+        "ROOM_EPOCH_STALE"
+      ],
+      "description": "Reason code from conformance/reasons.yaml (catalog membership enforced; kiro review P1-5)."
+    },
+    "expected_epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "registered_agent_runs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "open_deliveries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "open_segments": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "receipts_complete": {
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "closed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "receipts_complete",
+          "registered_agent_runs",
+          "open_deliveries",
+          "open_segments"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "stale_epoch_rejected"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "expected_epoch"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "closing_entered"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "registered_agent_runs"
+        ]
+      }
+    }
+  ]
+}

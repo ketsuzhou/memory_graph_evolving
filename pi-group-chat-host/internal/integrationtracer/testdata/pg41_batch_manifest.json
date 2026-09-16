@@ -1,0 +1,28 @@
+{
+  "evaluation_batch_id": "batch-eval-pg41",
+  "arm_id": "arm-baseline",
+  "seed": 41,
+  "logical_runs": [
+    {
+      "logical_run_id": "run-1",
+      "task_id": "task-a",
+      "episode_id": "ep-1",
+      "room_id": "room-bench-1",
+      "expected_agent_runs": ["agent-run-1a", "agent-run-1b"]
+    },
+    {
+      "logical_run_id": "run-2",
+      "task_id": "task-b",
+      "episode_id": "ep-2",
+      "room_id": "room-bench-2",
+      "expected_agent_runs": ["agent-run-2a", "agent-run-2b"]
+    },
+    {
+      "logical_run_id": "run-3",
+      "task_id": "task-c",
+      "episode_id": "ep-3",
+      "room_id": "room-bench-3",
+      "expected_agent_runs": ["agent-run-3a"]
+    }
+  ]
+}

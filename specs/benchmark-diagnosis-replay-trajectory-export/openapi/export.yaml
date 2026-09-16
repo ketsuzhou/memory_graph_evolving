@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: AReaL Data Plane — Multi-Agent Trajectory Export
+  version: 1.1.0
+  description: >
+    Trajectory export lifecycle API (system-contract SC-5.5, SC-8.2; Q32/Q47/Q62).
+    freeze -> write -> acknowledge: reads are non-destructive, source session
+    cleanup is allowed only after the required durable sink's verified receipt.
+    All artifacts are trajectory_fidelity=reconstructed (Q60=B).
+  x-contract: benchmark-diagnosis-replay-export.system-contract v1.0.0
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /exports:
+    post:
+      operationId: freezeExport
+      summary: Freeze sessions/trajectory IDs/DAG/provenance and start the non-destructive export write.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [export_id, source_cut_or_barrier_id, required_sink_id]
+              properties:
+                export_id: { type: string, minLength: 1 }
+                source_cut_or_barrier_id: { type: string, minLength: 1 }
+                required_sink_id: { type: string, minLength: 1 }
+                completeness:
+                  type: string
+                  enum: [strict, partial]
+                  default: strict
+      responses:
+        '202':
+          description: Export frozen and writing; the manifest is pinned (schema_version + digests).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportStatus' }
+        '409':
+          description: EXPORT_DIGEST_CONFLICT — same export_id with changed frozen input (Q32).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: MISSING_MANIFEST_FIELD / UNKNOWN_CORE_FIELD.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /exports/{export_id}:
+    get:
+      operationId: getExport
+      summary: Export lifecycle status; after publish, the full immutable manifest.
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Current lifecycle status (and manifest once published).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ExportStatus'
+                  - $ref: '#/components/schemas/PublishedExport'
+        '404':
+          description: Unknown export.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '410':
+          description: AUTHORIZATION_EPOCH_STALE — revoked artifact.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /exports/{export_id}/artifacts/{agent_run_id}:
+    get:
+      operationId: readAgentPayload
+      description: Non-destructive read of one agent payload; consumers never pop source sessions (Q32).
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: agent_run_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Payload bytes; verify against agent_payloads[].payload_digest before use.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '410':
+          description: AUTHORIZATION_EPOCH_STALE.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /exports/{export_id}/acknowledge:
+    post:
+      operationId: acknowledgeExport
+      description: Required durable sink verifies manifest/digest integrity and records the receipt that licenses source-session cleanup (Q47/Q62).
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sink_id, verified_digest]
+              properties:
+                sink_id: { type: string, minLength: 1 }
+                verified_digest: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+      responses:
+        '200':
+          description: Receipt recorded; cleanup now allowed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportStatus' }
+        '409':
+          description: SINK_RECEIPT_MISSING details or digest mismatch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /exports/{export_id}/revoke:
+    post:
+      operationId: revokeExport
+      description: Bump the authorization epoch and emit a revocation event (Q96/Q102); consumers stop at training/checkpoint boundaries.
+      parameters:
+        - name: export_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [legal_basis]
+              properties:
+                legal_basis: { type: string, minLength: 1 }
+      responses:
+        '202':
+          description: Revocation accepted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportStatus' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ExportStatus:
+      type: object
+      additionalProperties: false
+      description: |
+        Status projection of an export. The published-stage response of
+        GET /exports/{export_id} MAY instead return the full immutable
+        TrajectoryExportManifest (oneOf with PublishedExport, kiro review P1-4).
+      required: [export_id, stage]
+      properties:
+        export_id: { type: string, minLength: 1 }
+        stage:
+          type: string
+          enum: [freezing, frozen, writing, published, acknowledged, cleaned, failed, revoked]
+        schema_version: { type: string, minLength: 1 }
+        trajectory_fidelity: { type: string, const: reconstructed }
+        completeness: { type: string, enum: [strict, partial] }
+        content_digest: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        required_sink_id: { type: string, minLength: 1 }
+        reason: { type: string, enum: [DUPLICATE_LOGICAL_RUN, MISSING_MANIFEST_FIELD, UNKNOWN_CORE_FIELD, POST_SUBMIT_OPERATION, HIERARCHY_CYCLE, EDGE_ALREADY_EXISTS, STALE_PROJECTION_HEAD, REPLAY_PLAN_MISMATCH, RECEIPT_MISSING, CUT_IDEMPOTENCY_CONFLICT, NO_CHANGE, ROOM_EPOCH_STALE, DIAGNOSIS_FAILED, DIAGNOSIS_INCONCLUSIVE, REPLAY_FAIL, REPLAY_INCONCLUSIVE, REPLAY_BUDGET_EXHAUSTED, ACTIVATION_STALE_BASE, DISCLOSURE_DENIED, PRIVATE_SCOPE_VIOLATION, UNKNOWN_BRANCH_KIND_STRICT, INCOMPLETE_CONTEXT, EXPORT_DIGEST_CONFLICT, SINK_RECEIPT_MISSING, AUTHORIZATION_EPOCH_STALE, BUDGET_EXHAUSTED, BARRIER_REACHED, CANCEL_REQUESTED, DIAGNOSIS_FAILED_OR_INCONCLUSIVE, REPLAY_FAIL_OR_INCONCLUSIVE, INFRASTRUCTURE_FAILURE, PAYLOAD_VALIDATION_FAILED, SINK_RECEIPT_MISMATCH] }
+    PublishedExport:
+      type: object
+      additionalProperties: false
+      description: The complete immutable export manifest; canonical contract schema is ../conformance/schema/trajectory_export.schema.json.
+      required: [export_id, stage, manifest]
+      properties:
+        export_id: { type: string, minLength: 1 }
+        stage: { type: string, enum: [published, acknowledged, cleaned] }
+        manifest:
+          $ref: '../conformance/schema/trajectory_export.schema.json'
+      x-contract-schema: ../conformance/schema/trajectory_export.schema.json
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: A reason code from ../conformance/reasons.yaml (single source; freeze-time snapshot).
+          enum: [DUPLICATE_LOGICAL_RUN, MISSING_MANIFEST_FIELD, UNKNOWN_CORE_FIELD, POST_SUBMIT_OPERATION, HIERARCHY_CYCLE, EDGE_ALREADY_EXISTS, STALE_PROJECTION_HEAD, REPLAY_PLAN_MISMATCH, RECEIPT_MISSING, CUT_IDEMPOTENCY_CONFLICT, NO_CHANGE, ROOM_EPOCH_STALE, DIAGNOSIS_FAILED, DIAGNOSIS_INCONCLUSIVE, REPLAY_FAIL, REPLAY_INCONCLUSIVE, REPLAY_BUDGET_EXHAUSTED, ACTIVATION_STALE_BASE, DISCLOSURE_DENIED, PRIVATE_SCOPE_VIOLATION, UNKNOWN_BRANCH_KIND_STRICT, INCOMPLETE_CONTEXT, EXPORT_DIGEST_CONFLICT, SINK_RECEIPT_MISSING, AUTHORIZATION_EPOCH_STALE, BUDGET_EXHAUSTED, BARRIER_REACHED, CANCEL_REQUESTED, DIAGNOSIS_FAILED_OR_INCONCLUSIVE, REPLAY_FAIL_OR_INCONCLUSIVE, INFRASTRUCTURE_FAILURE, PAYLOAD_VALIDATION_FAILED, SINK_RECEIPT_MISMATCH]
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: true

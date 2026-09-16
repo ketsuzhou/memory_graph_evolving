@@ -1,0 +1,29 @@
+{
+  "machine": "cut_job",
+  "sequence": [
+    {
+      "from": "freezing",
+      "to": "frozen"
+    },
+    {
+      "from": "frozen",
+      "to": "diagnosing"
+    },
+    {
+      "from": "diagnosing",
+      "to": "partially_failed"
+    },
+    {
+      "from": "partially_failed",
+      "to": "diagnosing"
+    },
+    {
+      "from": "diagnosing",
+      "to": "consolidating"
+    },
+    {
+      "from": "consolidating",
+      "to": "completed"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "cut": {
+    "cut_id": "cut-1",
+    "tenant_id": "tenant-1",
+    "room_id": "room-1",
+    "mode": "force",
+    "trigger_source": "host-service",
+    "idempotency_key": "evt-9",
+    "previous_cut_id": "cut-0",
+    "room_sequence_watermark": 120,
+    "sealed_segment_ids": [
+      "segment-1",
+      "segment-2"
+    ],
+    "space_scopes": [
+      {
+        "space_id": "space-shared",
+        "scope": "shared",
+        "evidence_batch_ids": [
+          "batch-1",
+          "batch-2"
+        ],
+        "projection_head_version": 6,
+        "query_watermark": 40
+      },
+      {
+        "space_id": "space-private-a",
+        "scope": "private",
+        "evidence_batch_ids": [
+          "batch-3"
+        ]
+      }
+    ],
+    "evidence_commit_receipts": [
+      {
+        "receipt_id": "rcpt-s1",
+        "segment_id": "segment-1",
+        "batch_ids": [
+          "batch-1",
+          "batch-2"
+        ],
+        "batch_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "receipt_id": "rcpt-s2",
+        "segment_id": "segment-2",
+        "batch_ids": [
+          "batch-3"
+        ],
+        "batch_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ],
+    "cut_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "policy_revisions": {
+      "diagnosis_policy_revision": "diag-v3"
+    }
+  },
+  "capability": {
+    "capability_id": "cap-1",
+    "tenant_id": "tenant-1",
+    "cut_id": "cut-1",
+    "principal_id": "diag-principal",
+    "agent_run_id": "diag-run-1",
+    "bound_private_spaces": [
+      {
+        "space_id": "space-private-a",
+        "room_id": "room-1",
+        "room_epoch": 4
+      }
+    ],
+    "operations": [
+      "read"
+    ],
+    "issued_at": "2026-09-14T12:00:00Z",
+    "expires_at": "2026-09-15T00:00:00Z",
+    "read_audit_chain_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  }
+}

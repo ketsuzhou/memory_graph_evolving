@@ -86,13 +86,37 @@ func (b *Builder) BuildSpace(ctx context.Context, tenantID domain.TenantID, spac
 	if err != nil {
 		return domain.RoundResult{}, false, err
 	}
+	// Per-source cursor semantics (SC-3.3, Q51/Q86): the consumable watermark
+	// is the contiguous prefix of committed memory versions, not the frozen
+	// EvidenceThrough upper bound. One source's unresolved earlier window must
+	// stop every source from being claimed as consumed past it.
+	watermark := state.Head.EvidenceWatermark
+	covered := make(map[int64]bool, len(batches))
+	for _, batch := range batches {
+		if batch.MemoryVersion != nil {
+			covered[*batch.MemoryVersion] = true
+		}
+	}
+	for covered[watermark+1] {
+		watermark++
+	}
+	consumable := make([]domain.EvidenceBatch, 0, len(batches))
+	for _, batch := range batches {
+		if batch.MemoryVersion == nil {
+			return domain.RoundResult{}, false, fmt.Errorf("projectionbuilder: evidence batch %s is outside the frozen committed window", batch.ID)
+		}
+		if *batch.MemoryVersion <= watermark {
+			consumable = append(consumable, batch)
+		}
+	}
+	batches = consumable
 	operations, err := b.operations(tenantID, spaceID, batches)
 	if err != nil {
 		return domain.RoundResult{}, false, err
 	}
 	roundID := domain.ConsolidationRoundID(domain.StableCitationID(
 		"round-", string(tenantID), string(spaceID), fmt.Sprint(state.Head.Version), state.Head.Digest,
-		fmt.Sprint(state.EvidenceThrough), fmt.Sprint(state.QueryThrough),
+		fmt.Sprint(watermark), fmt.Sprint(state.QueryThrough),
 	))
 	plan := domain.RetrievalReplayPlan{
 		ID:                     domain.StableCitationID("replay-", string(roundID), "structural-bm25-v1"),
@@ -108,7 +132,7 @@ func (b *Builder) BuildSpace(ctx context.Context, tenantID domain.TenantID, spac
 	return b.consolidator.Run(ctx, domain.RoundInput{
 		TenantID: tenantID, SpaceID: spaceID, RoundID: roundID,
 		BaseVersion: state.Head.Version, BaseDigest: state.Head.Digest,
-		EvidenceWatermark: state.EvidenceThrough, QueryWatermark: state.QueryThrough,
+		EvidenceWatermark: watermark, QueryWatermark: state.QueryThrough,
 		Operations: operations, ReplayPlan: plan,
 	})
 }

@@ -1,0 +1,13 @@
+{
+  "machine": "room_lifecycle",
+  "sequence": [
+    {
+      "from": "active",
+      "to": "closing"
+    },
+    {
+      "from": "closing",
+      "to": "closed"
+    }
+  ]
+}

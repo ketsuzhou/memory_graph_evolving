@@ -1,0 +1,20 @@
+{
+  "proposal_id": "prop-1",
+  "tenant_id": "tenant-1",
+  "cut_id": "cut-1",
+  "owner_agent_id": "agent-diagnosis",
+  "created_by_agent_run_id": "diag-run-1",
+  "visibility": "owner_only",
+  "evidence_source_domains": [
+    "space-private-a"
+  ],
+  "activation_target": {
+    "target_domain": "evaluation_namespace",
+    "skill_lineage_id": "skill-1",
+    "target_agent_id": "agent-a"
+  },
+  "base_skill_revision": "skill-1@rev7",
+  "status": "pending_approval",
+  "replay_policy_revision": "replay-v2",
+  "created_at": "2026-09-14T12:00:00Z"
+}

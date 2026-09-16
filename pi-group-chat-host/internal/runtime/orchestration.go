@@ -485,7 +485,28 @@ func (o *Orchestrator) RecoverAfterRestart(ctx context.Context, scenario Recover
 		}
 	}
 
-	adopter, _ := deps.OutboxStore.(outboxAdopter)
+	// ReconcileOutboxEntries sweeps the store's settled-evidence ledger into
+	// the worker queue (R5 round 6). The ledger and the sweep together close
+	// the half-handoff hole: the store's outbox rows are the durable record
+	// of settled evidence, and the worker queue is a projection of them. A
+	// crash between settlement and enqueue leaves a settled row the queue
+	// never received — re-hand it here so no settled evidence is lost, and
+	// fail the restart closed when the queue still refuses it, instead of
+	// letting a later drain read an empty queue and report success.
+	reconcileLedger := func() error {
+		ledger, ok := deps.DeliveryStore.(outboxLedger)
+		if !ok {
+			return errors.New("delivery store cannot enumerate settled evidence — handoff completeness is unverifiable")
+		}
+		settledRows, err := ledger.OutboxEntries(ctx)
+		if err != nil {
+			return err
+		}
+		return deps.OutboxStore.Reconcile(ctx, settledRows)
+	}
+	if err := reconcileLedger(); err != nil {
+		return RecoveryResult{}, fmt.Errorf("recover: reconcile settled evidence into the worker queue: %w", err)
+	}
 	for _, segment := range scenario.Segments {
 		var entries []domain.EvidenceOutboxEntry
 		for _, record := range scenario.Outbox {
@@ -506,8 +527,14 @@ func (o *Orchestrator) RecoverAfterRestart(ctx context.Context, scenario Recover
 		if err := deps.DeliveryStore.SettleAndCloseSegment(ctx, domain.DeliveryID(segment.DeliveryID), domain.SegmentID(segment.ID), now, entries); err != nil {
 			return RecoveryResult{}, err
 		}
-		if adopter != nil {
-			_ = adopter.Adopt(entries)
+		// Fail-closed handoff (R5 rounds 5-6): the store has just marked the
+		// segment settled — the queue must durably hold the rows before the
+		// recovery proceeds, or the evidence would be silently missing from
+		// every later drain while the barrier green-lights on incomplete
+		// receipts. The handoff is a mandatory port contract: a queue that
+		// cannot take the rows fails the recovery here.
+		if err := deps.OutboxStore.Reconcile(ctx, entries); err != nil {
+			return RecoveryResult{}, fmt.Errorf("recover segment %s: hand evidence outbox entries to the worker queue: %w", segment.ID, err)
 		}
 	}
 
@@ -525,6 +552,13 @@ func (o *Orchestrator) RecoverAfterRestart(ctx context.Context, scenario Recover
 	client := memoryclient.NewClient(scenario.MemoryBaseURL, scenario.MemoryAuthToken, &http.Client{Timeout: 5 * time.Second}, 1<<20)
 	pending, err := deps.DeliveryStore.RecoverPending(ctx, now)
 	if err != nil {
+		return RecoveryResult{}, err
+	}
+	// The outbox recovery runs here — at the explicit restart boundary —
+	// and nowhere else in the runtime: it clears every live outbox lease so
+	// pre-crash claim tokens die with the process that minted them (R5).
+	// Normal drains use non-destructive ListPending reads instead.
+	if _, err := deps.OutboxStore.RecoverPending(ctx, now); err != nil {
 		return RecoveryResult{}, err
 	}
 	result := RecoveryResult{}
@@ -982,8 +1016,13 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 	if err := deps.DeliveryStore.SettleAndCloseSegment(ctx, claimed.ID, segmentID, now, entries); err != nil {
 		return trace, outcome, err
 	}
-	if adopter, ok := deps.OutboxStore.(outboxAdopter); ok {
-		_ = adopter.Adopt(entries)
+	// Fail-closed handoff (R5 rounds 5-6): same contract as the recovery
+	// path — the segment is settled in the store, so the worker queue must
+	// durably hold the rows or the evidence would be silently missing from
+	// every later drain. The handoff is a mandatory port contract; a failed
+	// Reconcile fails the turn.
+	if err := deps.OutboxStore.Reconcile(ctx, entries); err != nil {
+		return trace, outcome, fmt.Errorf("turn settlement %s: hand evidence outbox entries to the worker queue: %w", segmentID, err)
 	}
 	input.log.event("segment_settled", map[string]any{
 		"delivery_id": string(claimed.ID), "segment_id": string(segmentID),
@@ -1456,37 +1495,70 @@ func (o *Orchestrator) outboxEntriesFor(input turnInput, segmentID domain.Segmen
 	}
 }
 
-// drainOutbox stages and commits every outstanding evidence entry. Already
-// staged entries commit without re-staging, so each batch becomes
-// recall-visible exactly once even across crashes.
+// drainOutbox stages and commits every outstanding evidence entry. The drain
+// is a lease-holding worker (R5): every row is claimed before it advances,
+// and the stage lease is RETAINED through the commit, so the worker that
+// staged a row is the only one that can commit it — a concurrent drain can
+// never commit the wrong row. An already-staged row (claimed after a restart
+// or a rescheduled retry released its lease) retries only the idempotent
+// commit. A row is reported committed only after its durable MarkCommitted
+// succeeds; any state-transition failure is a drain error, never a silent
+// success. The start and end recounts are non-destructive ListPending reads:
+// leases are only cleared by RecoverPending at process startup, so two
+// concurrent drains cannot kill each other's claims.
 func (o *Orchestrator) drainOutbox(ctx context.Context, roomID domain.RoomID, client *memoryclient.Client, log *turnLog) ([]string, error) {
 	deps := o.dependencies
 	now := deps.Clock.Now()
-	entries, err := deps.OutboxStore.RecoverPending(ctx, now)
+	// Handoff reconciliation guard (R5 round 6): the store's settled rows
+	// are the durable evidence ledger and the worker queue is a projection
+	// of them. A settlement whose handoff failed leaves the queue without
+	// rows the store already recorded — re-hand them now, and refuse the
+	// drain entirely when the queue still cannot take them. Without this
+	// guard a broken handoff would let a later drain read an empty queue
+	// and report success over silently missing evidence.
+	ledger, ok := deps.DeliveryStore.(outboxLedger)
+	if !ok {
+		return nil, errors.New("drain evidence: delivery store cannot enumerate settled evidence — handoff completeness is unverifiable, refusing to drain")
+	}
+	settledRows, err := ledger.OutboxEntries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := deps.OutboxStore.Reconcile(ctx, settledRows); err != nil {
+		return nil, fmt.Errorf("drain evidence: reconcile settled rows into the worker queue: %w", err)
+	}
+	entries, err := deps.OutboxStore.ListPending(ctx, now)
 	if err != nil {
 		return nil, err
 	}
 	log.event("drain_start", map[string]any{"room_id": string(roomID), "pending": len(entries)})
 	var committed []string
-	for _, entry := range entries {
-		if entry.State == "pending" {
-			request := o.stageRequestFor(ctx, roomID, entry, now)
-			stageStarted := time.Now()
-			_, stageErr := client.StageEvidenceBatch(ctx, request)
-			stageFields := map[string]any{
-				"batch_id": entry.BatchID, "space_id": string(entry.SpaceID),
-				"events": len(request.Events), "links": len(request.Links),
-				"duration_ms": float64(time.Since(stageStarted).Microseconds()) / 1000,
-			}
-			if stageErr != nil {
-				stageFields["error"] = stageErr.Error()
-				log.event("evidence_stage", stageFields)
-				_ = deps.OutboxStore.Reschedule(ctx, entry.ID, now.Add(time.Minute), stageErr.Error())
-				continue
-			}
-			log.event("evidence_stage", stageFields)
-			_ = deps.OutboxStore.MarkStaged(ctx, entry.ID)
+	// Fail-closed barrier (SC-4.5): a drain that could not commit every
+	// projection reports an error instead of a partial-success receipt, so
+	// callers never treat an episode boundary as reached while evidence is
+	// still pending.
+	var drainErr error
+	// failEntry records a failed stage/commit attempt on a row and fails the
+	// drain closed whether or not the retry release itself succeeds (R5
+	// round 5): a failed Reschedule leaves the row leased in-flight — only a
+	// restart boundary can re-claim it — and the caller must see that root
+	// cause alongside the remote failure, never a silent lease leak.
+	failEntry := func(claim ports.OutboxClaim, entry domain.EvidenceOutboxEntry, message string, cause error) {
+		releaseErr := deps.OutboxStore.Reschedule(ctx, claim, now.Add(time.Minute), cause.Error())
+		if releaseErr != nil {
+			log.event("outbox_release_failed", map[string]any{
+				"entry_id": entry.ID, "batch_id": entry.BatchID, "release_error": releaseErr.Error(),
+			})
 		}
+		if drainErr == nil {
+			if releaseErr == nil {
+				drainErr = fmt.Errorf("drain evidence: %s: %w", message, cause)
+			} else {
+				drainErr = fmt.Errorf("drain evidence: %s: %w; releasing the row's lease for retry also failed (%v) — the row stays leased until a restart boundary", message, cause, releaseErr)
+			}
+		}
+	}
+	commitEntry := func(claim ports.OutboxClaim, entry domain.EvidenceOutboxEntry) {
 		// The commit idempotency key derives from the entry ID so a restart
 		// replays the same key instead of minting a new one.
 		commitStarted := time.Now()
@@ -1497,14 +1569,83 @@ func (o *Orchestrator) drainOutbox(ctx context.Context, roomID domain.RoomID, cl
 		if commitErr != nil {
 			commitFields["error"] = commitErr.Error()
 			log.event("evidence_commit", commitFields)
-			_ = deps.OutboxStore.Reschedule(ctx, entry.ID, now.Add(time.Minute), commitErr.Error())
-			continue
+			failEntry(claim, entry, "commit batch "+entry.BatchID, commitErr)
+			return
 		}
 		commitFields["memory_version"] = commitResponse.MemoryVersion
 		commitFields["duplicate"] = commitResponse.Duplicate
+		// The row counts as committed only once the durable state transition
+		// succeeded — a failed MarkCommitted (lost lease, foreign row) is a
+		// drain error, never a reported success (R5 round 4).
+		if err := deps.OutboxStore.MarkCommitted(ctx, claim); err != nil {
+			commitFields["error"] = err.Error()
+			log.event("evidence_commit", commitFields)
+			failEntry(claim, entry, "record commit for "+entry.BatchID, err)
+			return
+		}
 		log.event("evidence_commit", commitFields)
-		_ = deps.OutboxStore.MarkCommitted(ctx, entry.ID)
 		committed = append(committed, entry.BatchID)
+	}
+	for {
+		claim, entry, err := deps.OutboxStore.ClaimPending(ctx, now)
+		if errors.Is(err, ports.ErrNoOutboxClaim) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if entry.State == "staged" {
+			// Recovery path: a durable stage receipt only ever retries the
+			// idempotent commit.
+			commitEntry(claim, entry)
+			continue
+		}
+		request := o.stageRequestFor(ctx, roomID, entry, now)
+		stageStarted := time.Now()
+		_, stageErr := client.StageEvidenceBatch(ctx, request)
+		stageFields := map[string]any{
+			"batch_id": entry.BatchID, "space_id": string(entry.SpaceID),
+			"events": len(request.Events), "links": len(request.Links),
+			"duration_ms": float64(time.Since(stageStarted).Microseconds()) / 1000,
+		}
+		if stageErr != nil {
+			stageFields["error"] = stageErr.Error()
+			log.event("evidence_stage", stageFields)
+			failEntry(claim, entry, "stage batch "+entry.BatchID, stageErr)
+			continue
+		}
+		log.event("evidence_stage", stageFields)
+		if err := deps.OutboxStore.MarkStaged(ctx, claim); err != nil {
+			log.event("outbox_stage_receipt_failed", map[string]any{
+				"batch_id": entry.BatchID, "error": err.Error(),
+			})
+			// Lease hygiene on a failed stage receipt (R5 round 5): release
+			// the claim's live lease for a retry instead of pinning the row
+			// in-flight until a restart. When the claim is already dead
+			// (lost lease, foreign row), the release fails too and both root
+			// causes surface in the drain error.
+			failEntry(claim, entry, "record stage receipt for "+entry.BatchID, err)
+			continue
+		}
+		// The stage lease is retained through the commit (R5 round 4): the
+		// same claim that staged the row commits it — there is no
+		// re-claim that could hand back a different worker's row.
+		commitEntry(claim, entry)
+	}
+	// Fail-closed recount: rescheduled rows are not claimable until their
+	// retry time, so the loop can end with rows still outstanding. The
+	// recount is non-destructive: it must not clear leases, or it would
+	// kill a concurrent drain's in-flight claims.
+	remaining, err := deps.OutboxStore.ListPending(ctx, now)
+	if err != nil {
+		return nil, err
+	}
+	if len(remaining) > 0 || drainErr != nil {
+		if drainErr == nil {
+			drainErr = fmt.Errorf("drain evidence: %d projection rows still non-committed", len(remaining))
+		}
+		log.event("drain_end", map[string]any{"committed": committed, "error": drainErr.Error(), "remaining": len(remaining)})
+		return nil, drainErr
 	}
 	log.event("drain_end", map[string]any{"committed": committed})
 	return committed, nil
@@ -1622,8 +1763,13 @@ type outboxLister interface {
 	Entries() []memorystore.OutboxRowSnapshot
 }
 
-type outboxAdopter interface {
-	Adopt([]domain.EvidenceOutboxEntry) error
+// outboxLedger enumerates every settled evidence row the durable store
+// holds. The drain and the restart boundary reconcile the worker queue
+// against this ledger (R5 round 6): a settled row missing from the queue
+// is a pending handoff — heal it or refuse to report success, never let a
+// drain green-light an empty queue over silently lost evidence.
+type outboxLedger interface {
+	OutboxEntries(context.Context) ([]domain.EvidenceOutboxEntry, error)
 }
 
 func visibleMessage(message domain.RoomMessage) VisibleMessage {

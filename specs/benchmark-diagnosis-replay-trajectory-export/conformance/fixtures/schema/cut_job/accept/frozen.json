@@ -1,0 +1,14 @@
+{
+  "cut_id": "cut-1",
+  "tenant_id": "tenant-1",
+  "room_id": "room-1",
+  "stage": "frozen",
+  "job_version": 2,
+  "cut_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "space_results": [
+    {
+      "space_id": "space-shared",
+      "result": "pending"
+    }
+  ]
+}

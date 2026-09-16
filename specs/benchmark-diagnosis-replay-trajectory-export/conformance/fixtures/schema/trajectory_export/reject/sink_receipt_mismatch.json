@@ -1,0 +1,52 @@
+{
+  "schema_version": "benchmark-diagnosis-replay-export.trajectory_export.v1",
+  "export_id": "export-1",
+  "tenant_id": "tenant-1",
+  "source_cut_or_barrier_id": "cut-1",
+  "topology_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "agent_payloads": [
+    {
+      "agent_run_id": "run-a",
+      "agent_role": "business",
+      "payload_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "trainable": true,
+      "store_mode": "reconstructed_transcript"
+    },
+    {
+      "agent_run_id": "run-explore",
+      "agent_role": "memory_explore",
+      "payload_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "trainable": true,
+      "store_mode": "reconstructed_transcript"
+    },
+    {
+      "agent_run_id": "run-leaf",
+      "agent_role": "replay",
+      "payload_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "trainable": false,
+      "store_mode": "topology_only_stub"
+    }
+  ],
+  "trajectory_fidelity": "reconstructed",
+  "retokenization_recipe_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+  "allowed_training_purposes": [
+    "sft",
+    "preference"
+  ],
+  "excluded_branches": [
+    {
+      "branch_id": "branch-1",
+      "branch_kind": "replay_skill_mutation",
+      "excluded_segments": 4,
+      "excluded_agent_runs": 2
+    }
+  ],
+  "completeness": "strict",
+  "required_sink_id": "sink-main",
+  "content_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+  "sink_receipt": {
+    "sink_id": "sink-other",
+    "verified_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "received_at": "2026-09-14T13:00:00Z"
+  }
+}

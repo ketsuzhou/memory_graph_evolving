@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://river2.dev/schemas/benchmark-diagnosis-replay-export/training_view.schema.json",
+  "title": "TrainingViewPolicy",
+  "description": "SC-5.7/SC-5.9 (Q31/Q65/Q82/Q84/Q85/Q91): the pinned, versioned policy that derives a training view from an export. Every digest is frozen; changing any pin creates a new view, never an in-place edit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["view_id", "tenant_id", "source_export_id", "source_export_content_digest", "diagnosis_annotation_revision", "aggregation_policy_digest", "loss_mask_policy_digest", "role_eligibility", "exclude_branch_kinds", "completeness_floor", "allowed_training_purposes", "view_digest"],
+  "properties": {
+    "view_id": { "type": "string", "minLength": 1 },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "source_export_id": { "type": "string", "minLength": 1 },
+    "source_export_content_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "diagnosis_annotation_revision": { "type": "integer", "minimum": 1 },
+    "aggregation_policy_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "loss_mask_policy_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "role_eligibility": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["business", "memory_explore", "consolidation", "replay"] }
+    },
+    "mixture_policy_revision": { "type": "string", "minLength": 1 },
+    "exclude_branch_kinds": {
+      "type": "array",
+      "items": { "enum": ["replay_skill_mutation", "unknown"] }
+    },
+    "strict_replay_exclusion": { "type": "boolean" },
+    "split": { "enum": ["train", "validation", "test"] },
+    "evaluation_generation": { "type": "string", "minLength": 1 },
+    "completeness_floor": { "enum": ["complete", "partial", "inconclusive"] },
+    "allowed_training_purposes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["sft", "preference", "offline_reconstruction"] }
+    },
+    "counterfactual_pairing": { "type": "boolean" },
+    "view_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

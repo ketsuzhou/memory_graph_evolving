@@ -1,0 +1,8 @@
+{
+  "tenant_id": "tenant-1",
+  "room_id": "room-1",
+  "room_epoch": 4,
+  "event": "closing_entered",
+  "reason": "BARRIER_REACHED",
+  "recorded_at": "2026-09-14T12:00:00Z"
+}

@@ -1,0 +1,195 @@
+{
+  "machine_id": "cut_job",
+  "version": 2,
+  "contract_ref": "SC-4.7, SC-4.1, SC-4.3, SC-4.2",
+  "initial": "queued",
+  "terminal": [
+    "completed",
+    "cancelled",
+    "partially_cancelled",
+    "partially_failed"
+  ],
+  "resumable": [
+    "failed"
+  ],
+  "transitions": [
+    {
+      "from": "queued",
+      "to": "freezing",
+      "authority": "gms_cut_coordinator",
+      "guard": "quota_budget_granted",
+      "note": "SC-4.7/Q97: versioned quotas; queued is an auditable state, never a silent drop"
+    },
+    {
+      "from": "queued",
+      "to": "cancelled",
+      "reason": "BUDGET_EXHAUSTED",
+      "note": "Q97: budget exhaustion ends auditable in queued; CANCEL_REQUESTED before freeze also lands here"
+    },
+    {
+      "from": "freezing",
+      "to": "frozen",
+      "authority": "gms_cut_coordinator",
+      "guard": "receipts_complete_for_all_sealed_segments"
+    },
+    {
+      "from": "freezing",
+      "to": "failed",
+      "reason": "RECEIPT_MISSING",
+      "retryable": true
+    },
+    {
+      "from": "freezing",
+      "to": "cancelled",
+      "guard": "not_yet_frozen",
+      "reason": "CANCEL_REQUESTED"
+    },
+    {
+      "from": "frozen",
+      "to": "diagnosing",
+      "authority": "gms_cut_coordinator"
+    },
+    {
+      "from": "frozen",
+      "to": "cancelling",
+      "reason": "CANCEL_REQUESTED"
+    },
+    {
+      "from": "diagnosing",
+      "to": "consolidating",
+      "guard": "diagnosis_verified"
+    },
+    {
+      "from": "diagnosing",
+      "to": "partially_failed",
+      "reason": "DIAGNOSIS_FAILED_OR_INCONCLUSIVE",
+      "note": "Q89/SC-4.3: proposal/replay/activation blocked; evidence projection may continue"
+    },
+    {
+      "from": "partially_failed",
+      "to": "consolidating_partial",
+      "authority": "gms_cut_coordinator",
+      "note": "SC-4.3: projection-only continuation; proposal/replay/activation stay blocked"
+    },
+    {
+      "from": "partially_failed",
+      "to": "diagnosing",
+      "authority": "governance_principal",
+      "guard": "explicit_rediagnose_with_new_policy_revision",
+      "note": "SC-4.2: rediagnose creates a new immutable annotation revision"
+    },
+    {
+      "from": "consolidating_partial",
+      "to": "partially_failed",
+      "guard": "projection_complete",
+      "note": "SC-4.3: partially_failed is the terminal outcome of a Cut whose diagnosis failed; it MUST NOT complete (P0 fix)"
+    },
+    {
+      "from": "consolidating_partial",
+      "to": "failed",
+      "reason": "INFRASTRUCTURE_FAILURE",
+      "retryable": true
+    },
+    {
+      "from": "consolidating",
+      "to": "replaying",
+      "guard": "proposal_exists"
+    },
+    {
+      "from": "consolidating",
+      "to": "completed",
+      "guard": "no_proposal",
+      "outcome": [
+        "published",
+        "duplicate",
+        "no_change"
+      ]
+    },
+    {
+      "from": "replaying",
+      "to": "activating",
+      "guard": "replay_pass_and_target_binding_exact"
+    },
+    {
+      "from": "replaying",
+      "to": "completed",
+      "guard": "replay_not_passed",
+      "reason": "REPLAY_FAIL_OR_INCONCLUSIVE"
+    },
+    {
+      "from": "activating",
+      "to": "completed",
+      "guard": "cas_base_revision_matches",
+      "outcome": [
+        "published",
+        "duplicate"
+      ]
+    },
+    {
+      "from": "activating",
+      "to": "cancelling",
+      "guard": "activation_not_yet_committed",
+      "reason": "CANCEL_REQUESTED",
+      "note": "cooperative cancellation (Q88); committed activation effects never roll back"
+    },
+    {
+      "from": [
+        "diagnosing",
+        "consolidating",
+        "consolidating_partial",
+        "replaying",
+        "activating"
+      ],
+      "to": "failed",
+      "reason": "INFRASTRUCTURE_FAILURE",
+      "retryable": true,
+      "note": "retry reuses cut/diagnosis/round/replay identities"
+    },
+    {
+      "from": "failed",
+      "to": "diagnosing",
+      "authority": "gms_cut_coordinator",
+      "note": "resume from recorded failed stage"
+    },
+    {
+      "from": "failed",
+      "to": "consolidating",
+      "authority": "gms_cut_coordinator"
+    },
+    {
+      "from": "failed",
+      "to": "replaying",
+      "authority": "gms_cut_coordinator"
+    },
+    {
+      "from": "failed",
+      "to": "activating",
+      "authority": "gms_cut_coordinator"
+    },
+    {
+      "from": [
+        "frozen",
+        "diagnosing",
+        "consolidating",
+        "replaying"
+      ],
+      "to": "cancelling",
+      "reason": "CANCEL_REQUESTED",
+      "note": "cooperative cancellation only (Q88)"
+    },
+    {
+      "from": "cancelling",
+      "to": "cancelled",
+      "guard": "no_completed_side_effects"
+    },
+    {
+      "from": "cancelling",
+      "to": "partially_cancelled",
+      "guard": "some_side_effects_completed"
+    }
+  ],
+  "notes": [
+    "partially_failed is terminal (SC-4.3); partially_failed -> diagnosing is a governance re-entry via explicit rediagnose (SC-4.2), not a stage resume, so it is not listed resumable.",
+    "Q97 quota accounting: quotas end in auditable queued | budget_exhausted; queued is the job's first stage and budget exhaustion ends the job as cancelled with reason BUDGET_EXHAUSTED — the quota ledger itself is a per tenant/room/stage subsystem outside this machine."
+  ]
+}

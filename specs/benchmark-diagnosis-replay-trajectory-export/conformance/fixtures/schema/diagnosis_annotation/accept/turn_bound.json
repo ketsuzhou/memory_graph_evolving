@@ -1,0 +1,15 @@
+{
+  "annotation_id": "ann-2",
+  "revision": 1,
+  "cut_id": "cut-1",
+  "tenant_id": "tenant-1",
+  "target": {
+    "segment_id": "segment-2",
+    "assistant_turn_seq": 3
+  },
+  "status": "inconclusive",
+  "reward_status": "masked_inconclusive",
+  "diagnosis_policy_revision": "diag-v3",
+  "execution_recipe_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "created_at": "2026-09-14T12:00:00Z"
+}

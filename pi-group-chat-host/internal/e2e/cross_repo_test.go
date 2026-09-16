@@ -212,7 +212,7 @@ func writeE2EFakePi(t *testing.T, requestIDs ...string) string {
 	t.Helper()
 	var script strings.Builder
 	script.WriteString("#!/bin/sh\n")
-	script.WriteString("if [ \"${1:-}\" = \"--version\" ]; then printf '%s\\n' '0.85.1'; exit 0; fi\n")
+	script.WriteString("if [ \"${1:-}\" = \"--version\" ]; then printf '%s\\n' '0.84.3'; exit 0; fi\n")
 	script.WriteString("while IFS= read -r line; do\n")
 	script.WriteString("  case \"$line\" in\n")
 	for index, requestID := range requestIDs {

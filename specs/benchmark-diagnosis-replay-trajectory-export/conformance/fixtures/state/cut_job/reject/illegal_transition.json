@@ -1,0 +1,9 @@
+{
+  "machine": "cut_job",
+  "sequence": [
+    {
+      "from": "freezing",
+      "to": "activating"
+    }
+  ]
+}
