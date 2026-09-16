@@ -1,11 +1,8 @@
 package memoryclient
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -43,69 +40,39 @@ type CutSpaceScope struct {
 	QueryWatermark        *int64 `json:"query_watermark,omitempty"`
 }
 
-// cutFlatError decodes the consolidation-cut surface's flat Error envelope
-// ({"code","message"} — no request_id wrapper).
-type cutFlatError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+// TriggerConsolidationCutRequest is the trigger body. The Idempotency-Key is
+// a header, not a field, and is scoped to (tenant, room, trigger_source, key).
+type TriggerConsolidationCutRequest struct {
+	Mode          string `json:"mode"`
+	TriggerSource string `json:"trigger_source"`
 }
 
-// cutRequest performs one bearer-authenticated consolidation-cut call. The cut
-// surface rejects the shared transport's wrapped error envelope, so errors are
-// decoded from the flat shape and surfaced as ProtocolError with the flat code.
+// decodeCutFlatError decodes the consolidation-cut surface's flat Error
+// envelope ({"code","message"} — no request_id wrapper) that the shared
+// transport's wrapped decoder would miss.
+func decodeCutFlatError(status int, raw []byte) error {
+	var flat struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}
+	_ = json.Unmarshal(raw, &flat)
+	return &ProtocolError{StatusCode: status, Code: flat.Code, Message: flat.Message}
+}
+
+// cutRequest performs one consolidation-cut call: the shared transport with
+// the cut surface's flat error envelope.
 func (c *Client) cutRequest(ctx context.Context, method, path, idempotencyKey string, body any, out any) error {
-	var payload io.Reader
-	if body != nil {
-		encoded, err := json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("encode %s %s: %w", method, path, err)
-		}
-		payload = bytes.NewReader(encoded)
-	}
-	request, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, payload)
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Authorization", "Bearer "+c.token)
-	request.Header.Set("Accept", "application/json")
-	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	if idempotencyKey != "" {
-		request.Header.Set("Idempotency-Key", idempotencyKey)
-	}
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(response.Body, c.maxResponseBytes))
-	if err != nil {
-		return err
-	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var flat cutFlatError
-		_ = json.Unmarshal(raw, &flat)
-		return &ProtocolError{StatusCode: response.StatusCode, Code: flat.Code, Message: flat.Message}
-	}
-	if out == nil {
-		return nil
-	}
-	if err := json.Unmarshal(raw, out); err != nil {
-		return fmt.Errorf("decode %s %s: %w", method, path, err)
-	}
-	return nil
+	return c.send(ctx, method, path, idempotencyKey, decodeCutFlatError, body, out)
 }
 
-// TriggerConsolidationCut freezes one room (SC-8.1): the Idempotency-Key is
-// required and scoped to (tenant, room, trigger_source, key) — the same key
-// with the same body replays the original frozen job. The returned job is the
-// authoritative status; the freeze walks queued→freezing→frozen before the
-// 202 lands, so a frozen job body already carries the space_scopes snapshot.
-func (c *Client) TriggerConsolidationCut(ctx context.Context, roomID, idempotencyKey, mode, triggerSource string) (CutJob, error) {
+// TriggerConsolidationCut freezes one room (SC-8.1): the same key with the
+// same body replays the original job instead of freezing again. The local
+// freezer resolves the freeze synchronously, so its create response already
+// carries the frozen job's space_scopes; an async deployment may answer
+// queued or freezing — poll ConsolidationCut for the authoritative status.
+func (c *Client) TriggerConsolidationCut(ctx context.Context, roomID, idempotencyKey string, request TriggerConsolidationCutRequest) (CutJob, error) {
 	var job CutJob
-	err := c.cutRequest(ctx, http.MethodPost, "/v1/rooms/"+roomID+"/consolidation-cuts", idempotencyKey,
-		map[string]string{"mode": mode, "trigger_source": triggerSource}, &job)
+	err := c.cutRequest(ctx, http.MethodPost, "/v1/rooms/"+roomID+"/consolidation-cuts", idempotencyKey, request, &job)
 	return job, err
 }
 

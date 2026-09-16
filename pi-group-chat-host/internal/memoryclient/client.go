@@ -40,7 +40,31 @@ func New(baseURL, token string, httpClient *http.Client, maxResponseBytes int64)
 	return NewClient(baseURL, token, httpClient, maxResponseBytes)
 }
 
+// errorEnvelopeDecoder decodes one surface's non-2xx body into an error. The
+// memory protocol wraps its envelope as {error:{code,message,request_id}};
+// the consolidation-cut surface uses a flat {code,message}.
+type errorEnvelopeDecoder func(status int, raw []byte) error
+
+func decodeProtocolEnvelope(status int, raw []byte) error {
+	var envelope struct {
+		Error struct {
+			Code      string `json:"code"`
+			Message   string `json:"message"`
+			RequestID string `json:"request_id"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(raw, &envelope)
+	return &ProtocolError{StatusCode: status, Code: envelope.Error.Code, Message: envelope.Error.Message, RequestID: envelope.Error.RequestID}
+}
+
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) error {
+	return c.send(ctx, method, path, "", decodeProtocolEnvelope, body, out)
+}
+
+// send is the shared HTTP exchange behind every client surface: marshal the
+// body, send it bearer-authenticated, cap the response read, decode non-2xx
+// bodies through the surface's error envelope, and decode 2xx bodies into out.
+func (c *Client) send(ctx context.Context, method, path, idempotencyKey string, decodeError errorEnvelopeDecoder, body any, out any) error {
 	var payload io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
@@ -56,6 +80,9 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
+	if idempotencyKey != "" {
+		request.Header.Set("Idempotency-Key", idempotencyKey)
+	}
 	response, err := c.httpClient.Do(request)
 	if err != nil {
 		return err
@@ -66,15 +93,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 		return err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var envelope struct {
-			Error struct {
-				Code      string `json:"code"`
-				Message   string `json:"message"`
-				RequestID string `json:"request_id"`
-			} `json:"error"`
-		}
-		_ = json.Unmarshal(raw, &envelope)
-		return &ProtocolError{StatusCode: response.StatusCode, Code: envelope.Error.Code, Message: envelope.Error.Message, RequestID: envelope.Error.RequestID}
+		return decodeError(response.StatusCode, raw)
 	}
 	if out == nil {
 		return nil
