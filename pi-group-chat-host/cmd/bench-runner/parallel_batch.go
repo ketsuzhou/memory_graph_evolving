@@ -150,14 +150,37 @@ type batchDiagnosisResult struct {
 	workerStatus string
 }
 
+// batchArmEpisodes narrows the manifest for arms the batch coordinator runs
+// without a train phase. Cold mirrors the official Vanilla baseline, so its
+// sequence counter must advance only over test episodes, matching the
+// test-1..test-N throwaway spaces runArm registers up front.
+func batchArmEpisodes(config armConfig, episodes []manifestEpisode) []manifestEpisode {
+	if config.arm != "cold" {
+		return episodes
+	}
+	testOnly := make([]manifestEpisode, 0, len(episodes))
+	for _, episode := range episodes {
+		if episode.Split == "test" {
+			testOnly = append(testOnly, episode)
+		}
+	}
+	return testOnly
+}
+
+// runParallelSkillStrategyBatch coordinates the official two-phase protocol
+// (parallel train → diagnosis → consolidation → parallel held-out test) for
+// the warm-skill-batch arm. The cold arm rides the same coordinator with an
+// empty train phase: it is the official Vanilla baseline shape, test tasks
+// only, each in its own throwaway spaces with recall always empty.
 func runParallelSkillStrategyBatch(ctx context.Context, config armConfig, tenantID, workDir, extensionPath string, familyOrder []string, emit func(attemptRecord)) error {
 	ledger := map[string][]skillProposal{}
 	sequence := 0
+	batchEpisodes := batchArmEpisodes(config, config.episodes)
 	for _, family := range familyOrder {
 		// The family's episodes consume the global sequence counter from this
 		// value; the train-scope cut derivation must see the same base.
 		sequenceAtFamilyStart := sequence
-		assigned := preassignFamilyEpisodes(config.episodes, family, &sequence)
+		assigned := preassignFamilyEpisodes(batchEpisodes, family, &sequence)
 		trainJobs := make([]parallelBatchJob[scheduledEpisode], 0, len(assigned))
 		testJobs := make([]parallelBatchJob[scheduledEpisode], 0, len(assigned))
 		for _, scheduled := range assigned {
@@ -240,6 +263,11 @@ func runParallelSkillStrategyBatch(ctx context.Context, config armConfig, tenant
 				return nil
 			},
 			Consolidate: func() error {
+				if config.arm == "cold" {
+					// Vanilla baseline: nothing was trained, so there is no
+					// skill to merge and no train graph to freeze.
+					return nil
+				}
 				input := consolidationPhaseInput{config: config, forceMerge: true, tenantID: tenantID, family: family, extensionPath: extensionPath, trajectories: trajectories, records: records, ledger: &ledger}
 				rawCount := len(ledger[family])
 				// Exactly one serialized merge Session, and it is never reused by a
@@ -277,11 +305,13 @@ func runParallelSkillStrategyBatch(ctx context.Context, config armConfig, tenant
 				if result.err != nil {
 					return result.err
 				}
-				result.record.FrozenSkillVersion = frozenVersion
-				result.record.ConsolidationRoomID = consolidationRoomID
 				result.record.TestWritePolicy = "disposable_spaces_only"
-				if frozenSnapshot != nil {
-					result.record.GraphSnapshot = frozenSnapshot
+				if config.arm != "cold" {
+					result.record.FrozenSkillVersion = frozenVersion
+					result.record.ConsolidationRoomID = consolidationRoomID
+					if frozenSnapshot != nil {
+						result.record.GraphSnapshot = frozenSnapshot
+					}
 				}
 				emit(result.record)
 				return nil

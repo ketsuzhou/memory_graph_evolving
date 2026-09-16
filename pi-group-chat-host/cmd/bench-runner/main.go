@@ -265,10 +265,12 @@ func isSkillArm(arm string) bool { _, ok := skillStrategyFor(arm); return ok }
 
 // usesIsolatedTaskRooms reports whether the arm gives every task its own
 // throwaway GMS spaces: the skill strategies, whose only cross-task channel
-// is the runner ledger, and the reset baseline, which has no cross-task
-// channel at all.
+// is the runner ledger, the reset baseline, which has no cross-task
+// channel at all, and the cold arm, which mirrors the official
+// EvoAgentBench Vanilla baseline — test tasks only, no train phase, no
+// memory accumulation between tasks, so recall always comes back empty.
 func usesIsolatedTaskRooms(arm string) bool {
-	return isSkillArm(arm) || arm == "reset"
+	return isSkillArm(arm) || arm == "reset" || arm == "cold"
 }
 
 // firstTrialCacheScope keeps A/B in one baseline cache (their first trials
@@ -299,7 +301,7 @@ func main() {
 	seed := flag.Int("seed", 0, "schedule seed recorded in attempts")
 	outDir := flag.String("out-dir", "", "output directory for attempts.jsonl and per-episode workdirs (required)")
 	episodeTimeout := flag.Duration("episode-timeout", 30*time.Minute, "per-episode timeout")
-	batchParallelism := flag.Int("batch-parallelism", 4, "maximum concurrent train, diagnosis, or test jobs for warm-skill-batch")
+	batchParallelism := flag.Int("batch-parallelism", 4, "maximum concurrent train, diagnosis, or test jobs for warm-skill-batch and cold")
 	piEnv := flag.String("pi-env", "HOME,PATH", "comma-separated environment allowlist passed to the Pi process")
 	refsRoot := flag.String("refs-root", "", "base directory for episode stage_files sources (required when the manifest declares stage_files)")
 	publishReminder := flag.String("publish-reminder", "", "channel-adaptation text appended to every episode prompt asking the agent to publish its final answer through the room tools (empty = off); visible in the room like any user message")
@@ -706,7 +708,11 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 		// domain tools); the runner only points Pi at it.
 		extensionPath = config.extensionFile
 	}
-	if skillArm && strategy == skillStrategyBatch {
+	// Cold rides the same parallel coordinator as warm-skill-batch with an
+	// empty train phase: it is the official Vanilla baseline shape, so its
+	// held-out tasks run concurrently in isolated rooms (see
+	// runParallelSkillStrategyBatch).
+	if (skillArm && strategy == skillStrategyBatch) || config.arm == "cold" {
 		return runParallelSkillStrategyBatch(ctx, config, tenantID, workDir, extensionPath, familyOrder, emit)
 	}
 	sequence := 0

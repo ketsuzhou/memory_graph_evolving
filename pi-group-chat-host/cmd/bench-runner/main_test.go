@@ -385,12 +385,14 @@ func TestSkillStrategyForThreeArms(t *testing.T) {
 }
 
 func TestUsesIsolatedTaskRooms(t *testing.T) {
-	for _, arm := range []string{"warm-skill", "warm-skill-batch", "warm-skill-replay", "warm-skill-online", "warm-skill-continual", "reset"} {
+	// Cold uses isolated rooms since the greenfield within-test-accumulation
+	// convention was removed: it is now the official Vanilla baseline shape.
+	for _, arm := range []string{"warm-skill", "warm-skill-batch", "warm-skill-replay", "warm-skill-online", "warm-skill-continual", "reset", "cold"} {
 		if !usesIsolatedTaskRooms(arm) {
 			t.Errorf("arm %q must use per-task isolated throwaway rooms", arm)
 		}
 	}
-	for _, arm := range []string{"warm", "cold", "warm-ma"} {
+	for _, arm := range []string{"warm", "warm-ma"} {
 		if usesIsolatedTaskRooms(arm) {
 			t.Errorf("arm %q must keep family shared-space semantics", arm)
 		}

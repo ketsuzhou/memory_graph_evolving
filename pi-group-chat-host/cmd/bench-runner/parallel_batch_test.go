@@ -204,7 +204,7 @@ func TestPreassignFamilyEpisodesAndDiagnosisRoomsAreStable(t *testing.T) {
 	next := 4
 	assigned := preassignFamilyEpisodes(episodes, "f", &next)
 	if got := []int{assigned[0].sequence, assigned[1].sequence, assigned[2].sequence}; !reflect.DeepEqual(got, []int{5, 6, 7}) {
-		t.Fatalf("assigned sequences = %v", got)
+		t.Fatalf("assigned sequences = %v, want [5 6 7]", got)
 	}
 	if assigned[0].episode.EpisodeID != "first" || assigned[2].episode.EpisodeID != "late" {
 		t.Fatalf("assignment ignored manifest order: %+v", assigned)
@@ -213,6 +213,34 @@ func TestPreassignFamilyEpisodesAndDiagnosisRoomsAreStable(t *testing.T) {
 	roomB, sharedB, privateB, memoryB := warmSkillDiagnosisRoom("f", 6)
 	if roomA == roomB || sharedA == sharedB || privateA == privateB || memoryA == memoryB {
 		t.Fatal("parallel diagnosis jobs must have unique rooms and spaces")
+	}
+}
+
+// The cold arm is the official Vanilla baseline shape: test episodes only,
+// isolated throwaway rooms, and batch sequences that advance only over test
+// episodes so they match the test-1..test-N spaces registered up front.
+func TestColdVanillaBatchShape(t *testing.T) {
+	if !usesIsolatedTaskRooms("cold") {
+		t.Fatal("cold must use isolated task rooms (official Vanilla shape)")
+	}
+	episodes := []manifestEpisode{
+		{EpisodeID: "t1", FamilyID: "f", Split: "train", Order: intPtr(1)},
+		{EpisodeID: "h1", FamilyID: "f", Split: "test", Order: intPtr(2)},
+		{EpisodeID: "t2", FamilyID: "f", Split: "train", Order: intPtr(3)},
+		{EpisodeID: "h2", FamilyID: "f", Split: "test", Order: intPtr(4)},
+	}
+	cold := batchArmEpisodes(armConfig{arm: "cold"}, episodes)
+	if len(cold) != 2 || cold[0].EpisodeID != "h1" || cold[1].EpisodeID != "h2" {
+		t.Fatalf("batchArmEpisodes(cold) = %+v, want only the test episodes in manifest order", cold)
+	}
+	next := 0
+	assigned := preassignFamilyEpisodes(cold, "f", &next)
+	if got := []int{assigned[0].sequence, assigned[1].sequence}; !reflect.DeepEqual(got, []int{1, 2}) {
+		t.Fatalf("cold sequences = %v, want 1..N over test episodes only (registration's testSequence counter)", got)
+	}
+	// Other arms keep the full manifest: their train phase consumes sequences too.
+	if same := batchArmEpisodes(armConfig{arm: "warm-skill-batch"}, episodes); len(same) != len(episodes) {
+		t.Fatalf("batchArmEpisodes(warm-skill-batch) narrowed the manifest: %+v", same)
 	}
 }
 
