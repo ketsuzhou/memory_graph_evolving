@@ -1,7 +1,10 @@
 # 编译产物 / build artifacts
-server
-bench-runner
-past-runner
+# Anchored to the exact built-binary paths: bare names ("server",
+# "bench-runner") also match cmd/<name>/ source directories and would
+# untrack them.
+graph-memory-service/server
+pi-group-chat-host/bench-runner
+pi-group-chat-host/past-runner
 *.exe
 *.test
 *.out
@@ -16,9 +19,10 @@ outputs/
 .DS_Store
 
 # 编译生成的 driver / conformance 二进制
-contract-conformance
-s2s4-driver
-s5s9-driver
+graph-memory-service/contract-conformance
+graph-memory-service/s2s4-driver
+graph-memory-service/s5s9-driver
+pi-group-chat-host/s2s4-driver
 __pycache__/
 *.pyc
 .pytest_cache/
