@@ -114,6 +114,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"river2.dev/pi-group-chat-host/internal/memoryclient"
@@ -298,7 +299,7 @@ func main() {
 	seed := flag.Int("seed", 0, "schedule seed recorded in attempts")
 	outDir := flag.String("out-dir", "", "output directory for attempts.jsonl and per-episode workdirs (required)")
 	episodeTimeout := flag.Duration("episode-timeout", 30*time.Minute, "per-episode timeout")
-	batchParallelism := flag.Int("batch-parallelism", 4, "maximum concurrent train or diagnosis jobs for warm-skill-batch")
+	batchParallelism := flag.Int("batch-parallelism", 4, "maximum concurrent train, diagnosis, or test jobs for warm-skill-batch")
 	piEnv := flag.String("pi-env", "HOME,PATH", "comma-separated environment allowlist passed to the Pi process")
 	refsRoot := flag.String("refs-root", "", "base directory for episode stage_files sources (required when the manifest declares stage_files)")
 	publishReminder := flag.String("publish-reminder", "", "channel-adaptation text appended to every episode prompt asking the agent to publish its final answer through the room tools (empty = off); visible in the room like any user message")
@@ -373,8 +374,13 @@ func main() {
 	defer attemptsFile.Close()
 	writer := bufio.NewWriter(attemptsFile)
 	defer writer.Flush()
+	var emitMu sync.Mutex
 
+	// emit is called from parallel train, diagnosis, and test workers; the
+	// mutex keeps the attempts writer and the console line interleaving sane.
 	emit := func(record attemptRecord) {
+		emitMu.Lock()
+		defer emitMu.Unlock()
 		line, _ := json.Marshal(record)
 		fmt.Fprintln(writer, string(line))
 		writer.Flush()

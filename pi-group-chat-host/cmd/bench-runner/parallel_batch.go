@@ -62,9 +62,17 @@ func coordinateParallelBatch[Train, TrainResult, Diagnosis, DiagnosisResult, Tes
 	if err := hooks.Consolidate(); err != nil {
 		return err
 	}
-	for _, test := range sortedBatchJobs(tests) {
-		if err := hooks.RunTest(ctx, test); err != nil {
-			return err
+	// Tests are independent once consolidation has completed: every test owns
+	// a one-shot Session, a preassigned sequence, and throwaway spaces, and
+	// nothing mutates family state during the test phase. One failing test
+	// must not starve the remaining held-out episodes, so the stage always
+	// runs to completion and the first failure in sequence order is reported.
+	testResults := runParallelBatchStage(ctx, sortedBatchJobs(tests), parallelism, func(ctx context.Context, job parallelBatchJob[Test]) error {
+		return hooks.RunTest(ctx, job)
+	})
+	for _, result := range testResults {
+		if result.Value != nil {
+			return result.Value
 		}
 	}
 	return nil

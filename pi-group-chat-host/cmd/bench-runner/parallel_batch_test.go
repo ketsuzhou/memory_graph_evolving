@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -97,12 +100,64 @@ func TestCoordinateParallelBatchEnforcesBarriersAndSingleMerge(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	want := []string{"reduce-train", "reduce-diagnosis", "consolidate", "test-4", "test-5"}
-	if !reflect.DeepEqual(events, want) {
-		t.Fatalf("phase order = %v, want %v", events, want)
+	// Tests run concurrently, so their completion order is not deterministic;
+	// the barriers before them are.
+	if len(events) < 3 || !reflect.DeepEqual(events[:3], []string{"reduce-train", "reduce-diagnosis", "consolidate"}) {
+		t.Fatalf("phase order prefix = %v, want reduce-train, reduce-diagnosis, consolidate first", events)
+	}
+	testEvents := append([]string(nil), events[3:]...)
+	sort.Strings(testEvents)
+	if !reflect.DeepEqual(testEvents, []string{"test-4", "test-5"}) {
+		t.Fatalf("test events = %v, want exactly test-4 and test-5", events)
 	}
 	if consolidations != 1 {
 		t.Fatalf("consolidation calls = %d, want exactly 1", consolidations)
+	}
+}
+
+func TestCoordinateParallelBatchTestStageRunsToCompletionOnFailure(t *testing.T) {
+	testStarted := make(chan int, 2)
+	testRelease := map[int]chan struct{}{4: make(chan struct{}), 5: make(chan struct{})}
+	var mu sync.Mutex
+	ran := []int{}
+	hooks := parallelBatchHooks[int, int, int, int, int]{
+		RunTrain:        func(_ context.Context, job parallelBatchJob[int]) int { return job.Sequence },
+		ReduceTrain:     func(results []parallelBatchResult[int]) ([]parallelBatchJob[int], error) { return nil, nil },
+		RunDiagnosis:    func(_ context.Context, job parallelBatchJob[int]) int { return job.Sequence },
+		ReduceDiagnosis: func([]parallelBatchResult[int]) error { return nil },
+		Consolidate:     func() error { return nil },
+		RunTest: func(_ context.Context, job parallelBatchJob[int]) error {
+			testStarted <- job.Sequence
+			<-testRelease[job.Sequence]
+			mu.Lock()
+			ran = append(ran, job.Sequence)
+			mu.Unlock()
+			if job.Sequence == 4 {
+				return fmt.Errorf("test 4 infrastructure failure")
+			}
+			return nil
+		},
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- coordinateParallelBatch(context.Background(), 2,
+			nil, []parallelBatchJob[int]{{Sequence: 4}, {Sequence: 5}}, hooks)
+	}()
+	awaitStarts(t, testStarted, 2)
+	// Both tests must be running before either finishes: one failure must not
+	// starve the remaining held-out episodes.
+	close(testRelease[4])
+	close(testRelease[5])
+	err := <-done
+	if err == nil || !strings.Contains(err.Error(), "test 4") {
+		t.Fatalf("coordinator error = %v, want the sequence-4 failure", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	completed := append([]int(nil), ran...)
+	sort.Ints(completed)
+	if !reflect.DeepEqual(completed, []int{4, 5}) {
+		t.Fatalf("tests that ran = %v, want both 4 and 5", ran)
 	}
 }
 
