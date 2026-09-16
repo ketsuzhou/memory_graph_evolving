@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Graph Memory Service — Consolidation Cuts
-  version: 1.1.1
+  version: 1.2.0
   description: >
     Production Consolidation Cut API (system-contract SC-8.1, ADR 0042).
     POST freezes asynchronously and returns 202 with the frozen watermarks;
@@ -15,7 +15,12 @@ info:
     every response the routes emit. Both the slash form
     (/consolidation-cuts/{cut_id}/cancel) and the colon form
     (:cancel, matching the repository-wide action convention) address the
-    same routes.
+    same routes. Since 1.2.0 every job body also carries the immutable
+    manifest's frozen per-space scope facts (space_scopes: each bound
+    space's projection head version and evidence watermark at freeze time)
+    and space_results may carry the published_version a terminal space
+    published at, so clients can pin subsequent recall reads to the exact
+    frozen snapshot.
   x-contract: benchmark-diagnosis-replay-export.system-contract v1.0.0
 servers:
   - url: /v1
@@ -232,7 +237,19 @@ components:
             properties:
               space_id: { type: string, minLength: 1 }
               result: { type: string, enum: [pending, published, duplicate, no_change, failed] }
+              published_version: { type: integer, minimum: 1, description: The projection version this space published at (terminal published spaces only). }
               reason: { type: string, minLength: 1 }
+        space_scopes:
+          type: array
+          description: The immutable manifest's frozen per-space scope facts — the projection head version and evidence watermark each bound space was frozen at. Clients pin recall reads to these versions to read exactly the frozen snapshot. Present whenever the server holds the job's manifest.
+          items:
+            type: object
+            additionalProperties: false
+            required: [space_id]
+            properties:
+              space_id: { type: string, minLength: 1 }
+              projection_head_version: { type: integer, minimum: 0 }
+              query_watermark: { type: integer, minimum: 0 }
         failure_reasons:
           type: array
           items: { type: string, enum: [DUPLICATE_LOGICAL_RUN, MISSING_MANIFEST_FIELD, UNKNOWN_CORE_FIELD, POST_SUBMIT_OPERATION, HIERARCHY_CYCLE, EDGE_ALREADY_EXISTS, STALE_PROJECTION_HEAD, REPLAY_PLAN_MISMATCH, RECEIPT_MISSING, CUT_IDEMPOTENCY_CONFLICT, NO_CHANGE, ROOM_EPOCH_STALE, DIAGNOSIS_FAILED, DIAGNOSIS_INCONCLUSIVE, REPLAY_FAIL, REPLAY_INCONCLUSIVE, REPLAY_BUDGET_EXHAUSTED, ACTIVATION_STALE_BASE, DISCLOSURE_DENIED, PRIVATE_SCOPE_VIOLATION, UNKNOWN_BRANCH_KIND_STRICT, INCOMPLETE_CONTEXT, EXPORT_DIGEST_CONFLICT, SINK_RECEIPT_MISSING, AUTHORIZATION_EPOCH_STALE, BUDGET_EXHAUSTED, BARRIER_REACHED, CANCEL_REQUESTED, DIAGNOSIS_FAILED_OR_INCONCLUSIVE, REPLAY_FAIL_OR_INCONCLUSIVE, INFRASTRUCTURE_FAILURE, PAYLOAD_VALIDATION_FAILED, SINK_RECEIPT_MISMATCH] }

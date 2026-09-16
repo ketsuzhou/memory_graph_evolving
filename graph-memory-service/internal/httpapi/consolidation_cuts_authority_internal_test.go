@@ -36,3 +36,27 @@ func TestDurableGuardAuthorityClassifiesManifestProviderFailures(t *testing.T) {
 		t.Fatalf("missing manifest = %v, want deterministic ErrGuardNotSatisfied", err)
 	}
 }
+
+// The published_version DTO field is only produced by a consolidating→completed
+// transition's space results — a stage the composition cannot reach through
+// the HTTP seam without the not-yet-wired workers — so the wire shape is
+// pinned here at the DTO boundary.
+func TestCutSpaceResultsDTOPublishesVersions(t *testing.T) {
+	t.Parallel()
+	head := domain.ProjectionVersion(7)
+	results := cutSpaceResultsDTO([]consolidationcut.SpaceResult{
+		{SpaceID: "space-published", Result: consolidationcut.SpaceResultPublished, PublishedVersion: &head},
+		{SpaceID: "space-pending", Result: consolidationcut.SpaceResultPending},
+	})
+	if len(results) != 2 {
+		t.Fatalf("results = %v, want 2 entries", results)
+	}
+	published, _ := results[0].(map[string]any)
+	if published["published_version"] != int64(7) {
+		t.Fatalf("published space = %v, want published_version 7", published)
+	}
+	pending, _ := results[1].(map[string]any)
+	if _, ok := pending["published_version"]; ok {
+		t.Fatalf("pending space must not carry published_version: %v", pending)
+	}
+}

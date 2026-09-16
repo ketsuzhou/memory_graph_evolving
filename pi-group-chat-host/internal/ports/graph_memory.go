@@ -141,11 +141,17 @@ type EvidenceBatchStatusResponse struct {
 }
 
 type RecallRequest struct {
-	RequestID  string   `json:"request_id"`
-	Query      string   `json:"query"`
-	SpaceIDs   []string `json:"space_ids"`
-	MaxResults int      `json:"max_results"`
-	DeadlineMS int      `json:"deadline_ms"`
+	RequestID string   `json:"request_id"`
+	Query     string   `json:"query"`
+	SpaceIDs  []string `json:"space_ids"`
+	// SpaceVersions optionally pins individual spaces to an earlier version
+	// (a consolidation-cut manifest's frozen projection head) instead of the
+	// live head. The service filters each pinned space's retrieval to exactly
+	// the evidence at or below the pinned version; a pin ahead of the head is
+	// a 422, never a silent widening.
+	SpaceVersions map[string]int64 `json:"space_versions,omitempty"`
+	MaxResults    int              `json:"max_results"`
+	DeadlineMS    int              `json:"deadline_ms"`
 }
 
 type Citation struct {

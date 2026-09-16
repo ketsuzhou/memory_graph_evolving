@@ -2,6 +2,7 @@ package recall
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"river2.dev/graph-memory-service/internal/authz"
@@ -29,10 +30,32 @@ func New(registry ports.RegistryStore, store ports.RecallStore, clock ports.Cloc
 // a typed in-band degradation over the exact requested scope, never a widened
 // fallback. The caller's deadline_ms bounds the whole retrieval: hitting it
 // degrades to timed_out with whatever authorized items were already fetched.
+//
+// A request that pins a space to an earlier version (SpaceVersions — the
+// frozen-head versions a consolidation-cut manifest publishes) is resolved to
+// that snapshot here: the pin replaces the current-head authorization pin, so
+// retrieval filters to exactly the evidence at or below the pinned version
+// instead of annotating a live-head read. A pin ahead of the space's head is
+// rejected with STALE_PROJECTION_HEAD (422) — it can never silently widen to
+// the live head.
 func (s *Service) Recall(ctx context.Context, tenantID domain.TenantID, principalID domain.PrincipalID, request domain.RecallRequest) (domain.RecallResult, error) {
 	pinned, err := s.authorizer.AuthorizeExact(ctx, authz.Identity{TenantID: tenantID, PrincipalID: principalID}, request.SpaceIDs, domain.GrantPurposeLifecycle, domain.GrantOperationRecall)
 	if err != nil {
 		return domain.RecallResult{}, err
+	}
+	if len(request.SpaceVersions) > 0 {
+		for index, pin := range pinned {
+			requested, ok := request.SpaceVersions[pin.SpaceID]
+			if !ok {
+				continue
+			}
+			if requested < 0 || requested > pin.MemoryVersion {
+				return domain.RecallResult{}, domain.NewProtocolError(422, "STALE_PROJECTION_HEAD",
+					fmt.Sprintf("pinned version %d for space %s is outside [0, current head %d]", requested, pin.SpaceID, pin.MemoryVersion))
+			}
+			pin.MemoryVersion = requested
+			pinned[index] = pin
+		}
 	}
 
 	if request.DeadlineMS > 0 {

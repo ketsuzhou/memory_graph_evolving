@@ -169,8 +169,17 @@ type RecallRequest struct {
 	RequestID  string
 	Query      string
 	SpaceIDs   []SpaceID
-	MaxResults int
-	DeadlineMS int
+	// SpaceVersions optionally pins individual spaces to an earlier version
+	// instead of their current head — the frozen-head versions a
+	// consolidation-cut manifest publishes per space. A pinned space's read
+	// resolves to exactly the evidence committed at or below that version
+	// (the snapshot's evidence watermark), so a later commit can never leak
+	// into a pinned read. Keys must be a subset of SpaceIDs, values must sit
+	// in [0, current head]; a pin ahead of the head is a 422, never a silent
+	// clamp to the live head.
+	SpaceVersions map[SpaceID]int64
+	MaxResults    int
+	DeadlineMS    int
 }
 
 type TraversalMetadata struct {

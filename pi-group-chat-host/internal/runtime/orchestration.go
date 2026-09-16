@@ -57,6 +57,24 @@ type ExecutionAuthority struct {
 	Model                string
 	SharedSpaceID        string
 	PrivateSpaceID       string
+	// RecallSpaceIDs, when set, overrides the space scope of recall reads;
+	// evidence writes still resolve through the room's shared space. Hosts use
+	// it to freeze a room's writes while keeping earlier spaces readable.
+	RecallSpaceIDs []string
+	// RecallSpaceVersions pins individual RecallSpaceIDs to an earlier GMS
+	// version instead of the live head — the frozen projection-head versions
+	// a consolidation-cut snapshot records per space. A pinned space's read
+	// filters to exactly the evidence at or below that version, so evidence
+	// that lands after the freeze can never leak into the pinned read. Keys
+	// must name spaces listed in RecallSpaceIDs (or the default scope when
+	// the override is unset).
+	RecallSpaceVersions map[string]int64
+	// ExtraMemoryTools names extension-registered tools a memory-profile
+	// agent may invoke on top of the fixed memory surface. Pi's --tools
+	// filter and the Host's ValidateToolInvocation both drop tools outside
+	// the surface, so hosts seating diagnosis-style agents must list their
+	// read-only extension tools here.
+	ExtraMemoryTools []string
 }
 
 type VisibleMessage struct {
@@ -736,12 +754,25 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 	}
 
 	if input.performRecall && input.memoryClient != nil {
+		recallSpaceIDs := []string{authority.SharedSpaceID, authority.PrivateSpaceID}
+		if len(authority.RecallSpaceIDs) > 0 {
+			recallSpaceIDs = append([]string(nil), authority.RecallSpaceIDs...)
+		}
 		request := ports.RecallRequest{
 			RequestID:  "recall-" + input.promptRequestID,
 			Query:      input.roomInput,
-			SpaceIDs:   []string{authority.SharedSpaceID, authority.PrivateSpaceID},
+			SpaceIDs:   recallSpaceIDs,
 			MaxResults: 5,
 			DeadlineMS: 500,
+		}
+		if len(authority.RecallSpaceVersions) > 0 {
+			// Pins are forwarded verbatim; the service rejects a pin naming a
+			// space outside the read scope (400) or ahead of the space's head
+			// (422), so drift fails loudly instead of silently reading head.
+			request.SpaceVersions = make(map[string]int64, len(authority.RecallSpaceVersions))
+			for spaceID, version := range authority.RecallSpaceVersions {
+				request.SpaceVersions[spaceID] = version
+			}
 		}
 		recallStarted := time.Now()
 		response, recallErr := input.memoryClient.Recall(ctx, request)
@@ -802,7 +833,7 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 	allowedTools := []string(nil)
 	if authority.ProfileKind == string(domain.ProfileMemory) {
 		kind = domain.ProfileMemory
-		allowedTools = pi.MemoryAgentToolSurface()
+		allowedTools = memoryProfileTools(authority.ExtraMemoryTools)
 	}
 	profile := domain.AgentProfile{
 		Kind:                 kind,
@@ -1263,6 +1294,11 @@ func (o *Orchestrator) handleToolInvocation(ctx context.Context, handling toolHa
 			return
 		}
 		spaceIDs := o.roomSharedSpaceIDs(ctx, handling.roomID, handling.authority.SharedSpaceID)
+		if len(handling.authority.RecallSpaceIDs) > 0 {
+			// Exploration is a read path like recall: the recall-scope override
+			// applies so frozen rooms still explore their readable history.
+			spaceIDs = append([]string(nil), handling.authority.RecallSpaceIDs...)
+		}
 		handling.trace.memorySpaceIDs = spaceIDs
 		started := time.Now()
 		response, err := handling.memoryClient.StartExploration(ctx, ports.StartExplorationRequest{
@@ -1714,6 +1750,14 @@ func (o *Orchestrator) stageRequestFor(ctx context.Context, roomID domain.RoomID
 		Links:           links,
 		TerminalOutcome: "settled",
 	}
+}
+
+// memoryProfileTools extends the fixed memory-agent surface with the
+// authority's extra extension tools, preserving surface order so argv stays
+// stable for the contract tests.
+func memoryProfileTools(extra []string) []string {
+	tools := append([]string(nil), pi.MemoryAgentToolSurface()...)
+	return append(tools, extra...)
 }
 
 func (o *Orchestrator) roomSharedSpaceIDs(ctx context.Context, roomID domain.RoomID, fallback string) []string {

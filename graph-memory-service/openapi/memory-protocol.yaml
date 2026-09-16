@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: River2 Graph Memory Protocol
-  version: 1.0.0-tracer
-  description: Authoritative HTTP/JSON contract for the first greenfield tracer bullet.
+  version: 1.1.0-tracer
+  description: Authoritative HTTP/JSON contract for the first greenfield tracer bullet. Since 1.1.0-tracer, RecallRequest accepts an optional space_versions map that pins each named space's read to an earlier projection version (consolidation-cut frozen heads) so retrieval filters to the pinned snapshot's evidence watermark.
 servers:
   - url: http://localhost
 security:
@@ -644,6 +644,15 @@ components:
         request_id: {$ref: '#/components/schemas/OpaqueID'}
         query: {type: string, minLength: 1, maxLength: 16000}
         space_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/OpaqueID'}}
+        space_versions:
+          type: object
+          description: >
+            Optional per-space version pins. Each key must be a space_id from
+            space_ids; the value pins that space's read to an earlier version
+            (a consolidation-cut manifest's frozen projection head) so
+            retrieval sees exactly the evidence committed at or below it. A
+            value above the space's current head is a 422 STALE_PROJECTION_HEAD.
+          additionalProperties: {type: integer, format: int64, minimum: 0}
         max_results: {type: integer, minimum: 1, maximum: 100}
         deadline_ms: {type: integer, minimum: 1, maximum: 30000}
     RecallResponse:

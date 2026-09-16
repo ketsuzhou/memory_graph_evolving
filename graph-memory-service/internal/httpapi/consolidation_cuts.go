@@ -54,6 +54,15 @@ func writeCutError(w http.ResponseWriter, status int, code, message string) {
 // ---------------------------------------------------------------------------
 
 func cutJobDTO(job consolidationcut.Job) map[string]any {
+	return cutJobDTOWithScopes(job, nil)
+}
+
+// cutJobDTOWithScopes renders the job plus, when the caller resolved the
+// immutable manifest, the frozen per-space scope facts (each bound space's
+// projection head version and evidence watermark at freeze time). The manifest
+// is optional because cancel/rediagnose rejections still owe the caller a
+// well-formed job body even if the manifest read races a snapshot restore.
+func cutJobDTOWithScopes(job consolidationcut.Job, manifest *consolidationcut.Manifest) map[string]any {
 	dto := map[string]any{
 		"cut_id":      string(job.CutID),
 		"tenant_id":   string(job.TenantID),
@@ -71,6 +80,9 @@ func cutJobDTO(job consolidationcut.Job) map[string]any {
 		dto["room_sequence_watermark"] = *job.RoomSequenceWatermark
 	}
 	dto["space_results"] = cutSpaceResultsDTO(job.SpaceResults)
+	if manifest != nil {
+		dto["space_scopes"] = cutSpaceScopesDTO(manifest.SpaceScopes)
+	}
 	if len(job.FailureReasons) > 0 {
 		dto["failure_reasons"] = job.FailureReasons
 	}
@@ -85,12 +97,49 @@ func cutSpaceResultsDTO(results []consolidationcut.SpaceResult) []any {
 			"space_id": string(result.SpaceID),
 			"result":   string(result.Result),
 		}
+		if result.PublishedVersion != nil {
+			item["published_version"] = int64(*result.PublishedVersion)
+		}
 		if result.Reason != "" {
 			item["reason"] = result.Reason
 		}
 		items = append(items, item)
 	}
 	return items
+}
+
+// cutSpaceScopesDTO renders the manifest's frozen scope facts: the projection
+// head version each bound space was frozen at plus its evidence watermark
+// (the committed-batch count). Clients pin recall reads to these versions to
+// read exactly the frozen snapshot.
+func cutSpaceScopesDTO(scopes []consolidationcut.SpaceScope) []any {
+	items := make([]any, 0, len(scopes))
+	for _, scope := range scopes {
+		item := map[string]any{"space_id": string(scope.SpaceID)}
+		if scope.ProjectionHeadVersion != nil {
+			item["projection_head_version"] = int64(*scope.ProjectionHeadVersion)
+		}
+		if scope.QueryWatermark != nil {
+			item["query_watermark"] = *scope.QueryWatermark
+		}
+		items = append(items, item)
+	}
+	return items
+}
+
+// cutJobResponse is the handler-side renderer: it resolves the job's immutable
+// manifest so every job body carries the frozen scope facts. A manifest read
+// failure degrades to a scopes-less body rather than masking the job state —
+// GET remains authoritative and retryable.
+func (h *Handler) cutJobResponse(ctx context.Context, tenantID domain.TenantID, job consolidationcut.Job) map[string]any {
+	service := h.deps.ConsolidationCuts
+	if service == nil {
+		return cutJobDTO(job)
+	}
+	if manifest, err := service.GetManifest(ctx, tenantID, job.CutID); err == nil {
+		return cutJobDTOWithScopes(job, &manifest)
+	}
+	return cutJobDTO(job)
 }
 
 // ---------------------------------------------------------------------------
@@ -927,13 +976,9 @@ func (h *Handler) createConsolidationCut(w http.ResponseWriter, r *http.Request,
 	}
 	ctxNotifier := cutNotifierFrom(h)
 	ctxNotifier.Notify(job.CutID, job.Stage, job.JobVersion, job.UpdatedAt)
-	if !replay {
-		writeJSON(w, http.StatusAccepted, cutJobDTO(job))
-		return
-	}
-	// Replay also returns 202 with the original job (frozen contract: 202 is
-	// the only create success the OpenAPI exposes).
-	writeJSON(w, http.StatusAccepted, cutJobDTO(job))
+	// Both replay and fresh creates return 202 with the original job (frozen
+	// contract: 202 is the only create success the OpenAPI exposes).
+	writeJSON(w, http.StatusAccepted, h.cutJobResponse(r.Context(), identity.TenantID, job))
 }
 
 // getConsolidationCut implements GET /v1/consolidation-cuts/{cut_id} — the
@@ -953,7 +998,7 @@ func (h *Handler) getConsolidationCut(w http.ResponseWriter, r *http.Request, id
 		writeCutError(w, http.StatusInternalServerError, "INFRASTRUCTURE_FAILURE", "read cut failed")
 		return
 	}
-	writeJSON(w, http.StatusOK, cutJobDTO(job))
+	writeJSON(w, http.StatusOK, h.cutJobResponse(r.Context(), identity.TenantID, job))
 }
 
 // cancelConsolidationCut implements POST /v1/consolidation-cuts/{cut_id}:cancel
@@ -1002,14 +1047,14 @@ func (h *Handler) cancelConsolidationCut(w http.ResponseWriter, r *http.Request,
 				// Cooperative no-op: the target terminal/cancelling state is
 				// already reached, or the stage has no cancel edge. Return 202
 				// with the current job.
-				writeJSON(w, http.StatusAccepted, cutJobDTO(current))
+				writeJSON(w, http.StatusAccepted, h.cutJobResponse(r.Context(), identity.TenantID, current))
 				return
 			}
 			writeCutError(w, http.StatusInternalServerError, "INFRASTRUCTURE_FAILURE", "cancel failed")
 			return
 		}
 		h.cutNotifier().Notify(job.CutID, job.Stage, job.JobVersion, job.UpdatedAt)
-		writeJSON(w, http.StatusAccepted, cutJobDTO(job))
+		writeJSON(w, http.StatusAccepted, h.cutJobResponse(r.Context(), identity.TenantID, job))
 		return
 	}
 	writeCutError(w, http.StatusConflict, "ROOM_EPOCH_STALE", "cancel could not acquire a stable job version; retry")
@@ -1072,7 +1117,7 @@ func (h *Handler) rediagnoseConsolidationCut(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		h.cutNotifier().Notify(job.CutID, job.Stage, job.JobVersion, job.UpdatedAt)
-		writeJSON(w, http.StatusAccepted, cutJobDTO(job))
+		writeJSON(w, http.StatusAccepted, h.cutJobResponse(r.Context(), identity.TenantID, job))
 		return
 	}
 	writeCutError(w, http.StatusConflict, "ROOM_EPOCH_STALE", "rediagnose could not acquire a stable job version; retry")

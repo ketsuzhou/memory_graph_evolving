@@ -66,6 +66,31 @@
         "$ref": "#/$defs/spaceResult"
       }
     },
+    "space_scopes": {
+      "type": "array",
+      "description": "The immutable manifest's frozen per-space scope facts: the projection head version and evidence watermark each bound space was frozen at. Present whenever the server holds the job's manifest.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "space_id"
+        ],
+        "properties": {
+          "space_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "projection_head_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "query_watermark": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
     "failure_reasons": {
       "type": "array",
       "items": {

@@ -726,7 +726,7 @@ func (h *Handler) handleEvidenceStatus(w http.ResponseWriter, r *http.Request, i
 
 func (h *Handler) handleRecall(w http.ResponseWriter, r *http.Request, object strictObject, identity authz.Identity) {
 	if err := object.rejectUnknownFields(map[string]bool{
-		"request_id": true, "query": true, "space_ids": true, "max_results": true, "deadline_ms": true,
+		"request_id": true, "query": true, "space_ids": true, "space_versions": true, "max_results": true, "deadline_ms": true,
 	}); err != nil {
 		h.writeInvalidRequest(w, nil, err)
 		return
@@ -734,10 +734,16 @@ func (h *Handler) handleRecall(w http.ResponseWriter, r *http.Request, object st
 	var errs []fieldDetail
 	var requestID, query string
 	var spaceIDs []string
+	var spaceVersions map[string]int64
 	var maxResults, deadlineMS int
 	object.requireString("request_id", &requestID, &errs)
 	object.requireString("query", &query, &errs)
 	object.requireStringArray("space_ids", &spaceIDs, &errs)
+	if raw, ok := object["space_versions"]; ok {
+		if err := json.Unmarshal(raw, &spaceVersions); err != nil {
+			markJSONError(&errs)
+		}
+	}
 	object.requireInt("max_results", &maxResults, &errs)
 	object.requireInt("deadline_ms", &deadlineMS, &errs)
 	validateID(&errs, "request_id", requestID)
@@ -756,6 +762,22 @@ func (h *Handler) handleRecall(w http.ResponseWriter, r *http.Request, object st
 	if deadlineMS < 1 || deadlineMS > 30000 {
 		addFieldError(&errs, "deadline_ms", "deadline_ms must be 1-30000")
 	}
+	knownSpaces := make(map[string]bool, len(spaceIDs))
+	for _, spaceID := range spaceIDs {
+		knownSpaces[spaceID] = true
+	}
+	pinnedVersions := make(map[domain.SpaceID]int64, len(spaceVersions))
+	for spaceID, version := range spaceVersions {
+		if !knownSpaces[spaceID] {
+			addFieldError(&errs, "space_versions", "space_versions keys must be a subset of space_ids")
+			break
+		}
+		if version < 0 {
+			addFieldError(&errs, "space_versions", "space_versions values must not be negative")
+			break
+		}
+		pinnedVersions[domain.SpaceID(spaceID)] = version
+	}
 	if len(errs) > 0 {
 		h.writeInvalidRequest(w, nil, invalidRequestFrom(errs))
 		return
@@ -766,7 +788,7 @@ func (h *Handler) handleRecall(w http.ResponseWriter, r *http.Request, object st
 		spaceIDValues = append(spaceIDValues, domain.SpaceID(spaceID))
 	}
 	result, err := h.deps.Recall.Recall(r.Context(), identity.TenantID, identity.PrincipalID, domain.RecallRequest{
-		RequestID: requestID, Query: query, SpaceIDs: spaceIDValues, MaxResults: maxResults, DeadlineMS: deadlineMS,
+		RequestID: requestID, Query: query, SpaceIDs: spaceIDValues, SpaceVersions: pinnedVersions, MaxResults: maxResults, DeadlineMS: deadlineMS,
 	})
 	if err != nil {
 		h.writeServiceError(w, requestID, err)
