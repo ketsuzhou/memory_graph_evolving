@@ -5,7 +5,7 @@ Graph Memory Service preserves the distinction between historical interaction ev
 ## Step Guidance Language
 
 **Skill artifact**:
-The authoritative, immutable, versioned guidance that an Agent may use after replay evaluation, review, and activation. Every artifact has exactly one stable kind: Procedure Skill, Step Guidance, or Composite Skill.
+The authoritative, immutable, versioned guidance or executable capability that an Agent may use after evaluation, review, and activation. Every artifact has exactly one stable kind: Procedure Skill, Step Guidance, Composite Skill, or Tool Skill.
 _Avoid_: Skill Node, mutable Graph content
 
 **Skill Lineage**:
@@ -318,3 +318,153 @@ _Avoid_: benchmark score as promotion license, cross-namespace pointer overwrite
 **Replayable Context Snapshot**:
 The content-addressed freeze of every controllable dependency of a replay — Skill revisions, Agent configs, tool schemas and versions, sandbox image, file and database snapshot references, time/random source policy, and recorded tool results.
 _Avoid_: message-prefix-only replay, latest-environment reuse, unfrozen external dependencies
+
+
+
+**Candidate Replay Gate**:
+The Arm C, pre-activation causal evaluation boundary that runs a frozen Candidate Skill artifact set or Skill Graph delta against pinned replay cases before it may become authoritative. It distinguishes reusable cross-task capability from task-local Runtime Advisory Skill use.
+_Avoid_: same-task retry, held-out benchmark evaluation, implicit activation
+
+**Skill Generalization Outcome**:
+The explicit semantic form selected when a set of locally valid Guidance Revision Proposals is generalized: a new generalized Skill Lineage, a successor revision, a guarded branch or specialization, or a Composite Skill. Textual similarity alone is insufficient to select a merge.
+_Avoid_: mandatory merge, widest-applicability rule, silent source replacement
+
+**Co-Usage Signal**:
+An evidence-backed, non-authoritative observation that exact Skill revisions are beneficially selected or adopted together in a Replayable Context Snapshot. It may suggest retrieval, composition, or future relation analysis, but does not itself create an executable dependency or compatibility guarantee.
+_Avoid_: causal dependency, unconditional compatibility, LLM-invented graph edge
+
+**Conditional Conflict Record**:
+A merge-review fact that two Skill claims are incompatible only under a declared applicability overlap and semantic location, together with its evidence and required resolution. It remains a proposal-level gating fact until a separately designed graph relation proves broader semantics.
+_Avoid_: unconditional conflicts-with edge, rejected candidate, generic disagreement
+
+
+
+**Guided Continuation Validation**:
+A non-rewindable validation mode that introduces an exact Candidate Skill's guidance only into the remaining executable state of its source task and records observable completion or recovery. Its success is continuation support, not a paired counterfactual proof; it may prioritize clustering and replay or support restricted probation, but cannot independently authorize authoritative activation.
+_Avoid_: Replay Validation, same-start baseline, automatic activation
+
+**Validation Contract**:
+A versioned, task-family-declared specification of the runtime-observable commands, artifact invariants, protocol milestones, resource budgets, and safety constraints used by Candidate Replay Gate evaluation. It excludes official benchmark evaluators, gold ground truth, and LLM self-declared success.
+_Avoid_: hidden evaluator access, runtime-selected success criterion, benchmark-label leakage
+
+
+
+**Tool Skill**:
+An immutable, versioned executable Skill artifact that exposes a typed interface and pins a content-addressed Tool Package, execution policy, capability set, and Validation Contract. Only an activated exact Tool Skill revision may be invoked at runtime.
+_Avoid_: inline shell snippet, unpinned executable, textual Step Guidance
+
+**Tool Package**:
+The content-addressed executable payload and entrypoint referenced by a Tool Skill, such as a sandboxed OCI image, Wasm module, or other approved runtime package. It is distinct from the Skill artifact that governs its identity, permissions, applicability, and activation.
+_Avoid_: mutable latest tag, candidate body, arbitrary local binary
+
+**Controlled Workspace Patch**:
+A Tool Skill result that proposes an auditable workspace change bound to an exact base workspace digest, declared allowed paths, a structured change manifest, and Validation Contract invariants. It is the only Tool Skill write effect in the first release.
+_Avoid_: unrestricted filesystem write, untracked mutation, external side effect
+
+**Tool Candidate Provenance**:
+The immutable evidence that a Tool Skill candidate was extracted from repeated successful executions or synthesized by a model from a cluster, together with its source artifacts, interface, fixtures, permissions, and Validation Contract. Candidate provenance does not grant runtime execution authority.
+_Avoid_: model assertion, one-off source snippet, activation approval
+
+
+
+**OCI Tool Package**:
+The sole first-release Tool Package format: a content-addressed OCI image run with a pinned entrypoint, no network, bounded CPU/memory/time, read-only inputs, and a copy-on-write workspace output layer. Other executable formats require a separate compatibility and replay decision.
+_Avoid_: mutable image tag, host-process execution, multi-runtime first release
+
+**Guarded Tool Exposure**:
+The runtime rule that exposes an activated Tool Skill to an Agent only through an applicable Step Guidance or Composite Skill's exact Tool Skill reference. Runtime revalidates the artifact version, capability grant, workspace base digest, and execution policy before invocation.
+_Avoid_: global unfiltered tool palette, candidate invocation, retrieval-as-execution
+
+**Tool Consolidation Compatibility**:
+The requirement that Tool Candidates may merge only when their typed input/output/error interfaces are isomorphic or safely compatible, their execution policies are compatible, their capability envelope does not expand, and they share one Validation Contract. Semantically similar but operationally distinct tools remain separate Skills.
+_Avoid_: universal tool, permission expansion by merge, prose-only similarity merge
+
+
+
+**Tool Patch Application Transaction**:
+The runtime operation that validates and applies an activated Tool Skill's Controlled Workspace Patch only to a task-private copy-on-write workspace. It records the exact Tool Skill revision, base workspace digest, change manifest, Validation Contract result, and rollback point; it never commits to a shared or external target.
+_Avoid_: agent-retyped patch, shared workspace mutation, external deployment
+
+**Tool Candidate Eligibility**:
+The admission threshold for spending Candidate Replay Gate budget on a Tool Candidate. A directly extracted candidate requires at least two independently provenanced successful executions with the same typed interface, capability envelope, and Validation Contract. An LLM-synthesized candidate instead requires at least two independent Tool Opportunity Evidence records and its own successful Tool Contract Validation on the associated frozen fixtures. A single source execution or opportunity may create a draft but cannot become eligible for authoritative activation.
+_Avoid_: one-off active tool, repeated retries as independent evidence, threshold-free promotion
+
+**Tool Opportunity Evidence**:
+An immutable, independently provenanced observation that a task required or successfully performed a normalized, potentially reusable operation, with its source execution, command/patch structure or failure pattern, expected interface, and frozen fixture reference. It is source evidence for extraction or synthesis, not evidence that a new Tool Candidate has executed successfully.
+_Avoid_: Tool Candidate Verification, model intuition, raw transcript similarity
+
+**Tool Candidate Verification**:
+The Tool Contract Validation evidence produced by actually running one constructed Tool Candidate on its fixed fixtures. It establishes tool-level behavior but not Agent-level task benefit; Candidate Replay Gate remains required before authoritative activation.
+_Avoid_: source opportunity, continuation success alone, benchmark-label evaluation
+
+**Draft Tool Opportunity**:
+A non-executable, automatically created record at a Consolidation Cut that groups normalized Tool Opportunity Evidence and proposes a candidate interface, permission envelope, and fixture references. It cannot build, execute, or activate a Tool Package until it meets Tool Candidate Eligibility.
+_Avoid_: automatic tool build, activation request, authoritative Skill
+
+**Tool Interaction Signal**:
+An immutable observation of one exact Tool Skill revision at one task context, recorded as matched, exposed, selected, invoked, completed, patch_applied, contract_verified, or outcome_correlated. No earlier stage implies a later stage or tool contribution; these signals are the evidence basis for Co-Usage Signal and future Tool Opportunity Evidence.
+_Avoid_: exposure-as-success, invocation-as-benefit, inferred causal proof
+
+**Tool Build Attestation**:
+The signed, immutable proof binding a Tool Package's source snapshot digest, build recipe digest, dependency lock digest, OCI image digest, builder identity, build-log digest, and SBOM or dependency manifest. Only an attested package may be bound to a Tool Candidate.
+_Avoid_: registry image digest alone, mutable build, unverifiable generated package
+
+
+
+**Tool Contract Validation**:
+The fixture-level validation of one exact Tool Skill revision under its Validation Contract. It verifies typed input/output/error behavior, resource budgets, patch invariants, and declared determinism or idempotency boundaries; it does not by itself prove task-level Agent benefit.
+_Avoid_: benchmark evaluator, agent-level causal evaluation, tool exit code alone
+
+**Tool Execution Data Boundary**:
+The rule that an OCI Tool Package may access only explicit runtime-mounted task-private inputs and workspace paths. Its outputs, logs, and patch manifests are disclosure-classified evidence; only allowed structured results, digests, and redacted fragments may persist beyond the task.
+_Avoid_: implicit GMS memory access, cross-Room read, host filesystem access, full-workspace log export
+
+**Tool Invocation Failure**:
+A fail-closed result of an activated Tool Skill invocation caused by timeout, schema failure, policy violation, unappliable patch, or Validation Contract failure. No partial patch is retained; recovery is an explicit bounded policy in the referencing Step Guidance or Composite Skill.
+_Avoid_: runtime infinite retry, partial mutation, silent fallback
+
+
+
+**Probation Tool Skill**:
+An activated Tool Skill revision initially exposed only within its evidence-backed Applicability Envelope. It may widen that envelope only under a versioned promotion policy after further independent validation; it never becomes globally available merely because its typed interface matches a task.
+_Avoid_: global availability on first activation, schema-match authorization, candidate tool
+
+**Tool Safety Circuit Breaker**:
+The fail-closed runtime control that immediately stops invocation of a Tool Skill revision on attestation failure, capability escalation, execution-policy violation, or Tool Execution Data Boundary breach while preserving immutable history and audit evidence. Ordinary task failure or isolated effectiveness loss triggers review, applicability narrowing, or successor-candidate generation rather than immediate deletion.
+_Avoid_: erasing history, one-task functional auto-revocation, delayed safety response
+
+
+
+**Tool Probation Promotion Policy**:
+The versioned rule for widening a Probation Tool Skill's Applicability Envelope using independent cases excluded from its source evidence, Tool Contract Validation, and initial Candidate Replay Gate. A read-only Tool Skill requires one additional independent non-degrading case; a Controlled Workspace Patch Tool Skill requires two. Every promotion case must satisfy its Validation Contract and have no safety event.
+_Avoid_: source-case double counting, schema-only expansion, unbounded global rollout
+
+
+
+**Advisory Candidate Exposure**:
+The explicitly non-authoritative retrieval of an unvalidated Procedure Skill or Step Guidance candidate with its status and usage evidence. It may inform an Agent and accumulate adoption or outcome-correlated observations, but cannot execute a Tool Package, apply a patch, grant authority, or imply causal validation.
+_Avoid_: active Skill, executable Tool Candidate, silent prompt injection
+
+**Skill Usage Projection**:
+A privacy-controlled, dynamic projection of staged Skill Interaction Signals between exact Skill or candidate revisions and derived Context Profiles. It records evidence-backed matching, selection, adoption, verification, and outcome correlation without altering the normative Skill Path Graph or granting execution authority.
+_Avoid_: normative dependency graph, raw prompt graph, exposure-as-utility
+
+**Evaluation Usage Isolation**:
+The rule that interaction signals from held-out benchmark evaluation are recorded only for diagnostic reporting during that EvaluationBatch. They cannot influence its candidate consolidation, validation, activation, Applicability Envelope, retrieval ranking, or promotion; any later reuse requires an explicit post-evaluation promotion record.
+_Avoid_: test-to-train feedback, online benchmark tuning, hidden ledger mutation
+
+**Usage Evidence Policy**:
+The policy that Diagnosis Utility Assessments, reuse frequency, independent Context Profile coverage, and outcome-correlated observations may prioritize advisory retrieval, exploration, consolidation, Composite Skill proposal generation, and Candidate Replay Gate scheduling, but never automatically activate, promote, or expand the authority of a Skill.
+_Avoid_: popularity-based activation, unqualified reuse count, causal claim from exposure
+
+**Diagnosis Utility Assessment**:
+An immutable, evidence-linked post-execution assessment by a Diagnosis Agent of one exact Skill or Advisory Candidate revision in one derived Context Profile. It records the skill's returned path, addressed Agent, explicit adoption evidence, observed contribution score, confidence, counterevidence, and rationale under a versioned rubric. It is observational utility evidence, not paired causal proof or activation authority.
+_Avoid_: self-reported success, exposure count, benchmark gold label
+
+**Co-Usage Composite Proposal**:
+A governed Composite Skill proposal automatically drafted by consolidation when a versioned co-usage policy finds sufficient independent, evidence-backed co-usage of exact active, probationary, or advisory text Skill revisions in compatible Context Profiles. The draft must name its source refs, guard, intended control flow, evidence, and policy threshold, then enters the ordinary Arm A generalization, validation, and publication pipeline; co-usage alone never creates an active Composite Skill.
+_Avoid_: direct graph mutation, popularity-based composition, Tool Candidate execution
+
+**Skill Artifact Schema Cutover**:
+The destructive replacement of the canonical SkillArtifact schema with `skill-artifact/2.0`, including Tool Skill support. GMS rejects `skill-artifact/1.0` artifacts and references; there is no dual-read compatibility path or data migration.
+_Avoid_: v1/v2 coexistence, lazy migration, compatibility shim
