@@ -441,6 +441,17 @@ func warmSkillDiagnosisRoom(family string, sequence int) (roomID, shared, privat
 	return "room-" + id, "space-" + id + "-shared", "space-" + id + "-private", "space-" + id + "-memory-private"
 }
 
+// warmSkillRetrievalRoom names the throwaway room a retrieval turn runs in.
+// The retrieval prompt must never become recallable evidence in any space the
+// task agent reads — the smoke runs showed the task agent executing the
+// recalled retrieval instructions instead of solving the task — so the turn
+// runs here and only the published note is written (as one evidence batch)
+// into the task room's shared space (see commitRetrievalNote).
+func warmSkillRetrievalRoom(family, episodeID string) (roomID, shared, private, memoryPrivate string) {
+	id := sanitizeID(family) + "-retrieval-" + sanitizeID(episodeID)
+	return "room-" + id, "space-" + id + "-shared", "space-" + id + "-private", "space-" + id + "-memory-private"
+}
+
 func executeBatchDiagnosis(ctx context.Context, session *runtime.Session, input diagnosisInput) batchDiagnosisResult {
 	result := batchDiagnosisResult{sequence: input.sequence, episodeID: input.episodeID}
 	config := input.config

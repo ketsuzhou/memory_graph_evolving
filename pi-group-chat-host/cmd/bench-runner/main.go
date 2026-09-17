@@ -646,6 +646,23 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 				if skillArm {
 					grants = append(grants, taskMemoryPrivate)
 				}
+				if skillArm {
+					// Retrieval turns run in throwaway rooms so their prompts
+					// never become recallable evidence next to the task; see
+					// warmSkillRetrievalRoom.
+					_, retrShared, retrPrivate, retrMemoryPrivate := warmSkillRetrievalRoom(family, episode.EpisodeID)
+					memoryOwner := "agent-memory"
+					for _, request := range []ports.RegisterSpaceRequest{
+						{SpaceID: retrShared, Scope: "shared", DisplayName: family + " retrieval scratch shared memory"},
+						{SpaceID: retrPrivate, Scope: "private", OwnerPrincipalID: &owner, DisplayName: family + " retrieval scratch private memory"},
+						{SpaceID: retrMemoryPrivate, Scope: "private", OwnerPrincipalID: &memoryOwner, DisplayName: family + " retrieval scratch memory-agent private memory"},
+					} {
+						if _, err := client.RegisterSpace(ctx, request); err != nil {
+							return fmt.Errorf("RegisterSpace %s: %w", request.SpaceID, err)
+						}
+					}
+					grants = append(grants, retrShared, retrPrivate, retrMemoryPrivate)
+				}
 				if strategy == skillStrategyBatch && episode.Split != "test" {
 					_, diagnosisShared, diagnosisPrivate, diagnosisMemoryPrivate := warmSkillDiagnosisRoom(family, testSequence)
 					for _, request := range []ports.RegisterSpaceRequest{
@@ -1776,13 +1793,16 @@ func runTaskLocalReplay(ctx context.Context, session *runtime.Session, input tas
 
 // runRetrievalTurn executes one skill retrieval turn before a test episode
 // (warm-skill arm, test split only): the diagnosis agent reads the family
-// ledger via skills_list, selects the proposals that apply to the upcoming
-// task, and publishes them as an unaddressed REFERENCE NOTES message. The
-// note must never address a teammate: it is later recalled into the task
-// agent's context, and an addressed note reads as an instruction to it.
-// The task agent meets the skills through normal pre-turn recall — the
-// harness never injects them. The quoted fingerprints are recorded for
-// attribution; the published note drains before the episode turn starts.
+// ledger via skills_list in a THROWAWAY room, selects the proposals that
+// apply to the upcoming task, and publishes them as an unaddressed REFERENCE
+// NOTES message. The turn deliberately does not run in the task room: its
+// prompt must never become recallable evidence the task agent could execute —
+// the smoke runs caught the task agent replaying the recalled retrieval
+// instructions instead of solving the task. Only the published note crosses
+// over, written as one evidence batch into the task room's shared space, so
+// the task agent still meets the skills through normal pre-turn recall —
+// never through harness prompt injection. The quoted fingerprints are
+// recorded for attribution.
 func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retrievalInput) error {
 	config := input.config
 	retDir := filepath.Join(config.outDir, "work-"+config.arm, "retrieval",
@@ -1795,6 +1815,7 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	if err := writeMemoryTurnExtension(input.extensionPath, extensionPath, skillsToolJS(ledger)); err != nil {
 		return err
 	}
+	scratchRoom, scratchShared, scratchPrivate, _ := warmSkillRetrievalRoom(input.family, input.episodeID)
 	retCtx, retCancel := context.WithTimeout(ctx, retrievalTurnDeadline(len(buildLedgerChunks(ledger))))
 	defer retCancel()
 	promptHead := retrievalPromptHead
@@ -1803,11 +1824,11 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	}
 	turn, err := session.Turn(retCtx, runtime.TurnRequest{
 		Authority: runtime.ExecutionAuthority{
-			TenantID: input.tenantID, RoomID: input.roomID, AgentID: "agent-memory", ProfileKind: "memory",
+			TenantID: input.tenantID, RoomID: scratchRoom, AgentID: "agent-memory", ProfileKind: "memory",
 			WorkingDirectory: retDir, EnvironmentAllowlist: config.piEnv,
 			Provider: config.provider, Model: config.model,
-			SharedSpaceID:    input.sharedSpaceID,
-			PrivateSpaceID:   input.privateSpaceID,
+			SharedSpaceID:    scratchShared,
+			PrivateSpaceID:   scratchPrivate,
 			ExtraMemoryTools: []string{skillsListToolName},
 		},
 		RoomInput:       promptHead + "\n" + input.taskPrompt,
@@ -1827,6 +1848,7 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	if reply := finalAgentOutput(turn.Messages, "agent-memory"); reply == nil {
 		input.record.SkillRetrievalStatus = "no_reply"
 		input.record.SkillRetrievalText = reply
+		return nil
 	} else {
 		input.record.SkillRetrievalText = reply
 		fingerprints := extractRetrievedFingerprints(*reply)
@@ -1834,22 +1856,59 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 		switch {
 		case len(fingerprints) == 0:
 			input.record.SkillRetrievalStatus = "declined"
+			// A declined turn publishes no note: NO_SKILL_APPLICABLE carries no
+			// skill, and an instruction-shaped recall item only invites the
+			// task agent to mimic the retrieval role.
+			fmt.Printf("[%s] retrieval %04d recall=%s(%d) declined\n",
+				config.arm, input.sequence, turn.Recall.State, len(turn.Recall.Citations))
+			return nil
 		default:
 			input.record.SkillRetrievalStatus = "published"
 			input.record.SkillRetrievalCount = len(fingerprints)
+			// Only the note becomes recallable in the task room; the scratch
+			// room's own evidence (the prompt included) is never drained.
+			if err := commitRetrievalNote(ctx, config, input.sharedSpaceID, input.family, input.episodeID, *reply); err != nil {
+				return err
+			}
 		}
 	}
 	fmt.Printf("[%s] retrieval %04d recall=%s(%d) %s count=%d\n",
 		config.arm, input.sequence, turn.Recall.State, len(turn.Recall.Citations), input.record.SkillRetrievalStatus, input.record.SkillRetrievalCount)
-	// The published note must be recall-visible inside the upcoming episode
-	// turn, so it drains before the episode starts.
-	drainCtx, drainCancel := context.WithTimeout(ctx, 30*time.Second)
-	_, drainErr := session.DrainEvidence(drainCtx, runtime.DrainRequest{
-		RoomID: input.roomID, MemoryBaseURL: config.gmsURL, MemoryAuthToken: config.gmsToken,
-		EventLogPath: filepath.Join(input.episodeDir, "host-events.jsonl"),
+	return nil
+}
+
+// commitRetrievalNote writes the retrieval agent's published note into the
+// upcoming task room's shared space as a single committed evidence batch.
+// This is transport, not authorship: the note's content is the retrieval
+// agent's room_send, and the task agent still receives it only through
+// recall.
+func commitRetrievalNote(ctx context.Context, config armConfig, spaceID, family, episodeID, note string) error {
+	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 10 * time.Second}, 1<<20)
+	id := "retrieval-note-" + sanitizeID(family) + "-" + sanitizeID(episodeID)
+	digest := sha256.Sum256([]byte(note))
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	_, err := client.StageEvidenceBatch(ctx, ports.StageEvidenceBatchRequest{
+		BatchID:         id,
+		IdempotencyKey:  id,
+		SpaceID:         spaceID,
+		StreamID:        "evidence-" + id,
+		SourceSegmentID: id,
+		Provenance: ports.EvidenceProvenance{
+			HostType: "pi-group-chat-host", HostInstanceID: "bench-runner",
+			SourceKind: "retrieval_note", CapturedAt: now, ContentSHA256: hex.EncodeToString(digest[:]),
+		},
+		Events: []ports.EvidenceEvent{{
+			EventID: id + "-note", Sequence: 1, Kind: "room_message", Content: note, OccurredAt: now,
+		}},
+		TerminalOutcome: "settled",
 	})
-	drainCancel()
-	return drainErr
+	if err != nil {
+		return fmt.Errorf("stage retrieval note: %w", err)
+	}
+	if _, err := client.CommitEvidenceBatch(ctx, id, ports.CommitEvidenceBatchRequest{CommitID: "commit-" + id}); err != nil {
+		return fmt.Errorf("commit retrieval note: %w", err)
+	}
+	return nil
 }
 
 // retrievalTurnDeadline scales the retrieval turn's wall-clock budget with
