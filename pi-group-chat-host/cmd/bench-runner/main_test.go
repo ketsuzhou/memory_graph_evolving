@@ -2,10 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"river2.dev/pi-group-chat-host/internal/runtime"
 )
@@ -166,13 +170,217 @@ func TestRenderSkillBlockReplacedByRetrievalTurn(t *testing.T) {
 	}
 	chunks := buildLedgerChunks(ledger)
 	if len(chunks) != 2 {
-		t.Fatalf("expected 2 ledger chunks (3 entries each), got %d", len(chunks))
+		t.Fatalf("expected 2 ledger chunks (1 index + 1 detail), got %d", len(chunks))
 	}
-	if !strings.Contains(chunks[0], "aaaa11112222") || !strings.Contains(chunks[0], "skill three") {
-		t.Errorf("first chunk missing early entries: %q", chunks[0])
+	if !strings.Contains(chunks[0], "entry 1 | name: skill one") || !strings.Contains(chunks[0], "entry 4 | name: skill four") {
+		t.Errorf("index chunk missing entries: %q", chunks[0])
 	}
-	if !strings.Contains(chunks[1], "dddd77778888") {
-		t.Errorf("second chunk missing late entry: %q", chunks[1])
+	if !strings.Contains(chunks[1], "aaaa11112222") || !strings.Contains(chunks[1], "dddd77778888") {
+		t.Errorf("detail chunk missing entries: %q", chunks[1])
+	}
+}
+
+func TestBuildLedgerChunksIndexFirstThenDetailPages(t *testing.T) {
+	ledger := make([]skillProposal, 26)
+	for index := range ledger {
+		ledger[index] = skillProposal{
+			Sequence: index + 1, EpisodeID: fmt.Sprintf("ep-%02d", index+1),
+			SHA256: fmt.Sprintf("%064x", index+1),
+			Text: fmt.Sprintf("name: skill-%d\ntrigger: when pattern %d\nsteps: 1. do %d\npitfalls: none", index+1, index+1, index+1),
+		}
+	}
+	chunks := buildLedgerChunks(ledger)
+	// 26 short index lines pack into one page, so chunk 0 is the index and
+	// chunks 1-3 carry the 26 full entries 12 per page.
+	if len(chunks) != 4 {
+		t.Fatalf("expected 4 chunks (1 index + 3 detail), got %d", len(chunks))
+	}
+	indexPage := chunks[0]
+	if !strings.Contains(indexPage, "entry 1 | name: skill-1 | trigger: when pattern 1") {
+		t.Errorf("index line missing name/trigger: %q", indexPage)
+	}
+	if !strings.Contains(indexPage, "full text in chunk 1") || !strings.Contains(indexPage, "full text in chunk 3") {
+		t.Errorf("index must point at detail chunks 1-3: %q", indexPage)
+	}
+	if strings.Contains(indexPage, "steps:") {
+		t.Errorf("index page must not carry full skill bodies: %q", indexPage)
+	}
+	if !strings.Contains(chunks[1], "entry 1 | from episode ep-01") || !strings.Contains(chunks[1], "entry 12 | from episode ep-12") || strings.Contains(chunks[1], "entry 13 |") {
+		t.Errorf("detail chunk 1 must hold entries 1-12 only: %q", chunks[1])
+	}
+	if !strings.Contains(chunks[2], "entry 13 | from episode ep-13") {
+		t.Errorf("detail chunk 2 must start at entry 13: %q", chunks[2])
+	}
+	if !strings.Contains(chunks[3], "entry 26 | from episode ep-26") || strings.Contains(chunks[3], "entry 14 |") {
+		t.Errorf("detail chunk 3 must hold entries 25-26 only: %q", chunks[3])
+	}
+	if buildLedgerChunks(nil) != nil {
+		t.Error("empty ledger must produce no chunks")
+	}
+}
+
+func TestBuildLedgerChunksIndexReferencesStayConsistent(t *testing.T) {
+	// A batch-5-scale ledger: every index line's "full text in chunk K" must
+	// resolve to the detail chunk that actually holds that entry, whatever
+	// the index page count turns out to be.
+	ledger := make([]skillProposal, 130)
+	for index := range ledger {
+		ledger[index] = skillProposal{
+			Sequence: index + 1, EpisodeID: fmt.Sprintf("ep-%03d", index+1),
+			SHA256: fmt.Sprintf("%064x", index+1),
+			Text: fmt.Sprintf("name: skill-%d\ntrigger: %s\nsteps: 1. act", index+1, strings.Repeat("t", ledgerTriggerMaxChars)),
+		}
+	}
+	chunks := buildLedgerChunks(ledger)
+	detailChunks := (len(ledger) + ledgerEntriesPerChunk - 1) / ledgerEntriesPerChunk
+	if len(chunks) <= detailChunks {
+		t.Fatalf("expected index pages before %d detail chunks, got %d total", detailChunks, len(chunks))
+	}
+	pattern := regexp.MustCompile(`entry (\d+) \| name: [^|]+\| trigger: [^|]+\| sha256 [0-9a-f]+ \| full text in chunk (\d+)`)
+	seen := 0
+	for _, chunk := range chunks {
+		for _, match := range pattern.FindAllStringSubmatch(chunk, -1) {
+			entry, detail := match[1], match[2]
+			seen++
+			target, err := strconv.Atoi(detail)
+			if err != nil || target >= len(chunks) {
+				t.Fatalf("entry %s points at chunk %q outside %d chunks", entry, detail, len(chunks))
+			}
+			if !strings.Contains(chunks[target], "entry "+entry+" | from episode ") {
+				t.Fatalf("entry %s's detail chunk %d does not hold it: %q", entry, target, chunks[target])
+			}
+		}
+	}
+	if seen != len(ledger) {
+		t.Fatalf("index covered %d of %d entries", seen, len(ledger))
+	}
+}
+
+func TestSkillMetaLineExtractsDeclaredFields(t *testing.T) {
+	name, trigger := skillMetaLine("name: retry-on-timeout\ntrigger: long waits\nsteps: 1. wait")
+	if name != "retry-on-timeout" || trigger != "long waits" {
+		t.Fatalf("declared fields not extracted: name=%q trigger=%q", name, trigger)
+	}
+	fallbackName, fallbackTrigger := skillMetaLine("just a bare skill body")
+	if fallbackName != "just a bare skill body" || fallbackTrigger != "" {
+		t.Fatalf("fallback broken: name=%q trigger=%q", fallbackName, fallbackTrigger)
+	}
+	longName, _ := skillMetaLine("name: " + strings.Repeat("n", 100) + "\ntrigger: x")
+	if got := len([]rune(longName)); got != ledgerNameMaxChars {
+		t.Fatalf("name not truncated to %d runes: %d", ledgerNameMaxChars, got)
+	}
+}
+
+func TestSkillsToolJSCarriesCallBudget(t *testing.T) {
+	tool := skillsToolJS([]skillProposal{{Sequence: 1, EpisodeID: "ep", SHA256: "abc", Text: "name: x\ntrigger: y"}})
+	if !strings.Contains(tool, "SKILL_LIST_CALLS > "+strconv.Itoa(skillsListCallBudget)) {
+		t.Error("skills_list must stop serving pages past the call budget")
+	}
+	if !strings.Contains(tool, "publish your reply now") {
+		t.Error("budget response must nudge the agent to publish")
+	}
+	if !strings.Contains(tool, "compact index") {
+		t.Error("tool description must explain the index-first layout")
+	}
+}
+
+func TestRetrievalTurnDeadlineScalesWithChunks(t *testing.T) {
+	cases := []struct {
+		chunks int
+		want   time.Duration
+	}{
+		{0, 240 * time.Second},
+		{7, 520 * time.Second},
+		{10, 640 * time.Second},
+		{14, 800 * time.Second},
+		{20, 1040 * time.Second},
+		{21, 1080 * time.Second},
+		{130, 1080 * time.Second},
+	}
+	for _, testCase := range cases {
+		if got := retrievalTurnDeadline(testCase.chunks); got != testCase.want {
+			t.Errorf("retrievalTurnDeadline(%d) = %s, want %s", testCase.chunks, got, testCase.want)
+		}
+	}
+}
+
+func TestFinalTaskOutputPrefersLastCodeBearingPublish(t *testing.T) {
+	messages := []runtime.VisibleMessage{
+		{AuthorID: "user", Content: "solve it"},
+		{AuthorID: "agent-primary", Content: "Here is my solution:\n```python\nprint(1)\n```"},
+		{AuthorID: "agent-primary", Content: "TASK_COMPLETE"},
+	}
+	if got := finalTaskOutput(messages); got == nil || !strings.Contains(*got, "print(1)") {
+		t.Fatalf("code-bearing publish must beat the trailing TASK_COMPLETE, got %v", got)
+	}
+	if got := finalTaskOutput(messages[:2]); got == nil || !strings.Contains(*got, "print(1)") {
+		t.Fatalf("single code publish must win, got %v", got)
+	}
+	plain := []runtime.VisibleMessage{
+		{AuthorID: "agent-primary", Content: "draft one"},
+		{AuthorID: "agent-primary", Content: "TASK_COMPLETE"},
+	}
+	if got := finalTaskOutput(plain); got == nil || *got != "TASK_COMPLETE" {
+		t.Fatalf("no code fence must fall back to last publish, got %v", got)
+	}
+	if got := finalTaskOutput(nil); got != nil {
+		t.Fatalf("no messages must yield nil, got %q", *got)
+	}
+}
+
+func TestCaptureTaskOutputRecordsBothViews(t *testing.T) {
+	messages := []runtime.VisibleMessage{
+		{AuthorID: "agent-primary", Content: "final code:\n```python\nprint(2)\n```"},
+		{AuthorID: "agent-primary", Content: "TASK_COMPLETE"},
+	}
+	capture := captureTaskOutput(t.TempDir(), messages)
+	if capture.graded == nil || !strings.Contains(*capture.graded, "print(2)") {
+		t.Fatalf("graded output must be the code publish, got %v", capture.graded)
+	}
+	if capture.final == nil || *capture.final != "TASK_COMPLETE" {
+		t.Fatalf("final output keeps last-publish semantics, got %v", capture.final)
+	}
+	if capture.fromSession {
+		t.Fatal("published answers must not be marked as session recoveries")
+	}
+}
+
+func TestFrameRetrievalNoteAnchorsOnTaskOpening(t *testing.T) {
+	task := "You are an expert Python programmer.\n\n### Question:\nYou are given positive integers A and B.\nPrint the value A^B+B^A."
+	framed := frameRetrievalNote(task, "REFERENCE NOTES for the upcoming task\n[skill abc123 from episode e1]\nskill text")
+	if !strings.HasPrefix(framed, "Reference notes selected for this task") {
+		t.Fatalf("framing header missing: %q", framed[:80])
+	}
+	// The anchor must skip the generic preamble every LCB prompt shares and
+	// quote the question section, or BM25 gives the note no discriminative
+	// terms against train trajectories.
+	if !strings.Contains(framed, "### Question:") || !strings.Contains(framed, "You are given positive integers A and B.") {
+		t.Fatalf("framing must anchor on the question section: %q", framed[:200])
+	}
+	if !strings.Contains(framed, "[skill abc123 from episode e1]") {
+		t.Fatal("framing must keep the authored note verbatim after the header")
+	}
+	long := "### Question:\n" + strings.Repeat("x", 500)
+	if got := frameRetrievalNote(long, "note"); strings.Contains(got, strings.Repeat("x", 401)) {
+		t.Fatal("task anchor quote must be truncated")
+	}
+	if got := frameRetrievalNote("no question marker at all", "note"); !strings.Contains(got, "no question marker at all") {
+		t.Fatal("prompts without the marker anchor on their opening")
+	}
+}
+
+func TestCapConsolidatedSkillsDropsTail(t *testing.T) {
+	consolidated := make([]skillProposal, 5)
+	for index := range consolidated {
+		consolidated[index] = skillProposal{SHA256: fmt.Sprintf("sha-%d", index)}
+	}
+	capped, dropped := capConsolidatedSkills(consolidated, 3)
+	if len(capped) != 3 || dropped != 2 || capped[0].SHA256 != "sha-0" || capped[2].SHA256 != "sha-2" {
+		t.Fatalf("cap must keep the head: kept=%d dropped=%d", len(capped), dropped)
+	}
+	same, dropped := capConsolidatedSkills(consolidated, 10)
+	if len(same) != 5 || dropped != 0 {
+		t.Fatalf("under-cap ledgers pass through: kept=%d dropped=%d", len(same), dropped)
 	}
 }
 
@@ -411,11 +619,29 @@ func TestStreamPromptsDropSplitClaims(t *testing.T) {
 	if strings.Contains(retr, "A test task is about to start") {
 		t.Error("stream retrieval prompt must not claim the upcoming task is a test task")
 	}
-	if !strings.Contains(retr, "The next task of the ongoing stream") || !strings.Contains(retr, "@task-agent @memory-agent") || !strings.Contains(retr, "NO_SKILL_APPLICABLE") {
+	if !strings.Contains(retr, "The next task of the ongoing stream") || !strings.Contains(retr, "REFERENCE NOTES") || !strings.Contains(retr, "NO_SKILL_APPLICABLE") {
 		t.Error("stream retrieval prompt must keep the room conventions")
 	}
 	if strings.Contains(retr, "upcoming test task") {
 		t.Error("stream retrieval prompt must not label the upcoming task section as test")
+	}
+}
+
+func TestRetrievalPromptPublishesUnaddressedReferenceNotes(t *testing.T) {
+	// The published note is recalled into the task agent's context; an
+	// addressed note reads as an instruction to it and hijacks its turn
+	// (observed 2/3 in the smoke run). The publish format must be
+	// unaddressed, de-imperative reference material.
+	for name, head := range map[string]string{"batch": retrievalPromptHead, "stream": streamRetrievalPromptHead} {
+		if strings.Contains(head, "@task-agent") || strings.Contains(head, "@memory-agent") {
+			t.Errorf("%s retrieval prompt must not instruct addressing teammates", name)
+		}
+		if !strings.Contains(head, "REFERENCE NOTES for the upcoming task") {
+			t.Errorf("%s retrieval prompt must set the REFERENCE NOTES header", name)
+		}
+		if !strings.Contains(head, "not addressed to any agent") {
+			t.Errorf("%s retrieval prompt must label the note as unaddressed background", name)
+		}
 	}
 }
 

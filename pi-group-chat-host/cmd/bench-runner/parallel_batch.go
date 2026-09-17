@@ -414,12 +414,14 @@ func executeBatchEpisode(ctx context.Context, session *runtime.Session, config a
 			record.RecallSpaces[item.SourceSpaceID]++
 		}
 	}
-	if output := finalAgentOutput(turn.Messages, "agent-primary"); output != nil {
-		record.FinalOutput = output
-	} else if output := finalPiSessionOutput(episodeDir); output != nil {
-		record.FinalOutput = output
-		transcript = append(transcript, transcriptEntry{Role: "agent", Content: *output})
-		record.Transcript = transcript
+	capture := captureTaskOutput(episodeDir, turn.Messages)
+	record.FinalCodeOutput = capture.graded
+	if capture.final != nil {
+		record.FinalOutput = capture.final
+		if capture.fromSession {
+			transcript = append(transcript, transcriptEntry{Role: "agent", Content: *capture.final})
+			record.Transcript = transcript
+		}
 	}
 	drainCtx, drainCancel := context.WithTimeout(ctx, 30*time.Second)
 	_, drainErr := session.DrainEvidence(drainCtx, runtime.DrainRequest{RoomID: roomID, MemoryBaseURL: config.gmsURL, MemoryAuthToken: config.gmsToken, EventLogPath: filepath.Join(episodeDir, "host-events.jsonl")})
@@ -436,6 +438,17 @@ func executeBatchEpisode(ctx context.Context, session *runtime.Session, config a
 
 func warmSkillDiagnosisRoom(family string, sequence int) (roomID, shared, private, memoryPrivate string) {
 	id := sanitizeID(family) + "-diagnosis-" + strconv.Itoa(sequence)
+	return "room-" + id, "space-" + id + "-shared", "space-" + id + "-private", "space-" + id + "-memory-private"
+}
+
+// warmSkillRetrievalRoom names the throwaway room a retrieval turn runs in.
+// The retrieval prompt must never become recallable evidence in any space the
+// task agent reads — the smoke runs showed the task agent executing the
+// recalled retrieval instructions instead of solving the task — so the turn
+// runs here and only the published note is written (as one evidence batch)
+// into the task room's shared space (see commitRetrievalNote).
+func warmSkillRetrievalRoom(family, episodeID string) (roomID, shared, private, memoryPrivate string) {
+	id := sanitizeID(family) + "-retrieval-" + sanitizeID(episodeID)
 	return "room-" + id, "space-" + id + "-shared", "space-" + id + "-private", "space-" + id + "-memory-private"
 }
 

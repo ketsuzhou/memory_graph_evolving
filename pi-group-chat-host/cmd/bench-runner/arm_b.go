@@ -200,8 +200,15 @@ func retrievedLedgerProposals(ledger []skillProposal, reply string) []skillPropo
 	return out
 }
 
+// retrievalAddressedToTeammates reports whether the reply is a real retrieval
+// publish rather than NO_SKILL_APPLICABLE or chatter. The legacy consolidation
+// prompt asked for an "@task-agent @memory-agent" addressed publish; the
+// batch-arm prompt (post role-hijack fix) asks for an unaddressed REFERENCE
+// NOTES header so a recalled note never reads as an instruction to the task
+// agent. Both shapes count as a publish.
 func retrievalAddressedToTeammates(reply string) bool {
-	return strings.HasPrefix(strings.TrimSpace(reply), "@task-agent @memory-agent")
+	trimmed := strings.TrimSpace(reply)
+	return strings.HasPrefix(trimmed, "@task-agent @memory-agent") || strings.HasPrefix(trimmed, "REFERENCE NOTES")
 }
 
 func armBContextProfile(record *attemptRecord) memoryclient.SkillEvolutionContextProfile {
