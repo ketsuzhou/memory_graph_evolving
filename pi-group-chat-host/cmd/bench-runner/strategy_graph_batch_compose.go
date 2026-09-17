@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,8 +10,20 @@ import (
 	"time"
 
 	"river2.dev/pi-group-chat-host/internal/concurrentepisode"
+	hostcontract "river2.dev/pi-group-chat-host/internal/contract"
 	"river2.dev/pi-group-chat-host/internal/diagnosisfanout"
 	"river2.dev/pi-group-chat-host/internal/memoryclient"
+)
+
+const (
+	graphBatchRawProposalSchema = "gms.raw-skill-proposal.v1"
+	graphBatchProposalCreatedAt = "2026-09-17T09:53:15Z"
+	graphBatchProposalNovelty   = "hypothesized"
+	graphBatchBaselineBehavior  = "Invoke the tool with the relative path directly."
+	graphBatchExpectedChange    = "Resolve the path against the workspace root before invoking the tool."
+	graphBatchInsightSuffix     = ", so tool invocation needs an explicit workspace-root path."
+	graphBatchStepTemplate      = "When %s, resolve it against the workspace root before invoking the tool."
+	graphBatchPitfall           = "Do not rewrite an already absolute path."
 )
 
 const graphBatchLegacyUnverified = "legacy_unverified"
@@ -23,7 +36,7 @@ func composeGraphBatchRuntime(config armConfig) (*graphBatchRuntime, error) {
 	}
 	trains, heldOut := partitionGraphBatchEpisodes(config.episodes)
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 30 * time.Second}, 1<<20)
-	ledger := &gmsGraphBatchLedger{client: client}
+	ledger := &gmsGraphBatchLedger{client: client, evidenceIDs: evidenceIDsFromTrains(trains)}
 	return &graphBatchRuntime{
 		Config:            defaultGraphBatchFrozenConfig(),
 		Parallelism:       config.batchParallelism,
@@ -86,6 +99,7 @@ func trainTrajectoryFromEpisode(sequence int, episode manifestEpisode) diagnosis
 	if id == "" {
 		id = episode.TaskID
 	}
+	fact := graphBatchTrainObservableFact(id)
 	return diagnosisfanout.Trajectory{
 		Sequence:           sequence,
 		ID:                 id,
@@ -94,9 +108,42 @@ func trainTrajectoryFromEpisode(sequence int, episode manifestEpisode) diagnosis
 		CompleteTrajectory: []string{"opening", "checkpoint", "outcome"},
 		Checkpoints:        map[string]diagnosisfanout.Checkpoint{"checkpoint-" + id: {ID: "checkpoint-" + id, SnapshotID: "snapshot-" + id}},
 		Evidence: map[string]diagnosisfanout.Evidence{
-			"evidence-" + id: {ID: "evidence-" + id, TrajectoryID: id, SnapshotID: "snapshot-" + id, ObservableFacts: []string{"train task " + id}},
+			"evidence-" + id: {ID: "evidence-" + id, TrajectoryID: id, SnapshotID: "snapshot-" + id, ObservableFacts: []string{fact}},
 		},
 	}
+}
+
+func graphBatchTrainObservableFact(id string) string {
+	return "the public train outcome of " + id + " was observed at the opening checkpoint"
+}
+
+func firstObservableFact(input diagnosisfanout.DiagnosisInput) string {
+	for _, evidence := range input.Evidence {
+		for _, fact := range evidence.ObservableFacts {
+			if strings.TrimSpace(fact) != "" {
+				return fact
+			}
+		}
+	}
+	if input.TrajectoryID != "" {
+		return graphBatchTrainObservableFact(input.TrajectoryID)
+	}
+	return ""
+}
+
+func evidenceIDsFromTrains(trains []graphBatchTrainSpec) []string {
+	var ids []string
+	seen := map[string]bool{}
+	for _, spec := range trains {
+		for _, evidence := range spec.Trajectory.Evidence {
+			if evidence.ID == "" || seen[evidence.ID] {
+				continue
+			}
+			seen[evidence.ID] = true
+			ids = append(ids, evidence.ID)
+		}
+	}
+	return ids
 }
 
 type graphBatchCLIDiagnosisWorker struct{}
@@ -105,26 +152,73 @@ func (graphBatchCLIDiagnosisWorker) Diagnose(_ context.Context, input diagnosisf
 	if input.PublicOutcome.Status == "" {
 		return diagnosisfanout.WorkerDraft{}, fmt.Errorf("diagnosis refused empty public outcome")
 	}
+	fact := firstObservableFact(input)
+	if fact == "" {
+		return diagnosisfanout.WorkerDraft{}, fmt.Errorf("diagnosis refused a trajectory with no observable evidence facts")
+	}
+	checkpointID := "checkpoint-" + input.TrajectoryID
+	if len(input.Checkpoints) == 1 {
+		for _, item := range input.Checkpoints {
+			if item.ID != "" {
+				checkpointID = item.ID
+			}
+		}
+	}
+	evidenceID := "evidence-" + input.TrajectoryID
+	if len(input.Evidence) == 1 {
+		for _, item := range input.Evidence {
+			if item.ID != "" {
+				evidenceID = item.ID
+			}
+		}
+	}
+	outcome := input.PublicOutcome.CanonicalString()
 	body := map[string]any{
 		"proposal_id":              "raw-proposal-" + input.TrajectoryID + "-00001",
-		"schema_version":           "gms.raw-skill-proposal.v1",
-		"source_checkpoint_id":     "checkpoint-" + input.TrajectoryID,
-		"source_evidence_refs":     []string{"evidence-" + input.TrajectoryID},
-		"context_trigger":          "train task " + input.TrajectoryID,
-		"failure_or_opportunity":   input.PublicOutcome.CanonicalString(),
-		"baseline_behavior":        "generation-0 empty graph",
-		"non_obvious_insight":      "task-local hypothesized repair from public outcome",
-		"decision_policy_or_steps": []string{"inspect opening", "apply hypothesized guard"},
-		"expected_behavior_change": "avoid the observed public failure",
-		"contraindications":        []string{},
-		"pitfalls":                 []string{},
-		"outcome_observed":         input.PublicOutcome.CanonicalString(),
-		"novelty_status":           "hypothesized",
+		"schema_version":           graphBatchRawProposalSchema,
+		"source_checkpoint_id":     checkpointID,
+		"source_evidence_refs":     []any{evidenceID},
+		"context_trigger":          "When " + fact + " at " + checkpointID,
+		"failure_or_opportunity":   fact + " caused the observed public outcome.",
+		"baseline_behavior":        graphBatchBaselineBehavior,
+		"non_obvious_insight":      fact + graphBatchInsightSuffix,
+		"decision_policy_or_steps": []any{fmt.Sprintf(graphBatchStepTemplate, fact)},
+		"expected_behavior_change": graphBatchExpectedChange,
+		"contraindications":        []any{},
+		"pitfalls":                 []any{graphBatchPitfall},
+		"outcome_observed":         outcome,
+		"novelty_status":           graphBatchProposalNovelty,
 		"created_by_agent_run_id":  input.DiagnosisRunID,
-		"created_at":               "1970-01-01T00:00:00Z",
-		"content_digest":           canonicalDigest([]string{input.TrajectoryID, input.PublicOutcome.CanonicalString()}),
+		"created_at":               graphBatchProposalCreatedAt,
 	}
+	digest, err := graphBatchProposalContentDigest(body)
+	if err != nil {
+		return diagnosisfanout.WorkerDraft{}, err
+	}
+	body["content_digest"] = digest
 	return diagnosisfanout.WorkerDraft{IdempotencyKey: "idem-" + input.TrajectoryID, ProposalBody: body}, nil
+}
+
+func graphBatchProposalContentDigest(body map[string]any) (string, error) {
+	core := map[string]any{
+		"proposal_id": body["proposal_id"], "schema_version": body["schema_version"],
+		"source_checkpoint_id": body["source_checkpoint_id"], "source_evidence_refs": body["source_evidence_refs"],
+		"context_trigger": body["context_trigger"], "failure_or_opportunity": body["failure_or_opportunity"],
+		"baseline_behavior": body["baseline_behavior"], "non_obvious_insight": body["non_obvious_insight"],
+		"decision_policy_or_steps": body["decision_policy_or_steps"], "expected_behavior_change": body["expected_behavior_change"],
+		"contraindications": body["contraindications"], "pitfalls": body["pitfalls"],
+		"outcome_observed": body["outcome_observed"], "novelty_status": body["novelty_status"],
+		"created_by_agent_run_id": body["created_by_agent_run_id"], "created_at": body["created_at"],
+	}
+	encoded, err := json.Marshal(core)
+	if err != nil {
+		return "", fmt.Errorf("proposal content digest: %w", err)
+	}
+	value, err := hostcontract.ParseJSON(encoded)
+	if err != nil {
+		return "", fmt.Errorf("proposal content digest: %w", err)
+	}
+	return hostcontract.DigestOf(value)
 }
 
 type gmsProposalAdmitter struct {
@@ -184,7 +278,8 @@ func (a *gmsProposalAdmitter) Has(proposalID string) bool {
 }
 
 type gmsGraphBatchLedger struct {
-	client *memoryclient.Client
+	client      *memoryclient.Client
+	evidenceIDs []string
 
 	mu           sync.Mutex
 	calls        int
@@ -230,15 +325,17 @@ func (m *gmsGraphBatchLedger) Consolidate(ctx context.Context, req graphBatchCon
 }
 
 func (m *gmsGraphBatchLedger) Freeze(ctx context.Context, req graphBatchFreezeRequest) (string, error) {
+	batches := m.evidenceIDs
+	if len(batches) == 0 {
+		batches = req.EvidenceBatches
+	}
 	got, err := m.client.EvaluationFreeze(ctx, memoryclient.EvaluationFreezeRequest{
 		RequestID:              "freeze-1",
 		ExpectedLedgerRevision: req.Ledger.LedgerRevision,
 		ExpectedLedgerDigest:   req.Ledger.LedgerDigest,
 		ProposalIDs:            req.ProposalIDs,
 		EvidenceCut: memoryclient.EvaluationFreezeEvidenceCut{
-			Batches:         evidenceBatches(req.EvidenceBatches),
-			Watermark:       req.EvidenceWatermark,
-			WatermarkDigest: req.EvidenceWatermark,
+			Batches: evidenceBatches(batches),
 		},
 		Scope: []memoryclient.EvaluationFreezeScopeItem{{Kind: "train_room", ID: "graph-batch-train"}},
 		Policy: memoryclient.EvaluationFreezePolicy{
@@ -341,7 +438,8 @@ func frozenTrajectoryWire(diagnosisRunID string, traj diagnosisfanout.Trajectory
 	}
 	if len(evidence) == 0 {
 		evidence["evidence-"+id] = memoryclient.GraphBatchEvidence{
-			ID: "evidence-" + id, TrajectoryID: id, SnapshotID: "snapshot-" + id, ObservableFacts: []string{"train task " + id},
+			ID: "evidence-" + id, TrajectoryID: id, SnapshotID: "snapshot-" + id,
+			ObservableFacts: []string{graphBatchTrainObservableFact(id)},
 		}
 	}
 	steps := append([]string(nil), traj.CompleteTrajectory...)

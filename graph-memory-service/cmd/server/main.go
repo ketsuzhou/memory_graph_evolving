@@ -70,6 +70,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if config.conformanceDir != "" {
+		if err := os.Setenv(contract.ConformanceDirEnvVar, config.conformanceDir); err != nil {
+			log.Fatalf("server: set %s: %v", contract.ConformanceDirEnvVar, err)
+		}
+	}
 	var logSink io.Writer = os.Stderr
 	if config.accessLog != "" {
 		file, err := os.OpenFile(config.accessLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
