@@ -88,7 +88,7 @@ func TestRPCUsesOnlyDocumentedFlagsAndOpaqueIDs(t *testing.T) {
 		{
 			name:    "ordinary",
 			profile: AgentProfile{Kind: ProfileOrdinary, BuiltinToolsEnabled: true},
-			want:    []string{"--mode", "rpc", "--session-dir", "SESSION", "--provider", "PROVIDER", "--model", "MODEL", "--no-extensions", "--extension", "EXTENSION", "--no-approve"},
+			want:    []string{"--mode", "rpc", "--session-dir", "SESSION", "--provider", "PROVIDER", "--model", "MODEL", "--no-extensions", "--extension", "EXTENSION", "--no-skills", "--no-prompt-templates", "--no-context-files", "--no-approve"},
 		},
 		{
 			name: "memory",
@@ -150,4 +150,33 @@ func TestRPCUsesOnlyDocumentedFlagsAndOpaqueIDs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOrdinaryArgvDisablesSkillAndContextDiscovery(t *testing.T) {
+	launcher := NewLauncher(LauncherConfig{SessionDir: "SESSION", Provider: "PROVIDER", Model: "MODEL"})
+	ordinary := launcher.argv(AgentProfile{Kind: ProfileOrdinary, BuiltinToolsEnabled: true})
+	memory := launcher.argv(AgentProfile{Kind: ProfileMemory})
+	for _, flag := range []string{"--no-skills", "--no-prompt-templates", "--no-context-files"} {
+		if !containsFlag(ordinary, flag) {
+			t.Fatalf("ordinary argv missing %q: %#v", flag, ordinary)
+		}
+		if !containsFlag(memory, flag) {
+			t.Fatalf("memory argv missing %q: %#v", flag, memory)
+		}
+	}
+	if containsFlag(ordinary, "--no-builtin-tools") {
+		t.Fatalf("ordinary argv unexpectedly disabled built-in tools: %#v", ordinary)
+	}
+	if containsFlag(ordinary, "--tools") {
+		t.Fatalf("ordinary argv unexpectedly restricted --tools: %#v", ordinary)
+	}
+}
+
+func containsFlag(argv []string, flag string) bool {
+	for _, argument := range argv {
+		if argument == flag {
+			return true
+		}
+	}
+	return false
 }
