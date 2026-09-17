@@ -7,7 +7,7 @@
   },
   "event_sequence": 1,
   "event_id": "mpev-0001",
-  "event_digest": "sha256:5d2c2e61969682c59783b274509a22a471164c20238cb2df1952ad23800308c1",
+  "event_digest": "sha256:e87bc625f4fbf7c8cf0136a563861ae869f7aa20b083ef868f6d05fb32bbe0a7",
   "from_state": "none",
   "to_state": "proposed",
   "reason_codes": [],
@@ -25,14 +25,14 @@
   ],
   "observed_source_heads": [
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-commit-checklist",
       "version": 3,
       "kind": "step_guidance",
       "artifact_digest": "sha256:62a2153bd17ef4ecc7781a689460e615c84b1d75c199bf2d026b33a0b1d10fd1"
     },
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-pre-push-check",
       "version": 2,
       "kind": "step_guidance",

@@ -331,7 +331,7 @@ func executeBatchEpisode(ctx context.Context, session *runtime.Session, config a
 	record := attemptRecord{
 		RunID: fmt.Sprintf("%s:%s:%d:%s", config.evaluationID, episode.TaskID, config.seed, config.arm), EvaluationID: config.evaluationID,
 		Benchmark: episode.Benchmark, Domain: episode.Domain, TaskID: episode.TaskID, EpisodeID: episode.EpisodeID, FamilyID: episode.FamilyID,
-		Role: episode.Role, Arm: config.arm, RoomID: roomID, MemoryPolicy: config.policy, Seed: config.seed, Attempt: 1,
+		Role: episode.Role, Split: episode.Split, Arm: config.arm, RoomID: roomID, MemoryPolicy: config.policy, Seed: config.seed, Attempt: 1,
 		WorkDir: episodeDir, PublishReminder: config.publishReminder != "",
 	}
 	if err := os.MkdirAll(episodeDir, 0o755); err != nil {
@@ -492,10 +492,12 @@ func reduceBatchDiagnosis(config armConfig, family string, result batchDiagnosis
 	proposals := splitSkillProposals(*result.reply)
 	fingerprints := make([]string, 0, len(proposals))
 	added := make([]skillProposal, 0, len(proposals))
+	acceptedFingerprints := map[string]bool{}
 	for _, text := range proposals {
 		fingerprint := skillFingerprint(text)
 		fingerprints = append(fingerprints, fingerprint)
-		if !skillLedgerHas(*ledger, family, fingerprint) {
+		if !acceptedFingerprints[fingerprint] && !skillLedgerHas(*ledger, family, fingerprint) {
+			acceptedFingerprints[fingerprint] = true
 			added = append(added, skillProposal{Sequence: result.sequence, EpisodeID: result.episodeID, SHA256: fingerprint, Text: text})
 		}
 	}
@@ -523,6 +525,11 @@ func reduceBatchDiagnosis(config armConfig, family string, result batchDiagnosis
 		}
 	}
 	record.SkillProposalsTotal = len((*ledger)[family])
+	if record.SkillProposalStatus == "published" && config.armBReporter != nil {
+		for _, proposal := range added {
+			config.armBReporter.reportDiagnosis(context.Background(), record, proposal, armBEvaluationBatchID(record))
+		}
+	}
 	fmt.Printf("[%s] diagnosis %04d recall=%s(%d) %s total=%d\n", config.arm, result.sequence, result.recallState, result.recallCites, record.SkillProposalStatus, record.SkillProposalsTotal)
 	return nil
 }

@@ -142,6 +142,6 @@
       "scope": "room-shared-space"
     }
   ],
-  "schema_version": "gms.skill-artifact.v1",
+  "schema_version": "gms.skill-artifact.v2",
   "title": "Commit checklist guidance"
 }

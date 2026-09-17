@@ -2,7 +2,7 @@
   "case_id": "event-005-merge-proposal-event",
   "expected_accept": true,
   "expected_canonical_byte_length": 1088,
-  "expected_digest": "sha256:5a447250f163f7e174e5bed2038ece06ade7cbfda7c3d2608a0d2645deb0a84d",
+  "expected_digest": "sha256:a3ccff84f71b1d09a0cd30218c7d759e48eaba24403679cb2d443d66c6fcbdd3",
   "notes": "legal MergeProposalEvent transition none -> proposed with observed source heads",
   "schema_version": "rsih-skill-evolution.conformance-expected.v1"
 }

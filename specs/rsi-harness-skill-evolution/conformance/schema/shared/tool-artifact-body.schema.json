@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rsih-skill-evolution.shared.tool-artifact-body.v2.schema.json",
+  "title": "Contract 8.5 Tool Skill body v2",
+  "description": "An attested, typed OCI Tool Skill. Network is permanently disabled and controlled patches require an explicit patch policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tool_package", "interface", "execution_policy", "declared_capabilities", "validation_contract_ref", "candidate_provenance_ref"],
+  "properties": {
+    "tool_package": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "oci_image_digest", "entrypoint", "build_attestation_ref"],
+      "properties": {
+        "schema_version": {"const": "gms.tool-package-ref.v2"},
+        "oci_image_digest": {"$ref": "common-types.schema.json#/$defs/sha256"},
+        "entrypoint": {"type": "array", "minItems": 1, "items": {"$ref": "common-types.schema.json#/$defs/non_empty_string"}},
+        "build_attestation_ref": {"$ref": "common-types.schema.json#/$defs/versioned_ref"}
+      }
+    },
+    "interface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input_schema_ref", "output_schema_ref", "error_schema_ref"],
+      "properties": {
+        "input_schema_ref": {"$ref": "common-types.schema.json#/$defs/versioned_ref"},
+        "output_schema_ref": {"$ref": "common-types.schema.json#/$defs/versioned_ref"},
+        "error_schema_ref": {"$ref": "common-types.schema.json#/$defs/versioned_ref"}
+      }
+    },
+    "execution_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["network", "cpu_millis", "memory_bytes", "timeout_millis", "workspace_mode"],
+      "properties": {
+        "network": {"const": "disabled"},
+        "cpu_millis": {"type": "integer", "minimum": 1},
+        "memory_bytes": {"type": "integer", "minimum": 1},
+        "timeout_millis": {"type": "integer", "minimum": 1},
+        "workspace_mode": {"enum": ["read_only", "controlled_patch"]},
+        "patch_policy": {
+          "type": "object", "additionalProperties": false,
+          "required": ["allowed_paths", "require_base_workspace_digest", "require_structured_manifest"],
+          "properties": {
+            "allowed_paths": {"type": "array", "minItems": 1, "items": {"$ref": "common-types.schema.json#/$defs/non_empty_string"}},
+            "require_base_workspace_digest": {"const": true},
+            "require_structured_manifest": {"const": true}
+          }
+        }
+      },
+      "allOf": [{"if": {"properties": {"workspace_mode": {"const": "controlled_patch"}}, "required": ["workspace_mode"]}, "then": {"required": ["patch_policy"]}}]
+    },
+    "declared_capabilities": {"type": "array", "minItems": 1, "items": {"$ref": "common-types.schema.json#/$defs/non_empty_string"}},
+    "validation_contract_ref": {"$ref": "common-types.schema.json#/$defs/versioned_ref"},
+    "candidate_provenance_ref": {"$ref": "candidate-artifact-ref.schema.json#"}
+  }
+}

@@ -1,1 +1,8 @@
-{"case_id":"artifact-005-guidance-view","expected_accept":true,"expected_canonical_byte_length":1239,"expected_digest":"sha256:89868a1e50ee179ce064bfeafe122197379caba1650a16441d953e71798d03e7","notes":"Contract §16.4 #15: GuidanceView with source exact ref, included/omitted branches, view hash","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-005-guidance-view",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 1239,
+  "expected_digest": "sha256:13409f117d203e8b3acd9c6b1fd85270bbf9ff253402218c545be8b37b642c71",
+  "notes": "Contract §16.4 #15: GuidanceView with source exact ref, included/omitted branches, view hash",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

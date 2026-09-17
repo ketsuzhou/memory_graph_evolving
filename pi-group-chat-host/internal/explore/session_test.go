@@ -1148,3 +1148,16 @@ func canonicalOf(t *testing.T, s *Session, field string) string {
 }
 
 var _ = sort.Strings
+
+func TestDeriveCarrierOutcomeRejectsTamperedEmbeddedGuidanceView(t *testing.T) {
+	payload := fixturePayload(t, "explore/top-level-omission/pos-omission-pagination-page1/input.json")
+	skills, _ := arrayOf(payload, "skill_results")
+	entry := skills[0].(*contract.Object)
+	view, _ := objectOf(entry, "guidance_view")
+	setString(t, view, "view_hash", "sha256:0000000000000000000000000000000000000000000000000000000000000000")
+
+	outcome := deriveCarrierOutcome(payload, nil)
+	if outcome.Accept || outcome.ReasonCode != reasonViewHashMismatch {
+		t.Fatalf("tampered embedded GuidanceView = %+v, want GUIDANCE_VIEW_HASH_MISMATCH", outcome)
+	}
+}

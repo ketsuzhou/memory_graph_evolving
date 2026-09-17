@@ -114,7 +114,7 @@ func newSimHarness(t *testing.T) *simHarness {
 func (h *simHarness) releasedRef(lineage, version, digest string) contract.SkillArtifactRef {
 	h.t.Helper()
 	ref := contract.SkillArtifactRef{
-		SchemaVersion:  "gms.skill-artifact-ref.v1",
+		SchemaVersion:  contract.SchemaSkillArtifactRef,
 		LineageID:      lineage,
 		Version:        version,
 		Kind:           KindStepGuidance,
@@ -247,7 +247,7 @@ func TestSimilarityFixtureMatrix(t *testing.T) {
 
 func refOf(lineage, version, digest string) contract.SkillArtifactRef {
 	return contract.SkillArtifactRef{
-		SchemaVersion: "gms.skill-artifact-ref.v1",
+		SchemaVersion: contract.SchemaSkillArtifactRef,
 		LineageID:     lineage, Version: version, Kind: KindStepGuidance, ArtifactDigest: digest,
 	}
 }

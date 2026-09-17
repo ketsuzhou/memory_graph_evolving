@@ -830,7 +830,7 @@ func versionedRefDoc(ref contract.VersionedRef) map[string]any {
 // provenance cites exactly the proposal's committed evidence.
 func artifactEnvelope(evidenceID, version, digest, kind string) map[string]any {
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          "Cite sealed evidence before revision",
 		"description":    "INT-002 conformance candidate envelope",

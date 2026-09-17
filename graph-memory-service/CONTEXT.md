@@ -187,8 +187,8 @@ An immutable automatic pass or reject decision derived from exact proposal, eval
 _Avoid_: curator approval, proposer self-approval
 
 **Evolution Activator**:
-The restricted authority that atomically activates an exact candidate only after independently revalidating its matching Activation Policy Decision and expected active version.
-_Avoid_: Skill proposer, replay evaluator
+The server-controlled authority that atomically activates an exact candidate in every environment only after independently revalidating its matching immutable Activation Policy Decision, candidate/evaluation evidence, coverage, policy version, and expected active version. It does not require or accept human curator approval.
+_Avoid_: Skill proposer, replay evaluator, human approval gate
 
 **Pi Group Chat Host**:
 The sole Host authority for Room, Agent, Delivery, Segment, message order, observed interaction events, and terminal conversation-run outcomes admitted by this Graph Memory Service.

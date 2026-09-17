@@ -146,7 +146,7 @@ func validStepGuidanceEnvelope() map[string]any {
 		}
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          "Commit only after hooks pass",
 		"description":    "Guidance fixture",
@@ -166,8 +166,8 @@ func validStepGuidanceEnvelope() map[string]any {
 				map[string]any{
 					"branch_id": "b-success",
 					"when":      map[string]any{"field": "repo.tests", "op": "equals", "value": "passing"},
-					"action": map[string]any{"guidance": "Stage and commit", "failure_action": "stop", "evidence_refs": []any{ev("ev-0451")}},
-					"future": map[string]any{"expected_outcome": "clean tree", "critical_steps": []any{}, "final_task_impact": "Commit lands only on green"},
+					"action":    map[string]any{"guidance": "Stage and commit", "failure_action": "stop", "evidence_refs": []any{ev("ev-0451")}},
+					"future":    map[string]any{"expected_outcome": "clean tree", "critical_steps": []any{}, "final_task_impact": "Commit lands only on green"},
 				},
 			},
 		},

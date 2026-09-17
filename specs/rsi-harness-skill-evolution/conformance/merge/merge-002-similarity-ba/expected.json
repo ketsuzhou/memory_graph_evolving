@@ -1,1 +1,14 @@
-{"case_id":"merge-002-similarity-ba","expected_accept":true,"expected_canonical_byte_length":1746,"expected_digest":"sha256:99c390af44b038fcbf10a4de877370c9bd1895701d1136d901f410cd4968b690","expected_normalized_fields":{"source_skill_refs_canonical_order":["sg-alpha@2","sg-beta@1"]},"notes":"Contract §16.4 #11: reversed input order normalizes to the exact same canonical bytes as merge-001","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "merge-002-similarity-ba",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 1746,
+  "expected_digest": "sha256:8a9dbe157eb629a8528e7031370c6b5b9378e3b49821faeb53660c2b79b97505",
+  "expected_normalized_fields": {
+    "source_skill_refs_canonical_order": [
+      "sg-alpha@2",
+      "sg-beta@1"
+    ]
+  },
+  "notes": "Contract §16.4 #11: reversed input order normalizes to the exact same canonical bytes as merge-001",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

@@ -1,1 +1,8 @@
-{"case_id":"artifact-003-composite","expected_accept":true,"expected_canonical_byte_length":1591,"expected_digest":"sha256:0891a77cdad599de40848c4438b895fd07f9c8c09d518c7091fb0ef721d0c68e","notes":"Contract §16.4 #5: exact children, named ports, acyclic edges, bounded retry, failure handlers","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-003-composite",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 1591,
+  "expected_digest": "sha256:426bea8731dba996af35c6d4ca3e3e4aa9f941a216359e1f79e4912b3b528026",
+  "notes": "Contract §16.4 #5: exact children, named ports, acyclic edges, bounded retry, failure handlers",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

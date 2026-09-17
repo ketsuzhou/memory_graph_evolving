@@ -1,1 +1,9 @@
-{"case_id":"merge-neg-001-below-threshold","expected_accept":false,"expected_canonical_byte_length":1750,"expected_digest":"sha256:c5c3ddef048733e6236fd66c2a5c0ac1e29885a32d27aba26f47d26f619d7764","expected_reason_code":"SIMILARITY_BELOW_THRESHOLD","notes":"Contract §15.2 MT1: below-threshold assessment must not auto-admit a merge proposal","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "merge-neg-001-below-threshold",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 1750,
+  "expected_digest": "sha256:d2a4fe9f97d117b7b808ad65bd8d71ce121cf48333b1a5ddc55c03cefd9b4611",
+  "expected_reason_code": "SIMILARITY_BELOW_THRESHOLD",
+  "notes": "Contract §15.2 MT1: below-threshold assessment must not auto-admit a merge proposal",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

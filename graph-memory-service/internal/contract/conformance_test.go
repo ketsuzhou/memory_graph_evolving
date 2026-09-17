@@ -330,7 +330,7 @@ func TestReasonPolicy_DigestVerifiedLoadAndLookup(t *testing.T) {
 // bare digest) are rejected instead of being aliased in.
 func TestParseExactRefDTOs_RejectLegacyAliases(t *testing.T) {
 	digest := "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	good := fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v1","lineage_id":"sg-x","version":3,"kind":"step_guidance","artifact_digest":%q}`, digest)
+	good := fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v2","lineage_id":"sg-x","version":3,"kind":"step_guidance","artifact_digest":%q}`, digest)
 	ref, err := ParseSkillArtifactRef(parseObjectForTest(t, good))
 	if err != nil {
 		t.Fatalf("parse good ref: %v", err)
@@ -340,10 +340,11 @@ func TestParseExactRefDTOs_RejectLegacyAliases(t *testing.T) {
 	}
 
 	for _, legacy := range []string{
-		fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v1","skill_id":"sg-x","version":3,"kind":"step_guidance","artifact_digest":%q}`, digest),
-		fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v1","lineage_id":"sg-x","version":3,"kind":"step_guidance","digest":%q}`, digest),
-		`{"schema_version":"gms.skill-artifact-ref.v1","artifact_id":"a-1","version":3,"kind":"human_procedure","artifact_digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
-		`{"schema_version":"gms.skill-artifact-ref.v1","lineage_id":"sg-x","version":1.5,"kind":"human_procedure","artifact_digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
+		fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v2","skill_id":"sg-x","version":3,"kind":"step_guidance","artifact_digest":%q}`, digest),
+		fmt.Sprintf(`{"schema_version":"gms.skill-artifact-ref.v2","lineage_id":"sg-x","version":3,"kind":"step_guidance","digest":%q}`, digest),
+		`{"schema_version":"gms.skill-artifact-ref.v2","artifact_id":"a-1","version":3,"kind":"human_procedure","artifact_digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
+		`{"schema_version":"gms.skill-artifact-ref.v2","lineage_id":"sg-x","version":1.5,"kind":"human_procedure","artifact_digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
+		`{"schema_version":"gms.skill-artifact-ref.v2","lineage_id":"sg-x","version":1.5,"kind":"human_procedure","artifact_digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}`,
 	} {
 		if _, err := ParseSkillArtifactRef(parseObjectForTest(t, legacy)); err == nil {
 			t.Errorf("legacy/invalid ref must be rejected: %s", legacy)

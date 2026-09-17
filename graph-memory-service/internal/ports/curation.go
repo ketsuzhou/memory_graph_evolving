@@ -89,3 +89,16 @@ type CandidateStore interface {
 	DecideCandidate(context.Context, domain.CandidateDecision) (bool, error)
 	ActivateCandidate(context.Context, domain.SkillActivation) (bool, error)
 }
+
+// ActivationPolicyStore is the server-owned authority surface for Arm C
+// decisions. HTTP callers never provide the records read through this port;
+// they are emitted by the evaluator/policy engine and resolved by exact ref.
+type ActivationPolicyStore interface {
+	PutActivationPolicyDecision(context.Context, domain.ActivationPolicyDecision) (bool, error)
+	ActivationPolicyDecision(context.Context, domain.TenantID, domain.SpaceID, domain.ActivationPolicyDecisionRef) (domain.ActivationPolicyDecision, error)
+	PutArmCEvaluation(context.Context, domain.ArmCEvaluation) (bool, error)
+	ArmCEvaluation(context.Context, domain.TenantID, domain.SpaceID, domain.ArmCEvaluationRef) (domain.ArmCEvaluation, error)
+	PutCoverageProof(context.Context, domain.CoverageProof) (bool, error)
+	CoverageProof(context.Context, domain.TenantID, domain.SpaceID, domain.CoverageProofRef) (domain.CoverageProof, error)
+	ActivatePolicyDecision(context.Context, domain.SkillActivation) (bool, error)
+}

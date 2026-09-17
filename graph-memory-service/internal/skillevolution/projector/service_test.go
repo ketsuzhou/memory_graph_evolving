@@ -627,7 +627,7 @@ func TestCandidatesNeverEnterRuntimeGraph(t *testing.T) {
 	a := h.releaseSkill(t, "sg-alpha", bodyA)
 
 	// Commit an extra candidate binding that is NEVER activated.
-	ghostBody := mustJCS(t, map[string]any{"schema_version": "gms.skill-artifact.v1", "kind": "step_guidance"})
+	ghostBody := mustJCS(t, map[string]any{"schema_version": "gms.skill-artifact.v2", "kind": "step_guidance"})
 	candPayload := mustJCS(t, map[string]any{
 		"schema_version": contract.SchemaCandidateArtifactRef,
 		"candidate_id":   "cand-ghost-0001",

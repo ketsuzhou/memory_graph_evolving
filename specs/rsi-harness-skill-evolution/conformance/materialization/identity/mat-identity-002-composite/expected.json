@@ -1,1 +1,10 @@
-{"case_id":"mat-identity-002-composite","expected_accept":true,"expected_bundle_digest":"sha256:16518e088a964c9e5b2818962c7e48b2cddb8c65666bd7b98d4bc355e072f744","expected_lock_digest":null,"expected_manifest_digest":"sha256:51a4facd482df5acc1f6aa6a9b2c3c5c4182d058f6f132eb1ac0e319353bc0a7","expected_reason_code":null,"notes":"composite positive: transitive closure of 3 skills, 3 files, manifest exact identity frozen","schema_version":"rsih-skill-evolution.materialization-expected.v1"}
+{
+  "case_id": "mat-identity-002-composite",
+  "expected_accept": true,
+  "expected_bundle_digest": "sha256:16518e088a964c9e5b2818962c7e48b2cddb8c65666bd7b98d4bc355e072f744",
+  "expected_lock_digest": null,
+  "expected_manifest_digest": "sha256:306a01f405201ec5d811a307b053fde83074ccbfef5d662d3c9ec821d7c6a198",
+  "expected_reason_code": null,
+  "notes": "composite positive: transitive closure of 3 skills, 3 files, manifest exact identity frozen",
+  "schema_version": "rsih-skill-evolution.materialization-expected.v1"
+}

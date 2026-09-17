@@ -1,1 +1,8 @@
-{"case_id":"ref-003-candidate-artifact-ref","expected_accept":true,"expected_canonical_byte_length":346,"expected_digest":"sha256:145035371948f9fed9a8fd36d19b6b7c153ab67a1c9d0929f0bc16b1f9d83c82","notes":"Contract §16.4 #6: candidate identity has no released version; exact via (candidate_id, body_digest)","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "ref-003-candidate-artifact-ref",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 346,
+  "expected_digest": "sha256:893911ce6151eefdfb8790b40d0ede440d54d1ce101a72260de731b1b3b14c96",
+  "notes": "Contract §16.4 #6: candidate identity has no released version; exact via (candidate_id, body_digest)",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

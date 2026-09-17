@@ -53,7 +53,7 @@ const (
 
 	schemaReplayRequest = "gms.replay-request.v1"
 	schemaSegmentRef    = "host.segment-ref.v1"
-	schemaSkillRef      = "gms.skill-artifact-ref.v1"
+	schemaSkillRef      = "gms.skill-artifact-ref.v2"
 	schemaCandidateRef  = "gms.candidate-artifact-ref.v1"
 	schemaReplayPlan    = "host.replay-plan.v1"
 
@@ -74,7 +74,7 @@ var fakeCapabilityKinds = map[string]string{
 var digestRe = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 
 var artifactKinds = map[string]bool{
-	"human_procedure": true, "step_guidance": true, "composite": true,
+	"human_procedure": true, "step_guidance": true, "composite": true, "tool": true,
 }
 
 var originTypes = map[string]bool{

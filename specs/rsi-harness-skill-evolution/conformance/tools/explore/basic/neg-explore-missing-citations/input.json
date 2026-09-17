@@ -82,7 +82,7 @@
       "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
       "kind": "human_procedure",
       "lineage_id": "lin-ctr002-skill-a",
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "version": 3
      }
     },
@@ -117,11 +117,11 @@
       "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
       "kind": "human_procedure",
       "lineage_id": "lin-ctr002-skill-a",
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "version": 3
      },
      "truncated": false,
-     "view_hash": "sha256:258f8690df46749599cad7dbed47ef44f4ab2943e0fb83a2c215f544f600b038"
+     "view_hash": "sha256:0fc72ab92982d350cb0a0936628b910449e44b0ee2c9b8945a32d969f2b80fee"
     },
     "rank_score_micros": 900000,
     "result_type": "skill",
@@ -129,7 +129,7 @@
      "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
      "kind": "human_procedure",
      "lineage_id": "lin-ctr002-skill-a",
-     "schema_version": "gms.skill-artifact-ref.v1",
+     "schema_version": "gms.skill-artifact-ref.v2",
      "version": 3
     }
    }

@@ -67,7 +67,7 @@ const (
 	exploreResultSchema = "gms.explore-result.v1"
 	guidanceViewSchema  = "gms.guidance-view.v1"
 	evidenceRefSchema   = "gms.evidence-ref.v1"
-	skillRefSchema      = "gms.skill-artifact-ref.v1"
+	skillRefSchema      = "gms.skill-artifact-ref.v2"
 	candidateRefSchema  = "gms.candidate-artifact-ref.v1"
 )
 
@@ -158,7 +158,7 @@ var skillRefRequired = []string{
 	"artifact_digest",
 }
 
-var skillKinds = map[string]struct{}{"human_procedure": {}, "step_guidance": {}, "composite": {}}
+var skillKinds = map[string]struct{}{"human_procedure": {}, "step_guidance": {}, "composite": {}, "tool": {}}
 
 var requiredWatermarkFields = []string{
 	"schema_version",
@@ -808,12 +808,8 @@ func deriveCarrierOutcome(payload contract.Value, session *contract.Object) Outc
 			return rejectedOutcome(reasonEnumInvalid)
 		}
 	}
-	for _, item := range skillResults {
-		if entry, ok := item.(*contract.Object); !ok {
-			return rejectedOutcome(reasonEnumInvalid)
-		} else if rt, _ := contract.StringOf(entry, "result_type"); rt != "skill" {
-			return rejectedOutcome(reasonEnumInvalid)
-		}
+	if reason := embeddedGuidanceViewReason(obj, 2, 1); reason != "" {
+		return rejectedOutcome(reason)
 	}
 
 	// Nested closed sub-objects needed by the accounting obligations.

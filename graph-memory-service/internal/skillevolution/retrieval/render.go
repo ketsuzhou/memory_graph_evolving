@@ -148,7 +148,9 @@ func guidanceBranches(envelope map[string]any) []guidanceBranch {
 	out := make([]guidanceBranch, 0, len(rawBranches))
 	for _, raw := range rawBranches {
 		branch, _ := contract.AsObject(raw)
-		if branch == nil { continue }
+		if branch == nil {
+			continue
+		}
 		id, _ := contract.AsString(branch["branch_id"])
 		action, _ := contract.AsObject(branch["action"])
 		guidance, _ := contract.AsString(action["guidance"])

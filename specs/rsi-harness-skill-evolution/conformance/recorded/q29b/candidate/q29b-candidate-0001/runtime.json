@@ -88,7 +88,7 @@
       }
     ],
     "artifact_ref": {
-      "schema_version": "gms.candidate-artifact-ref.v1",
+      "schema_version": "gms.candidate-artifact-ref.v2",
       "candidate_id": "cand-0001",
       "kind": "step_guidance",
       "body_digest": "sha256:5ca2d3d975102507ad670945a8b77becae6eec70ce5d9463b0716867365bad34",
@@ -214,6 +214,6 @@
     "outcome": "accept",
     "run_status": "succeeded",
     "reason_code": null,
-    "output_digest": "sha256:b25c8b79fbd7215c19446734bfe7f98d1127a04545e590eb11304054c0950d7d"
+    "output_digest": "sha256:fb208f14b1e72d157665e95e78834c795c09f44a549bd49261fa62e5646af27b"
   }
 }

@@ -1,1 +1,1 @@
-{"schema_version": "gms.skill-artifact-ref.v1", "lineage_id": "sg-latest-example", "version": "latest", "kind": "step_guidance", "artifact_digest": "sha256:027b749eb71250c73cbddd4b553900033b69e367912534d72f48857a639d579b"}
+{"schema_version": "gms.skill-artifact-ref.v2", "lineage_id": "sg-latest-example", "version": "latest", "kind": "step_guidance", "artifact_digest": "sha256:027b749eb71250c73cbddd4b553900033b69e367912534d72f48857a639d579b"}

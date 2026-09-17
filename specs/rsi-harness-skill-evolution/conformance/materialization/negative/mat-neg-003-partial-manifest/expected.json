@@ -1,1 +1,10 @@
-{"case_id":"mat-neg-003-partial-manifest","expected_accept":false,"expected_bundle_digest":"sha256:6da73c6b7d87c94bc2183fff1b1124ca8877b145fad275e19fed138986500912","expected_lock_digest":null,"expected_manifest_digest":"sha256:48fe4394d4aeac81a67caba056ac08adf3daef4bf80078b7748ec78e87217966","expected_reason_code":"MANIFEST_PARTIAL","notes":"partial manifest: file_count and total_bytes disagree with the file list","schema_version":"rsih-skill-evolution.materialization-expected.v1"}
+{
+  "case_id": "mat-neg-003-partial-manifest",
+  "expected_accept": false,
+  "expected_bundle_digest": "sha256:6da73c6b7d87c94bc2183fff1b1124ca8877b145fad275e19fed138986500912",
+  "expected_lock_digest": null,
+  "expected_manifest_digest": "sha256:b1155921099066f86d54f63e686b95fb44752a1ace81854e313d6f3baf17b2e5",
+  "expected_reason_code": "MANIFEST_PARTIAL",
+  "notes": "partial manifest: file_count and total_bytes disagree with the file list",
+  "schema_version": "rsih-skill-evolution.materialization-expected.v1"
+}

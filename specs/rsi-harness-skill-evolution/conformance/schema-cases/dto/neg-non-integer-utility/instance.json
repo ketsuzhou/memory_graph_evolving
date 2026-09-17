@@ -7,7 +7,7 @@
     "digest": "sha256:ebd7dd046535d012f992361987a91fd1cd2d4d306c50478282ad80dea483f104"
   },
   "candidate_ref": {
-    "schema_version": "gms.candidate-artifact-ref.v1",
+    "schema_version": "gms.candidate-artifact-ref.v2",
     "candidate_id": "cand-0001",
     "kind": "step_guidance",
     "body_digest": "sha256:5e06d81c92690fd6e5bca14205d1760498bcb541e9faef08db4055be742c7685",
@@ -28,7 +28,7 @@
       },
       "domain": "general",
       "baseline_ref": {
-        "schema_version": "gms.skill-artifact-ref.v1",
+        "schema_version": "gms.skill-artifact-ref.v2",
         "lineage_id": "sg-commit-checklist",
         "version": 3,
         "kind": "step_guidance",

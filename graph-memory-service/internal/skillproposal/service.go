@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sort"
 
-	"river2.dev/graph-memory-service/internal/authz"
 	"river2.dev/graph-memory-service/internal/domain"
 	"river2.dev/graph-memory-service/internal/ports"
 )
@@ -28,7 +27,10 @@ type ReplayObservation = domain.ReplayObservation
 type PairedReplayTrial = domain.PairedReplayTrial
 type ReplayArmStats = domain.ReplayArmStats
 type PairedReplayResult = domain.PairedReplayResult
-type CandidateDecision = domain.CandidateDecision
+type ActivationPolicyDecisionRef = domain.ActivationPolicyDecisionRef
+type ActivationPolicyDecision = domain.ActivationPolicyDecision
+type ArmCEvaluation = domain.ArmCEvaluation
+type CoverageProof = domain.CoverageProof
 type SkillActivation = domain.SkillActivation
 
 const (
@@ -177,20 +179,23 @@ func armStats(successes, trials int) (mean, variance float64) {
 	return mean, variance
 }
 
-// Service owns the governed proposal and candidate surface. Acceptance is
-// only a decision; activation is a separate human-curator action behind the
-// curation purpose fence, and there is no automatic activation path.
+// Service owns the governed proposal and candidate surface. Activation is
+// policy-driven in every environment: the server resolves and independently
+// revalidates an immutable Arm C ActivationPolicyDecision before publishing.
 type Service struct {
-	authorizer *authz.Authorizer
-	registry   ports.RegistryStore
 	patterns   ports.PatternStore
 	proposals  ports.ProposalStore
 	candidates ports.CandidateStore
+	policies   ports.ActivationPolicyStore
 	clock      ports.Clock
 }
 
-func New(registry ports.RegistryStore, patterns ports.PatternStore, proposals ports.ProposalStore, candidates ports.CandidateStore, clock ports.Clock) *Service {
-	return &Service{authorizer: authz.NewAuthorizer(registry, clock), registry: registry, patterns: patterns, proposals: proposals, candidates: candidates, clock: clock}
+func New(_ ports.RegistryStore, patterns ports.PatternStore, proposals ports.ProposalStore, candidates ports.CandidateStore, clock ports.Clock, policies ...ports.ActivationPolicyStore) *Service {
+	var policyStore ports.ActivationPolicyStore
+	if len(policies) > 0 {
+		policyStore = policies[0]
+	}
+	return &Service{patterns: patterns, proposals: proposals, candidates: candidates, policies: policyStore, clock: clock}
 }
 
 // CompleteRound stores the round's single atomic outcome. Fingerprints are
@@ -218,61 +223,64 @@ func (s *Service) CompleteRound(ctx context.Context, tenantID domain.TenantID, s
 	return s.proposals.CompleteProposalRound(ctx, tenantID, spaceID, outcome)
 }
 
-// Decide records the curator's accept/reject decision. An accepted decision
-// never activates the skill — activation is a separate gated action.
-func (s *Service) Decide(ctx context.Context, tenantID domain.TenantID, principalID domain.PrincipalID, spaceID domain.SpaceID, decision CandidateDecision) (CandidateDecision, bool, error) {
-	if err := s.authorize(ctx, tenantID, principalID, spaceID, domain.GrantOperationCandidateDecide); err != nil {
-		return CandidateDecision{}, false, err
+// Activate resolves an exact immutable Arm C policy decision and independently
+// revalidates its candidate, evaluation, coverage, policy binding, and expected
+// active version. It accepts no caller-supplied principal, human decision,
+// candidate digest, evaluation digest, or activation CAS value.
+func (s *Service) Activate(ctx context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, ref ActivationPolicyDecisionRef) (SkillActivation, bool, error) {
+	if s.policies == nil {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_UNAVAILABLE", "policy-driven activation requires an activation policy store")
 	}
-	if decision.Decision != "accepted" && decision.Decision != "rejected" {
-		return CandidateDecision{}, false, domain.NewProtocolError(422, "INVALID_REQUEST", "decision must be accepted or rejected")
-	}
-	decision.DecidedBy = principalID
-	decision.DecidedAt = s.clock.Now()
-	created, err := s.candidates.DecideCandidate(ctx, decision)
-	if err != nil {
-		return CandidateDecision{}, false, err
-	}
-	return decision, created, nil
-}
-
-// Activate promotes an accepted candidate into the active skill version. The
-// gate chain is server-side: a human curator principal, a fresh exact-Space
-// curation grant, and an accepted candidate — agents cannot activate, and no
-// other purpose can.
-func (s *Service) Activate(ctx context.Context, tenantID domain.TenantID, principalID domain.PrincipalID, spaceID domain.SpaceID, activation SkillActivation) (SkillActivation, bool, error) {
-	if s.registry != nil {
-		principal, err := s.registry.Principal(ctx, tenantID, principalID)
-		if err != nil {
-			return SkillActivation{}, false, err
-		}
-		if principal.Kind != domain.PrincipalHuman {
-			return SkillActivation{}, false, domain.NewProtocolError(403, "GRANT_MISSING", "only a human curator can activate a skill")
-		}
-	}
-	if err := s.authorize(ctx, tenantID, principalID, spaceID, domain.GrantOperationCandidateActivate); err != nil {
-		return SkillActivation{}, false, err
-	}
-	candidate, err := s.candidates.Candidate(ctx, tenantID, spaceID, activation.CandidateID)
+	decision, err := s.policies.ActivationPolicyDecision(ctx, tenantID, spaceID, ref)
 	if err != nil {
 		return SkillActivation{}, false, err
 	}
-	if candidate.Status != domain.CandidateAccepted {
-		return SkillActivation{}, false, domain.NewProtocolError(409, "CANDIDATE_NOT_ACCEPTED", "activation requires an accepted candidate")
+	if decision.Ref() != ref || domain.ActivationPolicyDecisionDigest(decision) != ref.Digest {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_INVALID", "activation policy decision does not match its exact immutable reference")
 	}
-	activation.ActivatedBy = principalID
-	activation.ActivatedAt = s.clock.Now()
-	activation.NewArtifactVersion = activation.ExpectedBaseVersion + 1
-	created, err := s.candidates.ActivateCandidate(ctx, activation)
+	if decision.Outcome != domain.ActivationOutcomeActivate {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_REJECTED", "activation policy decision does not authorize activation")
+	}
+	candidate, err := s.candidates.Candidate(ctx, tenantID, spaceID, decision.CandidateID)
+	if err != nil {
+		return SkillActivation{}, false, err
+	}
+	if candidate.Diff.CandidateArtifactHash != decision.CandidateDigest || candidate.BaseArtifactVersion != decision.ExpectedActiveVersion {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_MISMATCH", "policy decision candidate binding or expected active version differs from the authoritative candidate")
+	}
+	evaluation, err := s.policies.ArmCEvaluation(ctx, tenantID, spaceID, decision.EvaluationRef)
+	if err != nil {
+		return SkillActivation{}, false, err
+	}
+	if evaluation.Ref() != decision.EvaluationRef || !evaluation.Passed || evaluation.CandidateID != candidate.CandidateID || evaluation.CandidateDigest != decision.CandidateDigest {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_MISMATCH", "Arm C evaluation does not exactly authorize the policy decision")
+	}
+	coverage, err := s.policies.CoverageProof(ctx, tenantID, spaceID, decision.CoverageRef)
+	if err != nil {
+		return SkillActivation{}, false, err
+	}
+	if coverage.Ref() != decision.CoverageRef || coverage.ThresholdPolicyRef != decision.PolicyRef || coverage.IndependentLineageCount < 1 || coverage.IndependentContextProfileCount < 1 {
+		return SkillActivation{}, false, domain.NewProtocolError(409, "ACTIVATION_POLICY_MISMATCH", "coverage proof does not exactly authorize the policy decision")
+	}
+	activation := SkillActivation{
+		ActivationID:        decision.DecisionID,
+		CandidateID:         candidate.CandidateID,
+		DecisionID:          decision.DecisionID,
+		ReplayResultID:      decision.EvaluationRef.EvaluationID,
+		CandidateDigest:     decision.CandidateDigest,
+		ExpectedBaseVersion: decision.ExpectedActiveVersion,
+		NewArtifactVersion:  decision.ExpectedActiveVersion + 1,
+		ActivatedAt:         s.clock.Now(),
+		DecisionRef:         decision.Ref(),
+		EvaluationRef:       decision.EvaluationRef,
+		CoverageRef:         decision.CoverageRef,
+		PolicyRef:           decision.PolicyRef,
+	}
+	created, err := s.policies.ActivatePolicyDecision(ctx, activation)
 	if err != nil {
 		return SkillActivation{}, false, err
 	}
 	return activation, created, nil
-}
-
-func (s *Service) authorize(ctx context.Context, tenantID domain.TenantID, principalID domain.PrincipalID, spaceID domain.SpaceID, operation domain.GrantOperation) error {
-	_, err := s.authorizer.AuthorizeExact(ctx, authz.Identity{TenantID: tenantID, PrincipalID: principalID}, []domain.SpaceID{spaceID}, domain.GrantPurposeCuration, operation)
-	return err
 }
 
 func isNotFound(err error) bool {

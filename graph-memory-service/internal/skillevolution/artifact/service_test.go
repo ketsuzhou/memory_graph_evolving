@@ -354,7 +354,7 @@ func TestArtifactFixtureMatrix(t *testing.T) {
 			if obj == nil {
 				continue
 			}
-			if sv, _ := contract.AsString(obj["schema_version"]); sv != "gms.skill-artifact.v1" {
+			if sv, _ := contract.AsString(obj["schema_version"]); sv != "gms.skill-artifact.v2" {
 				continue
 			}
 			_, err := svc.Canonicalize(deepCopy(obj))

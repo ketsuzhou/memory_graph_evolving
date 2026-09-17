@@ -547,8 +547,9 @@ func canonicalEnvelopeOf(value any) map[string]any {
 	return obj
 }
 
-// dependencies extracts and canonically orders the explicit dependency refs
-// of one resolved node (Composite children only in the canonical v1 model).
+// dependencies extracts and canonically orders explicit Composite child refs.
+// Tool Skills are executable leaves: their package is an execution contract,
+// not a Skill graph dependency.
 func (w *walker) dependencies(node *ClosureNode) ([]contract.SkillArtifactRef, error) {
 	if node.Kind != "composite" {
 		return nil, nil
@@ -618,9 +619,9 @@ func (w *walker) permissionUnion() error {
 	}
 	sortStrings(capabilities)
 	for _, capability := range capabilities {
-		if !validation.HostCapabilityCapV1[capability] {
+		if !validation.HostCapabilityCapV2[capability] {
 			return newError(ReasonPermissionCapExceeded,
-				"closure permission union exceeds the Host v1 cap at capability %q (Contract §14.2)", capability)
+				"closure permission union exceeds the Host v2 cap at capability %q (Contract §14.2)", capability)
 		}
 	}
 	return nil

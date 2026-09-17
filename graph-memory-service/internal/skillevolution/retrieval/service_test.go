@@ -26,6 +26,7 @@ import (
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
 	"river2.dev/graph-memory-service/internal/skillevolution/proposal"
 	"river2.dev/graph-memory-service/internal/skillevolution/retrieval"
+	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 	"river2.dev/graph-memory-service/internal/skillevolution/validation"
 )
 
@@ -135,7 +136,10 @@ func newWorld(t *testing.T) *world {
 
 // service builds the retrieval service; skillGet toggles the readiness gate.
 func (w *world) service(t *testing.T, skillGet bool) *retrieval.Service {
-	t.Helper()
+	return w.serviceWithUsage(t, skillGet, nil)
+}
+
+func (w *world) serviceWithUsage(t *testing.T, skillGet bool, usage *usageprojection.UsageProjectionService) *retrieval.Service {
 	policyPath := filepath.Join(w.confDir, "policy", "tool-success-validation.v1.json")
 	toolPolicy, err := retrieval.LoadToolPolicy(policyPath)
 	if err != nil {
@@ -150,6 +154,7 @@ func (w *world) service(t *testing.T, skillGet bool) *retrieval.Service {
 		Gates:           w.gates,
 		Registry:        w.registry,
 		Policy:          toolPolicy,
+		Usage:           usage,
 		SkillGetEnabled: skillGet,
 	})
 	if err != nil {
@@ -194,7 +199,7 @@ func portRef(id string) map[string]any {
 
 func procedureEnvelope(title string) map[string]any {
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "human_procedure",
 		"title":          title,
 		"description":    "procedure body under test",
@@ -218,7 +223,7 @@ func guidanceEnvelope(title string) map[string]any {
 	branch := func(id, guidance, outcome, evidence string) map[string]any {
 		return map[string]any{"branch_id": id, "when": map[string]any{}, "action": map[string]any{"guidance": guidance, "failure_action": "stop", "evidence_refs": []any{evidenceDoc(evidence)}}, "future": map[string]any{"expected_outcome": outcome, "critical_steps": []any{}, "final_task_impact": "commit verified"}}
 	}
-	return map[string]any{"schema_version": "gms.skill-artifact.v1", "kind": "step_guidance", "title": title, "description": "step guidance body under test", "applicability": map[string]any{"predicates": []any{}, "exclusions": []any{}}, "permissions": []any{}, "body": map[string]any{"causal_context": map[string]any{"summary": "prior context", "claim_refs": []any{}}, "branches": []any{branch("b1", "run the checklist", "checked", "ev-"+title), branch("b2", "escalate on failure", "escalated", "ev-"+title+"-b2")}}}
+	return map[string]any{"schema_version": "gms.skill-artifact.v2", "kind": "step_guidance", "title": title, "description": "step guidance body under test", "applicability": map[string]any{"predicates": []any{}, "exclusions": []any{}}, "permissions": []any{}, "body": map[string]any{"causal_context": map[string]any{"summary": "prior context", "claim_refs": []any{}}, "branches": []any{branch("b1", "run the checklist", "checked", "ev-"+title), branch("b2", "escalate on failure", "escalated", "ev-"+title+"-b2")}}}
 }
 
 func skillRefDoc(ref contract.SkillArtifactRef) map[string]any {

@@ -2,7 +2,7 @@
   "case_id": "merge-neg-002-blocking-conflict",
   "expected_accept": false,
   "expected_canonical_byte_length": 7431,
-  "expected_digest": "sha256:2f7145f297c9b22ebe060ff41e65a70288650b60dee3832fdd2009fb8c1df631",
+  "expected_digest": "sha256:fe5c7a2c3584e4b43f1e7379b7c2da8355d4e1f00e1af421b2cb283b3730dbb9",
   "expected_reason_code": "MERGE_BLOCKING_CONFLICT",
   "notes": "Contract §9.4.4/§13.7: unresolved blocking conflict forbids candidate binding",
   "schema_version": "rsih-skill-evolution.conformance-expected.v1"

@@ -2,17 +2,17 @@
   "schema_version": "gms.merge-proposal.v1",
   "proposal_id": "mp-0001",
   "proposal_version": 1,
-  "proposal_digest": "sha256:59014f624a2cdbe7f0bfe47736cdad7042d54d1a607ce406a047d5ed766d034b",
+  "proposal_digest": "sha256:13abd5a1abd37fe9cdff0e81cc930b22036c4c97221521e4cade0ec6caa3bb01",
   "source_skill_refs": [
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-commit-checklist",
       "version": 3,
       "kind": "step_guidance",
       "artifact_digest": "sha256:62a2153bd17ef4ecc7781a689460e615c84b1d75c199bf2d026b33a0b1d10fd1"
     },
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-pre-push-check",
       "version": 2,
       "kind": "step_guidance",
@@ -29,7 +29,7 @@
   "source_evidence_sets": [
     {
       "source_skill_ref": {
-        "schema_version": "gms.skill-artifact-ref.v1",
+        "schema_version": "gms.skill-artifact-ref.v2",
         "lineage_id": "sg-commit-checklist",
         "version": 3,
         "kind": "step_guidance",
@@ -94,7 +94,7 @@
     },
     {
       "source_skill_ref": {
-        "schema_version": "gms.skill-artifact-ref.v1",
+        "schema_version": "gms.skill-artifact-ref.v2",
         "lineage_id": "sg-pre-push-check",
         "version": 2,
         "kind": "step_guidance",

@@ -7,7 +7,7 @@
   },
   "event_sequence": 1,
   "event_id": "pev-0001",
-  "event_digest": "sha256:94c09080b629d72e04a6ae19317d3b38934fbb9c52bafe76e9986a26f4c544b5",
+  "event_digest": "sha256:47cfb5dcc1c62400e3ab03fa03f1b709de01db46098051e45eca26de0ffb0a8b",
   "from_state": "none",
   "to_state": "proposed",
   "reason_codes": [],

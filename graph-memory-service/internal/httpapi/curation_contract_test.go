@@ -271,44 +271,13 @@ func TestProposalAndCandidateGovernedRoutes(t *testing.T) {
 		t.Fatalf("candidate read = %#v", candidateRead)
 	}
 
-	decide := map[string]any{
-		"request_id": "req-decide", "space_id": "room-shared", "decision_id": "decision-1",
-		"decision": "accepted", "candidate_digest": "digest-candidate", "replay_result_id": "replay-1",
-		"policy_version": "decision-v1", "reason": "paired replay passed",
+	for _, path := range []string{
+		"/v1/candidates/candidate-1:decide",
+		"/v1/candidates/candidate-1:activate",
+	} {
+		status, header, payload = contractJSONRequest(t, server, http.MethodPost, path, map[string]any{"request_id": "req-legacy"})
+		contractRequireError(t, status, header, payload, http.StatusNotFound, "NOT_FOUND")
 	}
-	status, _, payload = contractJSONRequest(t, server, http.MethodPost, "/v1/candidates/candidate-1:decide", decide)
-	contractRequireStatus(t, status, http.StatusCreated, payload)
-	decision := contractDecodeObject(t, payload)["decision"].(map[string]any)
-	if decision["decision"] != "accepted" || decision["decided_by"] != "host-service" {
-		t.Fatalf("decision = %#v, want accepted by the bound principal", decision)
-	}
-	status, _, payload = contractJSONRequest(t, server, http.MethodPost, "/v1/candidates/candidate-1:decide", decide)
-	contractRequireStatus(t, status, http.StatusOK, payload)
-	if duplicate := contractDecodeObject(t, payload)["duplicate"]; duplicate != true {
-		t.Fatalf("decide replay duplicate = %#v, want true", duplicate)
-	}
-	changed := map[string]any{
-		"request_id": "req-decide-2", "space_id": "room-shared", "decision_id": "decision-1",
-		"decision": "accepted", "candidate_digest": "digest-candidate", "replay_result_id": "replay-1",
-		"policy_version": "decision-v1", "reason": "changed reason",
-	}
-	status, header, payload = contractJSONRequest(t, server, http.MethodPost, "/v1/candidates/candidate-1:decide", changed)
-	contractRequireError(t, status, header, payload, http.StatusConflict, "CANDIDATE_DECISION_CONFLICT")
-
-	status, _, payload = contractRequest(t, server, http.MethodGet, "/v1/candidates/candidate-1?space_id=room-shared&request_id=req-candidate-accepted", "Bearer "+contractToken, "")
-	contractRequireStatus(t, status, http.StatusOK, payload)
-	if candidateStatus := contractDecodeObject(t, payload)["status"]; candidateStatus != "accepted" {
-		t.Fatalf("candidate status after decision = %#v, want accepted", candidateStatus)
-	}
-
-	// Acceptance is only a decision: activation behind the server-side human
-	// gate stays forbidden for the bound service principal.
-	status, header, payload = contractJSONRequest(t, server, http.MethodPost, "/v1/candidates/candidate-1:activate", map[string]any{
-		"request_id": "req-activate", "space_id": "room-shared", "activation_id": "activation-1",
-		"decision_id": "decision-1", "replay_result_id": "replay-1", "candidate_digest": "digest-candidate",
-		"expected_base_version": 4,
-	})
-	contractRequireError(t, status, header, payload, http.StatusForbidden, "GRANT_MISSING")
 }
 
 func TestCurationRoutesRejectUnknownQueryParameters(t *testing.T) {

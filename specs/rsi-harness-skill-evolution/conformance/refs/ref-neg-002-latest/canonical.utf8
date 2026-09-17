@@ -1,1 +1,1 @@
-{"artifact_digest":"sha256:027b749eb71250c73cbddd4b553900033b69e367912534d72f48857a639d579b","kind":"step_guidance","lineage_id":"sg-latest-example","schema_version":"gms.skill-artifact-ref.v1","version":"latest"}
+{"artifact_digest":"sha256:027b749eb71250c73cbddd4b553900033b69e367912534d72f48857a639d579b","kind":"step_guidance","lineage_id":"sg-latest-example","schema_version":"gms.skill-artifact-ref.v2","version":"latest"}

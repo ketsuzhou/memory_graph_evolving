@@ -59,11 +59,11 @@
    "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
    "kind": "human_procedure",
    "lineage_id": "lin-ctr002-skill-a",
-   "schema_version": "gms.skill-artifact-ref.v1",
+   "schema_version": "gms.skill-artifact-ref.v2",
    "version": 3
   },
   "truncated": false,
-  "view_hash": "sha256:4793f93c96559c45f8ca612b6b228e1d3d4009bf092a3caba172834c42a5243f",
+  "view_hash": "sha256:09d0ff3e4c629be429ad0d67d870a0ef11f7409da71f732d6ea3621344c82183",
   "watermark": {
    "projected_through_activation_sequence": 12,
    "projection_head": "head-ctr002-0007",

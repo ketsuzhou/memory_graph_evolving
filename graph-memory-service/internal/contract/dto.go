@@ -14,8 +14,8 @@ import (
 // Schema version constants of the shared DTOs referenced by this adapter
 // (Contract §7).
 const (
-	SchemaSkillArtifactRef     = "gms.skill-artifact-ref.v1"
-	SchemaCandidateArtifactRef = "gms.candidate-artifact-ref.v1"
+	SchemaSkillArtifactRef     = "gms.skill-artifact-ref.v2"
+	SchemaCandidateArtifactRef = "gms.candidate-artifact-ref.v2"
 	SchemaEvidenceRef          = "gms.evidence-ref.v1"
 	SchemaSimilarityAssessment = "gms.similarity-assessment.v1"
 	SchemaMergeProposalEvent   = "gms.merge-proposal-event.v1"
@@ -155,6 +155,7 @@ var skillKinds = map[string]bool{
 	"human_procedure": true,
 	"step_guidance":   true,
 	"composite":       true,
+	"tool":            true,
 }
 
 // SkillArtifactRef is the Contract §7.3 exact ref: identity is the triple

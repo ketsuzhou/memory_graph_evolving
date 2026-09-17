@@ -355,48 +355,6 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/Internal'}
         '503': {$ref: '#/components/responses/Unavailable'}
-  /v1/candidates/{candidate_id}:decide:
-    parameters:
-      - {$ref: '#/components/parameters/CandidateID'}
-    post:
-      operationId: decideCandidate
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/DecideCandidateRequest'}
-      responses:
-        '200': {$ref: '#/components/responses/CandidateDecideOK'}
-        '201': {$ref: '#/components/responses/CandidateDecideCreated'}
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '403': {$ref: '#/components/responses/Forbidden'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '409': {$ref: '#/components/responses/Conflict'}
-        '422': {$ref: '#/components/responses/Unprocessable'}
-        '500': {$ref: '#/components/responses/Internal'}
-        '503': {$ref: '#/components/responses/Unavailable'}
-  /v1/candidates/{candidate_id}:activate:
-    parameters:
-      - {$ref: '#/components/parameters/CandidateID'}
-    post:
-      operationId: activateCandidate
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/ActivateCandidateRequest'}
-      responses:
-        '200': {$ref: '#/components/responses/CandidateActivateOK'}
-        '201': {$ref: '#/components/responses/CandidateActivateCreated'}
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '403': {$ref: '#/components/responses/Forbidden'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '409': {$ref: '#/components/responses/Conflict'}
-        '422': {$ref: '#/components/responses/Unprocessable'}
-        '500': {$ref: '#/components/responses/Internal'}
-        '503': {$ref: '#/components/responses/Unavailable'}
 components:
   securitySchemes:
     bearerAuth:

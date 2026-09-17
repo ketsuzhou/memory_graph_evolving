@@ -446,7 +446,7 @@ def _candidate_released_equality_issue(value):
 def _kind_drift_issue(value):
     groups: "dict[tuple, set]" = {}
     for holder in iter_dicts(value):
-        if holder.get("schema_version") == "gms.skill-artifact-ref.v1":
+        if holder.get("schema_version") == "gms.skill-artifact-ref.v2":
             key = (
                 holder.get("lineage_id"),
                 holder.get("version"),

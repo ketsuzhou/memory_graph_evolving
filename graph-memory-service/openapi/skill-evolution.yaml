@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: River2 GMS Skill Evolution — Closure Read and Memory Tools
-  version: 1.1.0-gms206
+  version: 2.0.0-gms209
   description: >-
     Private GMS surface exposing (a) the exact materialization closure read
     (GMS-207) consumed by the RSI-Harness materializer (Contract 6.2.1/13.7,
@@ -126,6 +126,52 @@ paths:
         '422': {$ref: '#/components/responses/ToolUnprocessable'}
         '500': {$ref: '#/components/responses/Internal'}
         '503': {$ref: '#/components/responses/ProjectionBehind'}
+  /v1/skill-evolution/interactions:record:
+    post:
+      operationId: recordSkillInteraction
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'201': {description: Recorded}, '400': {$ref: '#/components/responses/BadRequest'}, '401': {$ref: '#/components/responses/Unauthorized'}}
+  /v1/skill-evolution/diagnoses:record:
+    post:
+      operationId: recordDiagnosisUtility
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'201': {description: Recorded}, '400': {$ref: '#/components/responses/BadRequest'}, '401': {$ref: '#/components/responses/Unauthorized'}}
+  /v1/skill-evolution/advisory-candidates:read:
+    post:
+      operationId: readAdvisoryCandidates
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {'200': {description: Non-authoritative advisory candidates with usage summary}, '400': {$ref: '#/components/responses/BadRequest'}, '401': {$ref: '#/components/responses/Unauthorized'}}
+  /v1/skill-evolution/usage-summary:read:
+    post:
+      operationId: readUsageSummary
+      summary: Read interaction-only aggregate usage for exact subjects
+      description: >-
+        Read-only aggregate surface. The server hard-codes interaction_only:
+        diagnoses, rationale, raw evidence, individual observations, and
+        diagnostic-only records never contribute to or appear in this result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UsageSummaryReadRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/UsageSummaryReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /v1/skill-evolution/candidate-outcomes:read:
+    post:
+      operationId: readCandidateOutcomes
+      summary: Read authoritative Arm C lifecycle outcome for exact candidates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CandidateOutcomesReadRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/CandidateOutcomesReadOK'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503': {$ref: '#/components/responses/Internal'}
 components:
   securitySchemes:
     bearerAuth:
@@ -165,7 +211,7 @@ components:
       pattern: '^sha256:[0-9a-f]{64}$'
     SkillKind:
       type: string
-      enum: [procedure, step_guidance, composite]
+      enum: [human_procedure, step_guidance, composite, tool]
     SkillArtifactRef:
       type: object
       additionalProperties: false
@@ -173,7 +219,7 @@ components:
       properties:
         schema_version:
           type: string
-          const: gms.skill-artifact-ref.v1
+          const: gms.skill-artifact-ref.v2
         lineage_id: {$ref: '#/components/schemas/OpaqueID'}
         version:
           type: integer
@@ -660,7 +706,133 @@ components:
         content_token_count: {type: integer, minimum: 0}
         truncated: {type: boolean}
         view_hash: {$ref: '#/components/schemas/Digest'}
+    CandidateArtifactRef:
+      type: object
+      additionalProperties: false
+      required: [schema_version, candidate_id, kind, body_digest, origin_type, origin_ref]
+      properties:
+        schema_version: {type: string, const: gms.candidate-artifact-ref.v2}
+        candidate_id: {$ref: '#/components/schemas/OpaqueID'}
+        kind: {$ref: '#/components/schemas/SkillKind'}
+        body_digest: {$ref: '#/components/schemas/Digest'}
+        origin_type: {type: string, enum: [skill_proposal, merge_proposal]}
+        origin_ref: {$ref: '#/components/schemas/VersionedRef'}
+    ContextProfile:
+      type: object
+      additionalProperties: false
+      required: [schema_version, task_family, runtime_class, workspace_feature_tags, observable_guard_facts, tool_policy_ref, environment_class]
+      properties:
+        schema_version: {type: string, const: context-profile/1.0}
+        task_family: {$ref: '#/components/schemas/OpaqueID'}
+        runtime_class: {$ref: '#/components/schemas/OpaqueID'}
+        workspace_feature_tags: {type: array, items: {type: string}}
+        observable_guard_facts: {type: array, items: {type: string}}
+        tool_policy_ref: {$ref: '#/components/schemas/VersionedRef'}
+        environment_class: {$ref: '#/components/schemas/OpaqueID'}
+    UsageSubjectRef:
+      type: object
+      additionalProperties: false
+      properties:
+        skill_ref: {$ref: '#/components/schemas/SkillArtifactRef'}
+        candidate_ref: {$ref: '#/components/schemas/CandidateArtifactRef'}
+      oneOf:
+        - required: [skill_ref]
+          not: {required: [candidate_ref]}
+        - required: [candidate_ref]
+          not: {required: [skill_ref]}
+    AuthorityTier:
+      type: string
+      enum: [active, probation, advisory]
+    UsageSummaryReadRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, context_profile, subject_refs]
+      properties:
+        schema_version: {type: string, const: gms.usage-summary-read.v1}
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        context_profile: {$ref: '#/components/schemas/ContextProfile'}
+        subject_refs:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/UsageSubjectRef'}
+    UsageSummaryTierAggregate:
+      type: object
+      additionalProperties: false
+      required: [authority_tier, subject_count, adopted_count, verified_count, outcome_correlated_count, deduplicated_reuse_count]
+      properties:
+        authority_tier: {$ref: '#/components/schemas/AuthorityTier'}
+        subject_count: {type: integer, minimum: 0}
+        adopted_count: {type: integer, minimum: 0}
+        verified_count: {type: integer, minimum: 0}
+        outcome_correlated_count: {type: integer, minimum: 0}
+        deduplicated_reuse_count: {type: integer, minimum: 0}
+    UsageSummaryEntry:
+      type: object
+      additionalProperties: false
+      required: [authority_tier, subject_ref, independent_context_count, independent_lineage_count, adopted_count, verified_count, outcome_correlated_count, deduplicated_reuse_count]
+      properties:
+        authority_tier: {$ref: '#/components/schemas/AuthorityTier'}
+        subject_ref: {$ref: '#/components/schemas/UsageSubjectRef'}
+        independent_context_count: {type: integer, minimum: 0}
+        independent_lineage_count: {type: integer, minimum: 0}
+        adopted_count: {type: integer, minimum: 0}
+        verified_count: {type: integer, minimum: 0}
+        outcome_correlated_count: {type: integer, minimum: 0}
+        deduplicated_reuse_count: {type: integer, minimum: 0}
+    UsageSummaryReadResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, context_profile_digest, usage_policy_version, diagnostic_policy, authority_tier_aggregates, entries]
+      properties:
+        schema_version: {type: string, const: gms.usage-summary-read.v1}
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        context_profile_digest: {$ref: '#/components/schemas/Digest'}
+        usage_policy_version: {$ref: '#/components/schemas/OpaqueID'}
+        diagnostic_policy: {type: string, const: interaction_only}
+        authority_tier_aggregates:
+          type: array
+          items: {$ref: '#/components/schemas/UsageSummaryTierAggregate'}
+        entries:
+          type: array
+          items: {$ref: '#/components/schemas/UsageSummaryEntry'}
+    CandidateOutcomesReadRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, candidate_refs]
+      properties:
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        candidate_refs:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/CandidateArtifactRef'}
+    CandidateOutcome:
+      type: object
+      additionalProperties: false
+      required: [candidate_ref, status]
+      properties:
+        candidate_ref: {$ref: '#/components/schemas/CandidateArtifactRef'}
+        status: {type: string, enum: [activated, rejected, pending, no_evidence]}
+        decision_ref: {$ref: '#/components/schemas/VersionedRef'}
+        reason: {type: string}
+    CandidateOutcomesReadResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, outcomes]
+      properties:
+        schema_version: {type: string, const: gms.candidate-outcomes-read.v1}
+        request_id: {$ref: '#/components/schemas/OpaqueID'}
+        outcomes: {type: array, items: {$ref: '#/components/schemas/CandidateOutcome'}}
   responses:
+    CandidateOutcomesReadOK:
+      description: Exact candidate lifecycle status from the authoritative Arm C registration and policy decision store.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/CandidateOutcomesReadResponse'}
+    UsageSummaryReadOK:
+      description: Interaction-only aggregate usage summary; no diagnosis, rationale, evidence, or raw observation fields are emitted.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/UsageSummaryReadResponse'}
     ClosureReadOK:
       description: The exact materialization closure, deterministically ordered.
       content:

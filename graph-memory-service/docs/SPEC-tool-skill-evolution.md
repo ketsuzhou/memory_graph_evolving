@@ -30,8 +30,8 @@ Draft Candidate
 - Tool Candidates are never callable or patch-applying before activation as a Probation Tool Skill.
 - Held-out evaluation interaction and diagnosis evidence is diagnostic-only during that EvaluationBatch. It must not affect consolidation, validation, activation, retrieval ranking, promotion, or Applicability Envelope expansion in that batch.
 
-### Pending activation-authority decision
-The production and benchmark activation authority is intentionally unresolved. Existing GMS code requires a human curator; see [Activation authority evidence](#activation-authority-evidence-and-open-decision). No implementation may alter activation behavior until this decision is made.
+### Policy-driven activation
+Arm C policy-driven activation applies in every environment. A frozen candidate activates automatically only when the server independently verifies its matching immutable Activation Policy Decision, exact candidate digest, required Tool Contract Validation, Arm C result, coverage, policy version, and expected active version. Human curator approval is not an activation gate. The legacy human-curator path is replaced during implementation; see [Activation authority decision and legacy evidence](#activation-authority-decision-and-legacy-evidence).
 
 ## Proposal generalization
 - Existing-skill proposals cluster by affected exact skill set.
@@ -172,23 +172,10 @@ Follow-up tests, each as a separate red-green slice:
 
 Tests must call public service interfaces and assert returned states/errors, never private stores, hashes, or helper functions.
 
-## Activation authority evidence and open decision
-Current code is explicitly human-curator gated:
+## Activation authority migration note
+**Decision: C — policy-driven activation in every environment.** Arm C verification is the activation authority. The server independently revalidates immutable ActivationPolicyDecision, candidate and evaluation digests, required coverage, policy version, and expected active version before activation. Agents, proposers, Diagnosis Agents and HTTP callers cannot self-activate because they cannot mint or alter this decision.
 
-- `internal/skillproposal/service.go:221-224`: `Decide` is documented as the curator decision and requires `GrantOperationCandidateDecide`.
-- `internal/skillproposal/service.go:241-253`: `Activate` is documented as requiring a human curator, fresh exact-space curation grant, and accepted candidate.
-- `internal/skillproposal/service.go:249-250`: any principal whose kind is not `domain.PrincipalHuman` receives `403 GRANT_MISSING` with `only a human curator can activate a skill`.
-- `internal/skillproposal/service.go:253`: activation additionally requires `GrantOperationCandidateActivate` through `GrantPurposeCuration` authorization.
-
-The remaining choice is:
-
-```text
-A. human curator activation in every environment
-B. policy-driven probation activation in benchmark environments; human curator activation in production
-C. policy-driven activation in every environment
-```
-
-Recommended option: **B**. It preserves the existing production safety boundary while allowing benchmark experiments to close the Arm A/B/C loop. This is intentionally pending user decision.
+The former human-curator / curation-grant activation path is historical context only. It was replaced by the ref-only `skillproposal.Service.Activate(ctx, tenant, space, decisionRef)` path and the server-owned Arm C → policyactivation worker flow. New implementations must not reintroduce `PrincipalHuman`, curator approval, `GrantOperationCandidateActivate`, or caller-supplied activation payload as activation authority.
 
 ## Non-goals for first delivery
 

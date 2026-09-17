@@ -8,7 +8,7 @@
   },
   "root_skill_refs": [
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-commit-checklist",
       "version": 3,
       "kind": "step_guidance",
@@ -18,7 +18,7 @@
   "locked_closure": [
     {
       "skill_ref": {
-        "schema_version": "gms.skill-artifact-ref.v1",
+        "schema_version": "gms.skill-artifact-ref.v2",
         "lineage_id": "sg-commit-checklist",
         "version": 3,
         "kind": "step_guidance",
@@ -30,5 +30,5 @@
     }
   ],
   "activation_sequence_at_freeze": 7,
-  "lock_digest": "sha256:7815dc35e339c428786641306705b2f022c03db450105d52d9922ad737b44e2e"
+  "lock_digest": "sha256:8bae6a4e5bd9f09530334407826a18ce37b97b1714e327b2717494322c9a553d"
 }

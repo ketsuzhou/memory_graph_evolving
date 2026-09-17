@@ -318,7 +318,7 @@ func (h *harness) guidanceEnvelope(lineage string, branchIDs []string, predicate
 		})
 	}
 	envelope := map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          lineage + " guidance",
 		"description":    "test guidance of " + lineage,

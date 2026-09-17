@@ -2,7 +2,7 @@
   "case_id": "merge-003-merge-proposal",
   "expected_accept": true,
   "expected_canonical_byte_length": 7454,
-  "expected_digest": "sha256:a4e221d87f3f634c6122b19c0060fcbca667d173f0505b5acc5c51c68ab676fe",
+  "expected_digest": "sha256:9fc98747a188b167f7028fdb823d3538ccfbb45543d4b168e8df22fa29af5fe5",
   "notes": "Contract §16.4 #12: dual evidence sets, non-blocking resolved conflict, policies, dedup keys",
   "schema_version": "rsih-skill-evolution.conformance-expected.v1"
 }

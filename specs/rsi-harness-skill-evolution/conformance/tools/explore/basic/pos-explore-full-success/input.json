@@ -1,164 +1,164 @@
 {
- "case_id": "pos-explore-full-success",
- "read_audit": {
-  "active_head_activation_sequence": 12,
-  "agent_id": "agent-ctr002-a1",
-  "proxy_request_id": "pr-ctr002-0001",
-  "room_id": "room-ctr002-r1",
-  "schema_version": "host.read-audit.v1",
-  "scope_profile_ref": {
-   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
-   "id": "scope-memory-room-ctr002",
-   "version": 1
-  },
-  "watermark_projection_sequence": 12
- },
- "request": {
-  "agent_id": "agent-ctr002-a1",
-  "arguments": {},
-  "delivery_id": "delivery-ctr002-0001",
-  "idempotency_key": "sha256:79da9f33a1d180e06b800862feb6c356d9ce86894ef847b2f271e83919ab3705",
-  "proxy_request_id": "pr-ctr002-0001",
-  "requested_min_activation_sequence": 10,
-  "room_id": "room-ctr002-r1",
-  "schema_version": "host.tool-proxy-request.v1",
-  "scope_profile_ref": {
-   "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
-   "id": "scope-memory-room-ctr002",
-   "version": 1
-  },
-  "timeout_millis": 5000,
-  "tool_name": "memory_explore"
- },
- "result_payload": {
-  "budgets": {
-   "evidence_subcap": 4,
-   "guidance_token_budget": 2000,
-   "skill_subcap": 4,
-   "total_cap": 10,
-   "total_used": 2
-  },
-  "evidence_results": [
-   {
-    "citation": {
-     "claim": "Weekly digest citations reconcile against sealed evidence.",
-     "evidence_ref": {
-      "commit_state": "committed",
-      "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
-      "evidence_id": "ev-ctr002-0001",
-      "evidence_kind": "observation",
-      "schema_version": "gms.evidence-ref.v1",
+  "case_id": "pos-explore-full-success",
+  "read_audit": {
+    "active_head_activation_sequence": 12,
+    "agent_id": "agent-ctr002-a1",
+    "proxy_request_id": "pr-ctr002-0001",
+    "room_id": "room-ctr002-r1",
+    "schema_version": "host.read-audit.v1",
+    "scope_profile_ref": {
+      "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+      "id": "scope-memory-room-ctr002",
       "version": 1
-     }
     },
-    "evidence_ref": {
-     "commit_state": "committed",
-     "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
-     "evidence_id": "ev-ctr002-0001",
-     "evidence_kind": "observation",
-     "schema_version": "gms.evidence-ref.v1",
-     "version": 1
-    },
-    "rank_score_micros": 950000,
-    "result_type": "evidence"
-   }
-  ],
-  "explore_session_id": "exp-session-ctr002-0001",
-  "query_digest": "sha256:ff4d81de49a996a1926f98296fa4d708cfba2865239c4d3aa8f8f8868622c1d6",
-  "ranker_policy_ref": {
-   "digest": "sha256:2195be3e916f34dc1cfcd9219271b8e789de974045d7c9e6ece643805a4c79bb",
-   "id": "gms.ranker.lexical-graph.v1",
-   "version": 1
+    "watermark_projection_sequence": 12
   },
-  "schema_version": "gms.explore-result.v1",
-  "served_fences": {
-   "evidence_fence_digest": "sha256:61eb8ed84abc1de2a89cdddfc2aa8af86a75fb9e8947a4c8838eff267ea70da8",
-   "skill_fence_digest": "sha256:583bf68d36a7851c0bdad8255acb878353f09b7b7638cf8ea26031ab6ddbfaf4"
-  },
-  "skill_results": [
-   {
-    "artifact_identity_citation": {
-     "skill_ref": {
-      "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
-      "kind": "human_procedure",
-      "lineage_id": "lin-ctr002-skill-a",
-      "schema_version": "gms.skill-artifact-ref.v1",
-      "version": 3
-     }
+  "request": {
+    "agent_id": "agent-ctr002-a1",
+    "arguments": {},
+    "delivery_id": "delivery-ctr002-0001",
+    "idempotency_key": "sha256:79da9f33a1d180e06b800862feb6c356d9ce86894ef847b2f271e83919ab3705",
+    "proxy_request_id": "pr-ctr002-0001",
+    "requested_min_activation_sequence": 10,
+    "room_id": "room-ctr002-r1",
+    "schema_version": "host.tool-proxy-request.v1",
+    "scope_profile_ref": {
+      "digest": "sha256:a9c06482a59005dc88a590d7a9df512396e4f776455a23649e8c09ec21719726",
+      "id": "scope-memory-room-ctr002",
+      "version": 1
     },
-    "evidence_citations": [
-     {
-      "claim": "Procedure v3 provenance is supported by sealed observation.",
-      "evidence_ref": {
-       "commit_state": "committed",
-       "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
-       "evidence_id": "ev-ctr002-0001",
-       "evidence_kind": "observation",
-       "schema_version": "gms.evidence-ref.v1",
-       "version": 1
-      }
-     }
-    ],
-    "guidance_view": {
-     "content": "Guidance: reconcile weekly digest citations against sealed evidence before proposing a Skill revision.",
-     "content_token_count": 18,
-     "expandable_refs": [
+    "timeout_millis": 5000,
+    "tool_name": "memory_explore"
+  },
+  "result_payload": {
+    "budgets": {
+      "evidence_subcap": 4,
+      "guidance_token_budget": 2000,
+      "skill_subcap": 4,
+      "total_cap": 10,
+      "total_used": 2
+    },
+    "evidence_results": [
       {
-       "ref": {
-        "branch_id": "branch-ctr002-a1"
-       },
-       "ref_type": "branch"
+        "citation": {
+          "claim": "Weekly digest citations reconcile against sealed evidence.",
+          "evidence_ref": {
+            "commit_state": "committed",
+            "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
+            "evidence_id": "ev-ctr002-0001",
+            "evidence_kind": "observation",
+            "schema_version": "gms.evidence-ref.v1",
+            "version": 1
+          }
+        },
+        "evidence_ref": {
+          "commit_state": "committed",
+          "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
+          "evidence_id": "ev-ctr002-0001",
+          "evidence_kind": "observation",
+          "schema_version": "gms.evidence-ref.v1",
+          "version": 1
+        },
+        "rank_score_micros": 950000,
+        "result_type": "evidence"
       }
-     ],
-     "included_branch_refs": [
-      "branch-ctr002-a1"
-     ],
-     "omitted_branch_refs": [],
-     "policy_ref": {
-      "digest": "sha256:e8c0891959144f05f533813f43f8b5760726f4a635bdfc3d46230294be08403f",
-      "id": "gms.guidance-policy.default.v1",
+    ],
+    "explore_session_id": "exp-session-ctr002-0001",
+    "query_digest": "sha256:ff4d81de49a996a1926f98296fa4d708cfba2865239c4d3aa8f8f8868622c1d6",
+    "ranker_policy_ref": {
+      "digest": "sha256:2195be3e916f34dc1cfcd9219271b8e789de974045d7c9e6ece643805a4c79bb",
+      "id": "gms.ranker.lexical-graph.v1",
       "version": 1
-     },
-     "render_profile_ref": {
-      "digest": "sha256:9b3794ee3e2f935abc7ab8291ab89310e04898315e992154c7e320bdd124de72",
-      "id": "rsih.render-profile.default.v1",
-      "version": 2
-     },
-     "runtime_context_hash": "sha256:f3787883f34f39526cc5e5bfa3d10c3f6158e6cf5d61c6fce911e1531bad9d7e",
-     "schema_version": "gms.guidance-view.v1",
-     "source_skill_ref": {
-      "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
-      "kind": "human_procedure",
-      "lineage_id": "lin-ctr002-skill-a",
-      "schema_version": "gms.skill-artifact-ref.v1",
-      "version": 3
-     },
-     "truncated": false,
-     "view_hash": "sha256:258f8690df46749599cad7dbed47ef44f4ab2943e0fb83a2c215f544f600b038"
     },
-    "rank_score_micros": 900000,
-    "result_type": "skill",
-    "skill_ref": {
-     "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
-     "kind": "human_procedure",
-     "lineage_id": "lin-ctr002-skill-a",
-     "schema_version": "gms.skill-artifact-ref.v1",
-     "version": 3
+    "schema_version": "gms.explore-result.v1",
+    "served_fences": {
+      "evidence_fence_digest": "sha256:61eb8ed84abc1de2a89cdddfc2aa8af86a75fb9e8947a4c8838eff267ea70da8",
+      "skill_fence_digest": "sha256:583bf68d36a7851c0bdad8255acb878353f09b7b7638cf8ea26031ab6ddbfaf4"
+    },
+    "skill_results": [
+      {
+        "artifact_identity_citation": {
+          "skill_ref": {
+            "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
+            "kind": "human_procedure",
+            "lineage_id": "lin-ctr002-skill-a",
+            "schema_version": "gms.skill-artifact-ref.v2",
+            "version": 3
+          }
+        },
+        "evidence_citations": [
+          {
+            "claim": "Procedure v3 provenance is supported by sealed observation.",
+            "evidence_ref": {
+              "commit_state": "committed",
+              "evidence_digest": "sha256:dbf372db87d2b2c6e6a3bbcdd3f326e658242bc72b4001761e16534b9b756d74",
+              "evidence_id": "ev-ctr002-0001",
+              "evidence_kind": "observation",
+              "schema_version": "gms.evidence-ref.v1",
+              "version": 1
+            }
+          }
+        ],
+        "guidance_view": {
+          "content": "Guidance: reconcile weekly digest citations against sealed evidence before proposing a Skill revision.",
+          "content_token_count": 18,
+          "expandable_refs": [
+            {
+              "ref": {
+                "branch_id": "branch-ctr002-a1"
+              },
+              "ref_type": "branch"
+            }
+          ],
+          "included_branch_refs": [
+            "branch-ctr002-a1"
+          ],
+          "omitted_branch_refs": [],
+          "policy_ref": {
+            "digest": "sha256:e8c0891959144f05f533813f43f8b5760726f4a635bdfc3d46230294be08403f",
+            "id": "gms.guidance-policy.default.v1",
+            "version": 1
+          },
+          "render_profile_ref": {
+            "digest": "sha256:9b3794ee3e2f935abc7ab8291ab89310e04898315e992154c7e320bdd124de72",
+            "id": "rsih.render-profile.default.v1",
+            "version": 2
+          },
+          "runtime_context_hash": "sha256:f3787883f34f39526cc5e5bfa3d10c3f6158e6cf5d61c6fce911e1531bad9d7e",
+          "schema_version": "gms.guidance-view.v1",
+          "source_skill_ref": {
+            "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
+            "kind": "human_procedure",
+            "lineage_id": "lin-ctr002-skill-a",
+            "schema_version": "gms.skill-artifact-ref.v2",
+            "version": 3
+          },
+          "truncated": false,
+          "view_hash": "sha256:0fc72ab92982d350cb0a0936628b910449e44b0ee2c9b8945a32d969f2b80fee"
+        },
+        "rank_score_micros": 900000,
+        "result_type": "skill",
+        "skill_ref": {
+          "artifact_digest": "sha256:90b4322e72a4bb982e4445a790b0f49d985d8f453a12ece350b2caf4046351a5",
+          "kind": "human_procedure",
+          "lineage_id": "lin-ctr002-skill-a",
+          "schema_version": "gms.skill-artifact-ref.v2",
+          "version": 3
+        }
+      }
+    ],
+    "truncation_reason_codes": [],
+    "watermark": {
+      "projected_through_activation_sequence": 12,
+      "projection_head": "head-ctr002-0007",
+      "projection_schema_version": "gms.skill-graph.v1",
+      "projection_stream": "runtime",
+      "schema_version": "gms.projection-watermark.v1",
+      "source_ledger_digest": "sha256:ff7394ac79f8864017b3ad8ab62c4604e216aa4dd6c969d6300cdebaaa3f5cfd",
+      "state": "current",
+      "watermark_digest": "sha256:5ed66715f9a45f3b7c9286fefdfd9898129a6eed7237d32d33b504dbb5b3415e"
     }
-   }
-  ],
-  "truncation_reason_codes": [],
-  "watermark": {
-   "projected_through_activation_sequence": 12,
-   "projection_head": "head-ctr002-0007",
-   "projection_schema_version": "gms.skill-graph.v1",
-   "projection_stream": "runtime",
-   "schema_version": "gms.projection-watermark.v1",
-   "source_ledger_digest": "sha256:ff7394ac79f8864017b3ad8ab62c4604e216aa4dd6c969d6300cdebaaa3f5cfd",
-   "state": "current",
-   "watermark_digest": "sha256:5ed66715f9a45f3b7c9286fefdfd9898129a6eed7237d32d33b504dbb5b3415e"
-  }
- },
- "schema_version": "rsih-skill-evolution.tool-binding-case.v1",
- "tool_name": "memory_explore"
+  },
+  "schema_version": "rsih-skill-evolution.tool-binding-case.v1",
+  "tool_name": "memory_explore"
 }

@@ -1,1 +1,8 @@
-{"case_id":"event-001-activation","expected_accept":true,"expected_canonical_byte_length":1070,"expected_digest":"sha256:8a5b79f628a44e03a2441e80bdbb33885fd965172f9ba159703679debb9418e6","notes":"Contract §16.4 #8: first activate with accepted ReleaseDecision, CandidateRef, body_digest_equal=true, outbox key","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "event-001-activation",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 1070,
+  "expected_digest": "sha256:1c4e4716e220cc18981359e72612b990c5da301ee60da1d8c65796cef45b4195",
+  "notes": "Contract §16.4 #8: first activate with accepted ReleaseDecision, CandidateRef, body_digest_equal=true, outbox key",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

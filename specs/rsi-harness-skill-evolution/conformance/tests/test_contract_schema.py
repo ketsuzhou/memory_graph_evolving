@@ -44,8 +44,8 @@ FIX = Path(__file__).resolve().parents[1]
 # The 21 Contract 7 shared DTOs + the CTR-005 additions, pinned to the
 # exact schema_version const declared by the Contract / module specs.
 EXPECTED_SHARED_DTOS = {
-    "skill-artifact-ref.schema.json": "gms.skill-artifact-ref.v1",
-    "candidate-artifact-ref.schema.json": "gms.candidate-artifact-ref.v1",
+    "skill-artifact-ref.schema.json": "gms.skill-artifact-ref.v2",
+    "candidate-artifact-ref.schema.json": "gms.candidate-artifact-ref.v2",
     "segment-ref.schema.json": "host.segment-ref.v1",
     "checkpoint-ref.schema.json": "host.checkpoint-ref.v1",
     "evidence-ref.schema.json": "gms.evidence-ref.v1",
@@ -70,7 +70,7 @@ EXPECTED_SHARED_DTOS = {
     "memory-explore-arguments.schema.json": "gms.memory-explore-arguments.v1",
     "memory-expand-arguments.schema.json": "gms.memory-expand-arguments.v1",
     "skill-get-arguments.schema.json": "gms.skill-get-arguments.v1",
-    "skill-artifact-envelope.schema.json": "gms.skill-artifact.v1",
+    "skill-artifact-envelope.schema.json": "gms.skill-artifact.v2",
 }
 
 EXPECTED_STATE_BUNDLES = {
@@ -261,7 +261,7 @@ class SharedDtoConformance(unittest.TestCase):
             "event_type": "activate",
             "lineage_id": "lin",
             "skill_ref": {
-                "schema_version": "gms.skill-artifact-ref.v1",
+                "schema_version": "gms.skill-artifact-ref.v2",
                 "lineage_id": "lin", "version": 1, "kind": "human_procedure",
                 "artifact_digest": "sha256:" + "b" * 64,
             },

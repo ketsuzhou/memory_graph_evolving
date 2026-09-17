@@ -1,1 +1,8 @@
-{"case_id":"ref-001-minimal-skill-artifact-ref","expected_accept":true,"expected_canonical_byte_length":208,"expected_digest":"sha256:1db0f14050bf434331b29de2b6ad6cd3a36404ee810abcd655b21365954ba506","notes":"Contract §16.4 #1: minimal exact ref with (lineage_id, version, artifact_digest)","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "ref-001-minimal-skill-artifact-ref",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 208,
+  "expected_digest": "sha256:704a6f51c8896476d6a928b1aa3809b9907730d704fa26ae3c387bfd1ea074ef",
+  "notes": "Contract §16.4 #1: minimal exact ref with (lineage_id, version, artifact_digest)",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

@@ -166,9 +166,9 @@ func StableCitationID(prefix string, identityParts ...string) string {
 }
 
 type RecallRequest struct {
-	RequestID  string
-	Query      string
-	SpaceIDs   []SpaceID
+	RequestID string
+	Query     string
+	SpaceIDs  []SpaceID
 	// SpaceVersions optionally pins individual spaces to an earlier version
 	// instead of their current head — the frozen-head versions a
 	// consolidation-cut manifest publishes per space. A pinned space's read

@@ -51,7 +51,7 @@
       }
     ],
     "artifact_ref": {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "skill-alpha",
       "version": 3,
       "kind": "step_guidance",
@@ -144,14 +144,14 @@
   "bilateral": {
     "family_domain": "overlap",
     "source_a_ref": {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "skill-alpha",
       "version": 3,
       "kind": "step_guidance",
       "artifact_digest": "sha256:dedd43cd5311628440bf8771574d788c0075ec864397f27df48f12280a3eb156"
     },
     "source_b_ref": {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "skill-beta",
       "version": 2,
       "kind": "step_guidance",
@@ -174,6 +174,6 @@
     "outcome": "accept",
     "run_status": "succeeded",
     "reason_code": null,
-    "output_digest": "sha256:10cbfba0a52f85198006a37a6173bda2c459adb6afa941985b3d505d61f0b187"
+    "output_digest": "sha256:bfe9ef994759e9cde39dc545251a5c220cb494809a2331c8328b3b9fa6e9c246"
   }
 }

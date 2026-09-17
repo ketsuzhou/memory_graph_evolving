@@ -7,13 +7,13 @@ import (
 	"river2.dev/graph-memory-service/internal/contract"
 )
 
-// HostCapabilityCapV1 is the v1 Host authority capability cap (Contract
-// §7.17 tool surface / §14.2): any permission capability outside it fails
-// with PERMISSION_CAP_EXCEEDED.
-var HostCapabilityCapV1 = map[string]bool{
+// HostCapabilityCapV2 is the v2 Host authority capability cap. Tool Skill
+// execution is explicit and constrained by the v2 Tool artifact body.
+var HostCapabilityCapV2 = map[string]bool{
 	"memory_explore": true,
 	"memory_expand":  true,
 	"skill_get":      true,
+	"tool_execute":   true,
 }
 
 // Gates is the shared static-gate engine: schema shape from the authority
@@ -266,8 +266,8 @@ func (g *Gates) CheckPermissionEntry(entry any) error {
 	if !okScope || scope == "" {
 		return newError(CodeSchemaRequiredFieldMissing, "permission %q carries no explicit scope (CTR-005 permission profile)", capability)
 	}
-	if !HostCapabilityCapV1[capability] {
-		return newError(CodePermissionCapExceeded, "capability %q is outside the v1 Host authority cap", capability)
+	if !HostCapabilityCapV2[capability] {
+		return newError(CodePermissionCapExceeded, "capability %q is outside the v2 Host authority cap", capability)
 	}
 	return nil
 }

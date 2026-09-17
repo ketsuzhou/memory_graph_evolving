@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"river2.dev/graph-memory-service/internal/contract"
 	"river2.dev/graph-memory-service/internal/domain"
 )
 
@@ -254,4 +255,18 @@ func TestRecordRoundIsIdempotentAndRejectsChangedOperationDigest(t *testing.T) {
 	if err != nil || !found || stored.OperationDigest != original.OperationDigest || len(stored.Rejections) != 1 {
 		t.Fatalf("conflicting record overwrote round = (%#v, found=%v, err=%v)", stored, found, err)
 	}
+}
+
+
+func TestCandidateOutcomesMatchesActivationDecisionRatherThanActivationMapKey(t *testing.T) {
+	ctx := context.Background(); store := New()
+	ref := contract.CandidateArtifactRef{SchemaVersion: contract.SchemaCandidateArtifactRef, CandidateID: "candidate-outcome", Kind: "step_guidance", BodyDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", OriginType: "skill_proposal", OriginRef: contract.VersionedRef{ID: "proposal", Version: "1", Digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+	registration := domain.ArmCCandidateRegistration{TenantID: "tenant", SpaceID: "space", TargetSkillID: "skill", ExpectedActiveVersion: 0, CandidateRef: ref}
+	if _, err := store.RegisterArmCCandidate(ctx, registration); err != nil { t.Fatal(err) }
+	decision := domain.ActivationPolicyDecision{DecisionID: "decision-id", Version: 1, CandidateID: ref.CandidateID, CandidateDigest: ref.BodyDigest, Outcome: domain.ActivationOutcomeActivate}
+	decision.Digest = domain.ActivationPolicyDecisionDigest(decision); store.activationPolicyDecisions[decision.DecisionID] = decision
+	activation := domain.SkillActivation{ActivationID: "different-activation-id", CandidateID: ref.CandidateID, CandidateDigest: ref.BodyDigest, DecisionID: decision.DecisionID, DecisionRef: decision.Ref()}
+	store.skillActivations[ref.CandidateID] = map[string]domain.SkillActivation{activation.ActivationID: activation}
+	outcomes, err := store.CandidateOutcomes(ctx, []contract.CandidateArtifactRef{ref}); if err != nil { t.Fatal(err) }
+	if len(outcomes) != 1 || outcomes[0].Status != "activated" || outcomes[0].DecisionRef == nil || outcomes[0].DecisionRef.ID != decision.DecisionID { t.Fatalf("outcomes=%#v", outcomes) }
 }

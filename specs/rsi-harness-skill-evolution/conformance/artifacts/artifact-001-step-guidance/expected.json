@@ -1,1 +1,8 @@
-{"case_id":"artifact-001-step-guidance","expected_accept":true,"expected_canonical_byte_length":2825,"expected_digest":"sha256:b37486f496a6e9e1576d73afae3d47a0e05bc25d6202568b02eaad199adfcd73","notes":"Contract \u00a716.4 #3: three-part step guidance with success/failure/recovery branches","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-001-step-guidance",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 2825,
+  "expected_digest": "sha256:eb958c1701e85b7ecd570d104b5a80d3baf4df3d02faf09bc6f7d5c79d38c065",
+  "notes": "Contract §16.4 #3: three-part step guidance with success/failure/recovery branches",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

@@ -13,7 +13,7 @@ package contract
 
 // Frozen schema_version markers (Contract §7, §16 fixtures).
 const (
-	SchemaSkillArtifactRef   = "gms.skill-artifact-ref.v1"
+	SchemaSkillArtifactRef   = "gms.skill-artifact-ref.v2"
 	SchemaCandidateRef       = "gms.candidate-artifact-ref.v1"
 	SchemaEvidenceRef        = "gms.evidence-ref.v1"
 	SchemaActivationEvent    = "gms.activation-event.v1"
@@ -42,7 +42,7 @@ type SkillArtifactRef struct {
 }
 
 // AsSkillArtifactRef views v as a SkillArtifactRef. ok requires an object
-// carrying the gms.skill-artifact-ref.v1 marker.
+// carrying the gms.skill-artifact-ref.v2 marker.
 func AsSkillArtifactRef(v Value) (SkillArtifactRef, bool) {
 	obj, ok := v.(*Object)
 	if !ok {

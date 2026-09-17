@@ -62,22 +62,26 @@ type snapshot struct {
 	RetrievalReplayPlans   map[string]domain.RetrievalReplayPlan                                                        `json:"retrieval_replay_plans"`
 	RetrievalReplayResults map[domain.ConsolidationRoundID]domain.CandidateStats                                        `json:"retrieval_replay_results"`
 
-	PatternRevisions         map[domain.TenantID]map[domain.SpaceID]map[string]map[int64]domain.PatternRevision           `json:"pattern_revisions"`
-	PatternLatest            map[domain.TenantID]map[domain.SpaceID]map[string]int64                                      `json:"pattern_latest"`
-	ProposalRounds           map[domain.TenantID]map[domain.SpaceID]map[string]domain.ProposalRoundOutcome                `json:"proposal_rounds"`
-	Proposals                map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillProposal                       `json:"proposals"`
-	ProposalFingerprintIndex map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]string                 `json:"proposal_fingerprint_index"`
-	RejectionMemory          map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]domain.RejectionMemory `json:"rejection_memory"`
-	ReviewedDiffs            map[string]domain.ReviewedDiff                                                               `json:"reviewed_diffs"`
-	Candidates               map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillCandidate                      `json:"candidates"`
-	CandidateByProposal      map[string]string                                                                            `json:"candidate_by_proposal"`
-	PairedReplayPlans        map[string]domain.PairedReplayPlan                                                           `json:"paired_replay_plans"`
-	PairedReplayTrials       map[string]map[domain.ReplayArm]map[int]domain.PairedReplayTrial                             `json:"paired_replay_trials"`
-	PairedReplayResults      map[string]domain.PairedReplayResult                                                         `json:"paired_replay_results"`
-	MutationBacktestResults  map[string]any                                                                               `json:"mutation_backtest_results"`
-	CandidateDecisions       map[string]domain.CandidateDecision                                                          `json:"candidate_decisions"`
-	SkillActivations         map[string]map[string]domain.SkillActivation                                                 `json:"skill_activations"`
-	ActiveSkillVersions      map[string]int64                                                                             `json:"active_skill_versions"`
+	PatternRevisions          map[domain.TenantID]map[domain.SpaceID]map[string]map[int64]domain.PatternRevision           `json:"pattern_revisions"`
+	PatternLatest             map[domain.TenantID]map[domain.SpaceID]map[string]int64                                      `json:"pattern_latest"`
+	ProposalRounds            map[domain.TenantID]map[domain.SpaceID]map[string]domain.ProposalRoundOutcome                `json:"proposal_rounds"`
+	Proposals                 map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillProposal                       `json:"proposals"`
+	ProposalFingerprintIndex  map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]string                 `json:"proposal_fingerprint_index"`
+	RejectionMemory           map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]domain.RejectionMemory `json:"rejection_memory"`
+	ReviewedDiffs             map[string]domain.ReviewedDiff                                                               `json:"reviewed_diffs"`
+	Candidates                map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillCandidate                      `json:"candidates"`
+	ArmCCandidates            map[domain.TenantID]map[domain.SpaceID]map[string]domain.ArmCCandidateRegistration           `json:"arm_c_candidates"`
+	CandidateByProposal       map[string]string                                                                            `json:"candidate_by_proposal"`
+	PairedReplayPlans         map[string]domain.PairedReplayPlan                                                           `json:"paired_replay_plans"`
+	PairedReplayTrials        map[string]map[domain.ReplayArm]map[int]domain.PairedReplayTrial                             `json:"paired_replay_trials"`
+	PairedReplayResults       map[string]domain.PairedReplayResult                                                         `json:"paired_replay_results"`
+	MutationBacktestResults   map[string]any                                                                               `json:"mutation_backtest_results"`
+	CandidateDecisions        map[string]domain.CandidateDecision                                                          `json:"candidate_decisions"`
+	ActivationPolicyDecisions map[string]domain.ActivationPolicyDecision                                                   `json:"activation_policy_decisions"`
+	ArmCEvaluations           map[string]domain.ArmCEvaluation                                                             `json:"arm_c_evaluations"`
+	CoverageProofs            map[string]domain.CoverageProof                                                              `json:"coverage_proofs"`
+	SkillActivations          map[string]map[string]domain.SkillActivation                                                 `json:"skill_activations"`
+	ActiveSkillVersions       map[string]int64                                                                             `json:"active_skill_versions"`
 }
 
 type snapshotPublishedOrder struct {
@@ -232,12 +236,16 @@ func (s *Store) Restore(image []byte) error {
 	s.rejectionMemory = orEmptyMap(data.RejectionMemory)
 	s.reviewedDiffs = orEmptyMap(data.ReviewedDiffs)
 	s.candidates = orEmptyMap(data.Candidates)
+	s.armCCandidates = orEmptyMap(data.ArmCCandidates)
 	s.candidateByProposal = orEmptyMap(data.CandidateByProposal)
 	s.pairedReplayPlans = orEmptyMap(data.PairedReplayPlans)
 	s.pairedReplayTrials = orEmptyMap(data.PairedReplayTrials)
 	s.pairedReplayResults = orEmptyMap(data.PairedReplayResults)
 	s.mutationBacktestResults = orEmptyMap(data.MutationBacktestResults)
 	s.candidateDecisions = orEmptyMap(data.CandidateDecisions)
+	s.activationPolicyDecisions = orEmptyMap(data.ActivationPolicyDecisions)
+	s.armCEvaluations = orEmptyMap(data.ArmCEvaluations)
+	s.coverageProofs = orEmptyMap(data.CoverageProofs)
 	s.skillActivations = orEmptyMap(data.SkillActivations)
 	s.activeSkillVersions = orEmptyMap(data.ActiveSkillVersions)
 	return nil
@@ -338,22 +346,26 @@ func (s *Store) toSnapshot() *snapshot {
 		RetrievalReplayPlans:   s.retrievalReplayPlans,
 		RetrievalReplayResults: s.retrievalReplayResults,
 
-		PatternRevisions:         s.patternRevisions,
-		PatternLatest:            s.patternLatest,
-		ProposalRounds:           s.proposalRounds,
-		Proposals:                s.proposals,
-		ProposalFingerprintIndex: s.proposalFingerprintIndex,
-		RejectionMemory:          s.rejectionMemory,
-		ReviewedDiffs:            s.reviewedDiffs,
-		Candidates:               s.candidates,
-		CandidateByProposal:      s.candidateByProposal,
-		PairedReplayPlans:        s.pairedReplayPlans,
-		PairedReplayTrials:       s.pairedReplayTrials,
-		PairedReplayResults:      s.pairedReplayResults,
-		MutationBacktestResults:  s.mutationBacktestResults,
-		CandidateDecisions:       s.candidateDecisions,
-		SkillActivations:         s.skillActivations,
-		ActiveSkillVersions:      s.activeSkillVersions,
+		PatternRevisions:          s.patternRevisions,
+		PatternLatest:             s.patternLatest,
+		ProposalRounds:            s.proposalRounds,
+		Proposals:                 s.proposals,
+		ProposalFingerprintIndex:  s.proposalFingerprintIndex,
+		RejectionMemory:           s.rejectionMemory,
+		ReviewedDiffs:             s.reviewedDiffs,
+		Candidates:                s.candidates,
+		ArmCCandidates:            s.armCCandidates,
+		CandidateByProposal:       s.candidateByProposal,
+		PairedReplayPlans:         s.pairedReplayPlans,
+		PairedReplayTrials:        s.pairedReplayTrials,
+		PairedReplayResults:       s.pairedReplayResults,
+		MutationBacktestResults:   s.mutationBacktestResults,
+		CandidateDecisions:        s.candidateDecisions,
+		ActivationPolicyDecisions: s.activationPolicyDecisions,
+		ArmCEvaluations:           s.armCEvaluations,
+		CoverageProofs:            s.coverageProofs,
+		SkillActivations:          s.skillActivations,
+		ActiveSkillVersions:       s.activeSkillVersions,
 	}
 	data.StageKeys = make([]snapshotStageKey, 0)
 	for tenant, byKey := range s.stageKeys {

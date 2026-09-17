@@ -1,1 +1,9 @@
-{"case_id":"artifact-neg-001-required-extension","expected_accept":false,"expected_canonical_byte_length":960,"expected_digest":"sha256:b312fb55e4c4c82b70d1598e7a45b165de575d179fa32a4c72e7533d708e1f6d","expected_reason_code":"UNKNOWN_REQUIRED_EXTENSION","notes":"Contract \u00a71.3.3/\u00a76.4: unknown required extension must fail closed","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-neg-001-required-extension",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 960,
+  "expected_digest": "sha256:1d5558d34c8110595b7f615ceca5434b9c557e2f52c00e9353f9ad3aadba499a",
+  "expected_reason_code": "UNKNOWN_REQUIRED_EXTENSION",
+  "notes": "Contract §1.3.3/§6.4: unknown required extension must fail closed",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

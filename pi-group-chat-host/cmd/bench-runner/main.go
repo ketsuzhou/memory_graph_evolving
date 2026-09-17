@@ -170,6 +170,7 @@ type attemptRecord struct {
 	EpisodeID       string            `json:"episode_id"`
 	FamilyID        string            `json:"family_id"`
 	Role            string            `json:"role,omitempty"`
+	Split           string            `json:"split,omitempty"`
 	Arm             string            `json:"arm"`
 	RoomID          string            `json:"room_id,omitempty"` // warm-skill test episodes: frozen-state room differs per episode
 	MemoryPolicy    string            `json:"memory_policy"`
@@ -214,6 +215,21 @@ type attemptRecord struct {
 	SkillRetrievalSHA256 string  `json:"skill_retrieval_sha256,omitempty"` // comma-joined quoted fingerprints
 	SkillRetrievalText   *string `json:"skill_retrieval_text,omitempty"`   // the verbatim published note
 	SkillRetrievalRecall string  `json:"skill_retrieval_recall,omitempty"` // retrieval turn's own recall state
+	// Arm B telemetry is deliberately outside the grading bridge. Reporting
+	// failures are observable but never change status, output, or local-ledger authority.
+	SkillEvolutionInteractionReports  int `json:"skill_evolution_interaction_reports,omitempty"`
+	SkillEvolutionInteractionFailures int `json:"skill_evolution_interaction_failures,omitempty"`
+	SkillEvolutionDiagnosisReports    int `json:"skill_evolution_diagnosis_reports,omitempty"`
+	SkillEvolutionDiagnosisFailures   int `json:"skill_evolution_diagnosis_failures,omitempty"`
+	SkillEvolutionAdvisoryCandidates  int `json:"skill_evolution_advisory_candidates,omitempty"`
+	SkillEvolutionAdvisoryFailures    int `json:"skill_evolution_advisory_failures,omitempty"`
+	// C3 provenance fields are non-grading audit telemetry. GMS advisory is
+	// primary; local ledger material is recorded only as comparison context.
+	SkillAdvisoryReadStatus            string          `json:"skill_advisory_read_status,omitempty"`
+	SkillRetrievalSource               string          `json:"skill_retrieval_source,omitempty"`
+	SkillRetrievalAdvisoryCount        int             `json:"skill_retrieval_advisory_count,omitempty"`
+	SkillRetrievalLocalComparisonCount int             `json:"skill_retrieval_local_comparison_count,omitempty"`
+	SkillExposure                      []skillExposure `json:"skill_exposure,omitempty"`
 	// FrozenSkillVersion identifies the immutable consolidated skill ledger used by every held-out episode.
 	FrozenSkillVersion  string `json:"frozen_skill_version,omitempty"`
 	ConsolidationRoomID string `json:"consolidation_room_id,omitempty"`
@@ -468,6 +484,7 @@ type armConfig struct {
 	userSimURL       string
 	userSimModel     string
 	sidecarURL       string
+	armBReporter     *armBReporter
 }
 
 // gmsInstance is one arm-private graph-memory-service process. The service is
@@ -550,6 +567,21 @@ func (instance *gmsInstance) stop() {
 func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) error {
 	tenantID := sanitizeID(config.evaluationID) + "-" + config.arm + "-t"
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 10 * time.Second}, 1<<20)
+	var summary *c3ArmSummary
+	originalEmit := emit
+	emit = func(record attemptRecord) {
+		if summary != nil {
+			summary.observe(record)
+		}
+		originalEmit(record)
+	}
+	if isSkillArm(config.arm) {
+		// Arm B uses the existing GMS endpoint and is fail-open by construction:
+		// telemetry outages must not change task execution or grading.
+		config.armBReporter = newArmBReporter(client, func(format string, args ...any) { fmt.Printf(format, args...) })
+		summary = &c3ArmSummary{SchemaVersion: "pi-group-chat-host.c3-arm-summary.v1", Arm: config.arm, ExposureSources: map[string]int{}}
+		defer writeC3ArmSummary(config, config.armBReporter, summary)
+	}
 
 	if _, err := client.InitializeTenant(ctx, ports.InitializeTenantRequest{
 		TenantID: tenantID, DisplayName: "Bench evaluation tenant (" + config.arm + ")", BootstrapPrincipalID: "host-service",
@@ -814,6 +846,7 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 				EpisodeID:       episode.EpisodeID,
 				FamilyID:        episode.FamilyID,
 				Role:            episode.Role,
+				Split:           episode.Split,
 				Arm:             config.arm,
 				RoomID:          episodeRoomID,
 				MemoryPolicy:    config.policy,
@@ -1266,10 +1299,11 @@ const retrievalPromptHead = "Skill retrieval turn. For this one turn you act as 
 const streamRetrievalPromptHead = "Skill retrieval turn. For this one turn you act as this room's diagnosis agent. The next task of the ongoing stream is about to start in this room; its prompt is quoted at the end of this message. The skill ledger distilled from earlier episodes is available through the skills_list tool: call it with chunk 0 first — every response header states total_chunks — and read as many chunks as you need.\n\n1. Decide which ledger proposals genuinely apply to this task: the trigger must match the task's shape. Select at most 3.\n2. Publish via room_send one message addressed to both teammates, starting exactly with \"@task-agent @memory-agent\", then one block per selected skill:\n[skill <sha256 prefix> from episode <episode id>]\n<the verbatim proposal text>\n\nQuote each skill's sha256 prefix and source episode exactly as the ledger states them. If no proposal applies, publish exactly: NO_SKILL_APPLICABLE. Solving the quoted task belongs to the task agent's upcoming turn, not to this retrieval turn.\n\n--- upcoming task ---\n"
 
 type skillProposal struct {
-	Sequence  int    `json:"sequence"`
-	EpisodeID string `json:"episode_id"`
-	SHA256    string `json:"sha256"`
-	Text      string `json:"text"`
+	Sequence    int                                      `json:"sequence"`
+	EpisodeID   string                                   `json:"episode_id"`
+	SHA256      string                                   `json:"sha256"`
+	Text        string                                   `json:"text"`
+	AdvisoryRef *memoryclient.SkillEvolutionCandidateRef `json:"advisory_ref,omitempty"`
 }
 
 // savedTrajectory is one train task's finished trajectory, persisted to the
@@ -1421,16 +1455,19 @@ func runDiagnosisTurn(ctx context.Context, session *runtime.Session, input diagn
 		input.record.SkillProposalsTotal = len((*input.ledger)[input.family])
 		return nil
 	}
+	var accepted []skillProposal
 	if reply := finalAgentOutput(turn.Messages, "agent-memory"); reply == nil {
 		input.record.SkillProposalStatus = "no_reply"
 	} else {
 		proposals := splitSkillProposals(*reply)
 		var added []skillProposal
+		acceptedFingerprints := map[string]bool{}
 		var fingerprints []string
 		for _, text := range proposals {
 			fingerprint := skillFingerprint(text)
 			fingerprints = append(fingerprints, fingerprint)
-			if !skillLedgerHas(*input.ledger, input.family, fingerprint) {
+			if !acceptedFingerprints[fingerprint] && !skillLedgerHas(*input.ledger, input.family, fingerprint) {
+				acceptedFingerprints[fingerprint] = true
 				added = append(added, skillProposal{Sequence: input.sequence, EpisodeID: input.episodeID, SHA256: fingerprint, Text: text})
 			}
 		}
@@ -1442,6 +1479,7 @@ func runDiagnosisTurn(ctx context.Context, session *runtime.Session, input diagn
 			input.record.SkillProposalStatus = "duplicate"
 		default:
 			input.record.SkillProposalStatus, input.record.SkillProposalCount = "published", len(added)
+			accepted = append(accepted, added...)
 			skillsDir := filepath.Join(config.outDir, "work-"+config.arm, "skills")
 			if err := os.MkdirAll(skillsDir, 0o755); err != nil {
 				return fmt.Errorf("skill proposal dir: %w", err)
@@ -1462,6 +1500,11 @@ func runDiagnosisTurn(ctx context.Context, session *runtime.Session, input diagn
 	drainCancel()
 	if drainErr != nil {
 		input.record.SkillProposalStatus = "error"
+	}
+	for _, proposal := range accepted {
+		if config.armBReporter != nil {
+			config.armBReporter.reportDiagnosis(ctx, input.record, proposal, armBEvaluationBatchID(input.record))
+		}
 	}
 	return nil
 }
@@ -1751,8 +1794,21 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	if err := os.MkdirAll(retDir, 0o755); err != nil {
 		return fmt.Errorf("retrieval work dir: %w", err)
 	}
+	// C3 formal source: GMS advisory is the only model-visible skill input.
+	// The runner-local ledger stays available solely for comparison telemetry.
+	localComparison := append([]skillProposal(nil), (*input.ledger)[input.family]...)
+	advisory := []skillProposal(nil)
+	if config.armBReporter != nil {
+		advisory, _ = config.armBReporter.advisoryLedger(ctx, input.record)
+	} else {
+		input.record.SkillAdvisoryReadStatus = "not_configured"
+	}
+	guidance, source := c3RetrievalGuidance(advisory, localComparison, input.record.SkillAdvisoryReadStatus)
+	input.record.SkillRetrievalSource = source
+	input.record.SkillRetrievalAdvisoryCount = len(advisory)
+	input.record.SkillRetrievalLocalComparisonCount = len(localComparison)
 	extensionPath := filepath.Join(retDir, "retrieval-extension.mjs")
-	if err := writeMemoryTurnExtension(input.extensionPath, extensionPath, skillsToolJS((*input.ledger)[input.family])); err != nil {
+	if err := writeMemoryTurnExtension(input.extensionPath, extensionPath, skillsToolJS(guidance)); err != nil {
 		return err
 	}
 	retCtx, retCancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -1784,7 +1840,8 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 		return err
 	}
 	input.record.SkillRetrievalRecall = turn.Recall.State
-	if reply := finalAgentOutput(turn.Messages, "agent-memory"); reply == nil {
+	var reply *string
+	if reply = finalAgentOutput(turn.Messages, "agent-memory"); reply == nil {
 		input.record.SkillRetrievalStatus = "no_reply"
 		input.record.SkillRetrievalText = reply
 	} else {
@@ -1809,6 +1866,9 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 		EventLogPath: filepath.Join(input.episodeDir, "host-events.jsonl"),
 	})
 	drainCancel()
+	if reply != nil && config.armBReporter != nil {
+		config.armBReporter.reportRetrievedSkills(ctx, input.record, guidance, *reply, drainErr == nil)
+	}
 	return drainErr
 }
 
@@ -1919,15 +1979,27 @@ func splitSkillProposals(reply string) []string {
 
 func splitConsolidatedSkills(reply string) []string { return splitBlocks(reply, "CONSOLIDATED SKILL") }
 
-// extractRetrievedFingerprints pulls the quoted sha256 prefixes out of a
-// retrieval agent's published note ("[skill abc123def456 from episode ...]").
-var retrievalFingerprintPattern = regexp.MustCompile(`\[skill ([0-9a-f]{6,64})`)
+// extractRetrievedSelections preserves the quoted fingerprint and episode
+// discriminator. The pair identifies distinct GMS candidates with identical
+// rendered guidance.
+type retrievedSelection struct{ Fingerprint, EpisodeID string }
+
+var retrievalSelectionPattern = regexp.MustCompile(`\[skill ([0-9a-f]{6,64}) from episode ([^\]]+)\]`)
+
+func extractRetrievedSelections(reply string) []retrievedSelection {
+	matches := retrievalSelectionPattern.FindAllStringSubmatch(reply, -1)
+	out := make([]retrievedSelection, 0, len(matches))
+	for _, match := range matches {
+		out = append(out, retrievedSelection{Fingerprint: match[1], EpisodeID: match[2]})
+	}
+	return out
+}
 
 func extractRetrievedFingerprints(reply string) []string {
-	matches := retrievalFingerprintPattern.FindAllStringSubmatch(reply, -1)
-	fingerprints := make([]string, 0, len(matches))
-	for _, match := range matches {
-		fingerprints = append(fingerprints, match[1])
+	selections := extractRetrievedSelections(reply)
+	fingerprints := make([]string, 0, len(selections))
+	for _, selection := range selections {
+		fingerprints = append(fingerprints, selection.Fingerprint)
 	}
 	return fingerprints
 }
@@ -2625,4 +2697,68 @@ func userSimulatorReply(ctx context.Context, config armConfig, sim *userSimConfi
 		return "", fmt.Errorf("user simulator returned no choices: %.200s", string(body))
 	}
 	return parsed.Choices[0].Message.Content, nil
+}
+
+type skillExposure struct {
+	Source       string                                   `json:"source"`
+	Stage        string                                   `json:"stage"`
+	CandidateRef *memoryclient.SkillEvolutionCandidateRef `json:"candidate_ref,omitempty"`
+	LocalSHA256  string                                   `json:"local_sha256,omitempty"`
+}
+
+type c3ArmSummary struct {
+	SchemaVersion      string                                        `json:"schema_version"`
+	Arm                string                                        `json:"arm"`
+	AdvisoryReadOK     int                                           `json:"advisory_read_ok"`
+	AdvisoryReadFailed int                                           `json:"advisory_read_failed"`
+	AdvisoryCandidates int                                           `json:"advisory_candidates"`
+	ExposureSources    map[string]int                                `json:"exposure_sources"`
+	CandidateRefs      []memoryclient.SkillEvolutionCandidateRef     `json:"candidate_refs"`
+	LifecycleStatus    string                                        `json:"lifecycle_evidence_status"`
+	LifecycleOutcomes  []memoryclient.SkillEvolutionCandidateOutcome `json:"lifecycle_outcomes,omitempty"`
+}
+
+func (s *c3ArmSummary) observe(record attemptRecord) {
+	if record.SkillAdvisoryReadStatus == "ok" {
+		s.AdvisoryReadOK++
+	}
+	if record.SkillAdvisoryReadStatus == "unavailable" {
+		s.AdvisoryReadFailed++
+	}
+	s.AdvisoryCandidates += record.SkillRetrievalAdvisoryCount
+	for _, exposure := range record.SkillExposure {
+		s.ExposureSources[exposure.Source]++
+		if exposure.CandidateRef != nil {
+			s.addCandidateRef(*exposure.CandidateRef)
+		}
+	}
+}
+func (s *c3ArmSummary) addCandidateRef(ref memoryclient.SkillEvolutionCandidateRef) {
+	for _, existing := range s.CandidateRefs {
+		if existing.CandidateID == ref.CandidateID && existing.BodyDigest == ref.BodyDigest {
+			return
+		}
+	}
+	s.CandidateRefs = append(s.CandidateRefs, ref)
+}
+func writeC3ArmSummary(config armConfig, reporter *armBReporter, summary *c3ArmSummary) {
+	if reporter != nil {
+		lifecycle := reporter.c3LifecycleSummary(context.Background(), summary.CandidateRefs)
+		summary.LifecycleStatus, summary.LifecycleOutcomes = lifecycle.Status, lifecycle.Outcomes
+	} else {
+		summary.LifecycleStatus = "not_configured"
+	}
+	body, err := json.MarshalIndent(summary, "", "  ")
+	if err != nil {
+		fmt.Printf("[%s] C3 arm summary warning: %v\n", config.arm, err)
+		return
+	}
+	path := filepath.Join(config.outDir, "work-"+config.arm, "arm-summary.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		fmt.Printf("[%s] C3 arm summary warning: %v\n", config.arm, err)
+		return
+	}
+	if err := os.WriteFile(path, append(body, '\n'), 0o644); err != nil {
+		fmt.Printf("[%s] C3 arm summary warning: %v\n", config.arm, err)
+	}
 }

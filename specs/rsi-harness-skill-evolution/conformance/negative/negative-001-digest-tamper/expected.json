@@ -1,1 +1,9 @@
-{"case_id":"negative-001-digest-tamper","expected_accept":false,"expected_canonical_byte_length":205,"expected_digest":"sha256:79c2048acdc00612687326c182501619977b6c18d52504d0d5601a903094f690","expected_reason_code":"DIGEST_MISMATCH","notes":"Contract \u00a716.4 negative: canonical.utf8 has one tampered byte; its digest no longer matches the canonicalization of the source","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "negative-001-digest-tamper",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 205,
+  "expected_digest": "sha256:ed13aed6c9c43605da77459a168d6d4a132023137fa20bb750e8f65695f8150a",
+  "expected_reason_code": "DIGEST_MISMATCH",
+  "notes": "Contract §16.4 negative: canonical.utf8 has one tampered byte; its digest no longer matches the canonicalization of the source",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

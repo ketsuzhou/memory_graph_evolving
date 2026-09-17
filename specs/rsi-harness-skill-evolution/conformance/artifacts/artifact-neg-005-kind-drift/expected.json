@@ -1,1 +1,9 @@
-{"case_id":"artifact-neg-005-kind-drift","expected_accept":false,"expected_canonical_byte_length":409,"expected_digest":"sha256:09dd172d4e4bd7e58e66db7794ba1bc54c3ec87aed12ab4e99991dcf6100bac7","expected_reason_code":"REF_MISMATCH","notes":"Contract \u00a76.2: same (lineage, version, digest) identity with inconsistent kind field","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-neg-005-kind-drift",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 409,
+  "expected_digest": "sha256:0442c15dd8c70df2fa69f976a2dda03b806984eba7f2b2257a5bd010106c11c2",
+  "expected_reason_code": "REF_MISMATCH",
+  "notes": "Contract §6.2: same (lineage, version, digest) identity with inconsistent kind field",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

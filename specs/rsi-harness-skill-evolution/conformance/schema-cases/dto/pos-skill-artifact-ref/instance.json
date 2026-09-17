@@ -1,5 +1,5 @@
 {
-  "schema_version": "gms.skill-artifact-ref.v1",
+  "schema_version": "gms.skill-artifact-ref.v2",
   "lineage_id": "sg-commit-checklist",
   "version": 3,
   "kind": "step_guidance",

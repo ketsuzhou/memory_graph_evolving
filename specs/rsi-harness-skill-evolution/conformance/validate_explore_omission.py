@@ -128,7 +128,7 @@ OMISSION_ENTRY_FIELDS = frozenset({"kind", "ref", "reason_code"})
 OMISSION_KINDS = ("evidence", "skill")
 REF_SCHEMA_BY_KIND = {
     "evidence": "gms.evidence-ref.v1",
-    "skill": "gms.skill-artifact-ref.v1",
+    "skill": "gms.skill-artifact-ref.v2",
 }
 
 # Contract 11.4 / 13.7.1 registry group gms-truncation-success (success
@@ -171,7 +171,7 @@ EVIDENCE_COMMIT_STATES = frozenset({"committed", "sealed"})
 
 SKILL_REF_REQUIRED = ("schema_version", "lineage_id", "version", "kind", "artifact_digest")
 SKILL_REF_CLOSED = frozenset(SKILL_REF_REQUIRED)
-SKILL_KINDS = frozenset({"human_procedure", "step_guidance", "composite"})
+SKILL_KINDS = frozenset({"human_procedure", "step_guidance", "composite", "tool"})
 
 REQUIRED_WATERMARK_FIELDS = (
     "schema_version",
@@ -218,6 +218,8 @@ OMISSION_REASON_CODES = frozenset(
         "EXPLORE_FENCE_CONFLICT",
         "PROJECTION_BEHIND_REQUIRED_SEQUENCE",
         "EXPLORE_SCOPE_VIOLATION",
+        "GUIDANCE_VIEW_HASH_MISMATCH",
+        "SCHEMA_VERSION_UNSUPPORTED",
     }
 )
 
@@ -361,7 +363,7 @@ def mk_evidence_ref(
 def mk_skill_ref(label: str, version: int = 1, kind: str = "human_procedure") -> dict:
     """Deterministic closed SkillArtifactRef for corpus/tests (7.3)."""
     return {
-        "schema_version": "gms.skill-artifact-ref.v1",
+        "schema_version": "gms.skill-artifact-ref.v2",
         "lineage_id": "lin-ctr003-%s" % label,
         "version": version,
         "kind": kind,
@@ -596,6 +598,23 @@ def _derive_omission_outcome(payload, session) -> Outcome:
     for entry in skill_results:
         if not isinstance(entry, dict) or entry.get("result_type") != "skill":
             return _fail("SCHEMA_ENUM_INVALID")
+
+    # Embedded GuidanceViews are integrity-bearing renderings. Their hash
+    # must bind the current v2 source_skill_ref before the corpus accepts any
+    # later omission/budget/freshness conclusion.
+    for entry in skill_results:
+        view = entry.get("guidance_view") if isinstance(entry, dict) else None
+        if isinstance(view, dict):
+            render = view.get("render_profile_ref")
+            if isinstance(render, dict) and (_is_non_negative_int(render.get("version")) and render["version"] < 2):
+                return _fail("SCHEMA_VERSION_UNSUPPORTED")
+            policy = view.get("policy_ref")
+            if isinstance(policy, dict) and (_is_non_negative_int(policy.get("version")) and policy["version"] < 1):
+                return _fail("SCHEMA_VERSION_UNSUPPORTED")
+            declared = view.get("view_hash")
+            derived = digest_bytes(jcs({key: val for key, val in view.items() if key != "view_hash"}))
+            if declared != derived:
+                return _fail("GUIDANCE_VIEW_HASH_MISMATCH")
 
     # Nested closed sub-objects needed by the accounting/fence obligations.
     watermark = payload.get("watermark") or {}

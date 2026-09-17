@@ -72,7 +72,7 @@
      "artifact_digest": "sha256:422427d267b4d4b2cf681907ec2a6aab8a9ec472ec2d3f52df412d04baa1010d",
      "kind": "human_procedure",
      "lineage_id": "lin-ctr003-epsilon",
-     "schema_version": "gms.skill-artifact-ref.v1",
+     "schema_version": "gms.skill-artifact-ref.v2",
      "version": 1
     }
    },
@@ -83,7 +83,7 @@
      "artifact_digest": "sha256:50b654d4245ab3babeed3bf93173b3bf1cf947ac522a64f413160de38759674e",
      "kind": "human_procedure",
      "lineage_id": "lin-ctr003-zeta",
-     "schema_version": "gms.skill-artifact-ref.v1",
+     "schema_version": "gms.skill-artifact-ref.v2",
      "version": 1
     }
    }
@@ -106,7 +106,7 @@
       "artifact_digest": "sha256:fa6754addf05757a62375f1aa78b9a4b398daf2980e68b5c9dec9a83744a6125",
       "kind": "human_procedure",
       "lineage_id": "lin-ctr003-delta",
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "version": 1
      }
     },
@@ -154,11 +154,11 @@
       "artifact_digest": "sha256:fa6754addf05757a62375f1aa78b9a4b398daf2980e68b5c9dec9a83744a6125",
       "kind": "human_procedure",
       "lineage_id": "lin-ctr003-delta",
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "version": 1
      },
      "truncated": false,
-     "view_hash": "sha256:0f408e771fcce3051be62b8f9a76f6c11f4031c8be7e440281731794574589e0"
+     "view_hash": "sha256:b4f66a251d51a83a58f4a3c4080c333b0f360d808528531595b4a0b7d93c8460"
     },
     "rank_score_micros": 900000,
     "result_type": "skill",
@@ -166,7 +166,7 @@
      "artifact_digest": "sha256:fa6754addf05757a62375f1aa78b9a4b398daf2980e68b5c9dec9a83744a6125",
      "kind": "human_procedure",
      "lineage_id": "lin-ctr003-delta",
-     "schema_version": "gms.skill-artifact-ref.v1",
+     "schema_version": "gms.skill-artifact-ref.v2",
      "version": 1
     }
    }

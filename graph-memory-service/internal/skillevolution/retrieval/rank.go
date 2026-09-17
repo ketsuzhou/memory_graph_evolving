@@ -12,6 +12,7 @@ import (
 
 	"river2.dev/graph-memory-service/internal/contract"
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
+	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 )
 
 // Frozen integer micros of the lexical-graph ranker v1.
@@ -38,6 +39,8 @@ type skillCandidate struct {
 	graph       int64
 	total       int64
 	distance    int
+	usageRank   int
+	usage       usageprojection.PriorityExplanation
 }
 
 // evidenceCandidate is one ranked committed evidence ref.
@@ -254,6 +257,9 @@ func vertexNodeRef(vertex projector.RefVertex) projector.NodeRef {
 func rankOrderSkills(skills []*skillCandidate) {
 	sort.SliceStable(skills, func(i, j int) bool {
 		a, b := skills[i], skills[j]
+		if a.usageRank != b.usageRank {
+			return a.usageRank < b.usageRank
+		}
 		if a.total != b.total {
 			return a.total > b.total
 		}

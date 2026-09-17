@@ -124,7 +124,7 @@ class GoodChain:
             "lineage_id": params.get("lineage_id", "sg-alpha"),
             "version": params.get("version", 1),
             "released_ref": {
-                "schema_version": "gms.skill-artifact-ref.v1",
+                "schema_version": "gms.skill-artifact-ref.v2",
                 "lineage_id": params.get("lineage_id", "sg-alpha"),
                 "version": params.get("version", 1),
                 "kind": params.get("kind", "step_guidance"),

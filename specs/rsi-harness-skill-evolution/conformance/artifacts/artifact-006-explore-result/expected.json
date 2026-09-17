@@ -1,1 +1,8 @@
-{"case_id":"artifact-006-explore-result","expected_accept":true,"expected_canonical_byte_length":3838,"expected_digest":"sha256:1da0caab48bc74c08e31c12512c693c28bc75c590f08a27386dbfbd663ca854f","notes":"Contract §16.4 #15: typed ExploreResult with separate identity/evidence citations, fences, budgets, watermark","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-006-explore-result",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 3838,
+  "expected_digest": "sha256:8568b9b924e1adec4b86e6ebf8022fa02b3477357786492f0570a8d1c9ff9cd8",
+  "notes": "Contract §16.4 #15: typed ExploreResult with separate identity/evidence citations, fences, budgets, watermark",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

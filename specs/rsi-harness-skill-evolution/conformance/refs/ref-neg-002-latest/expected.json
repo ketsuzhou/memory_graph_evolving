@@ -1,1 +1,9 @@
-{"case_id":"ref-neg-002-latest","expected_accept":false,"expected_canonical_byte_length":213,"expected_digest":"sha256:f58c8d83b7fac416a45b29d2ae82c383ca9b988c907247328004e67049feb6b1","expected_reason_code":"NON_EXACT_REF","notes":"`latest` is a moving pointer, not an exact version","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "ref-neg-002-latest",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 213,
+  "expected_digest": "sha256:e622b193afb4de5d88dd6afef278f33e5744e5a5b4383af24abb5e90641437ab",
+  "expected_reason_code": "NON_EXACT_REF",
+  "notes": "`latest` is a moving pointer, not an exact version",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

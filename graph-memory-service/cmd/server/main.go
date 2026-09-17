@@ -41,12 +41,18 @@ import (
 	"river2.dev/graph-memory-service/internal/recall"
 	"river2.dev/graph-memory-service/internal/retrieval"
 	"river2.dev/graph-memory-service/internal/skillevolution/activation"
+	"river2.dev/graph-memory-service/internal/skillevolution/armc"
 	"river2.dev/graph-memory-service/internal/skillevolution/artifact"
+	"river2.dev/graph-memory-service/internal/skillevolution/candidate"
+	"river2.dev/graph-memory-service/internal/skillevolution/compositehandoff"
 	"river2.dev/graph-memory-service/internal/skillevolution/ledger"
 	"river2.dev/graph-memory-service/internal/skillevolution/materializationread"
+	"river2.dev/graph-memory-service/internal/skillevolution/policyactivation"
+	"river2.dev/graph-memory-service/internal/skillevolution/probation"
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
 	"river2.dev/graph-memory-service/internal/skillevolution/proposal"
 	skillretrieval "river2.dev/graph-memory-service/internal/skillevolution/retrieval"
+	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 	"river2.dev/graph-memory-service/internal/skillevolution/validation"
 	"river2.dev/graph-memory-service/internal/skillproposal"
 	"river2.dev/graph-memory-service/internal/store/memory"
@@ -148,6 +154,8 @@ func main() {
 		cutEvents = httpapi.NewCutEventNotifierWithLogger("", nil, eventLog)
 	}
 
+	candidateStore := memory.CandidateStore{Store: store}
+	curationService := skillproposal.New(store, store, store, candidateStore, clock, candidateStore)
 	handler := httpapi.NewHandler(httpapi.Dependencies{
 		Token:             config.token,
 		Registry:          store,
@@ -159,8 +167,8 @@ func main() {
 		DiveJudge:         dive.New(store, dive.NewDeterministicScorer(), clock),
 		Patterns:          store,
 		Proposals:         store,
-		Candidates:        memory.CandidateStore{Store: store},
-		Curation:          skillproposal.New(store, store, store, memory.CandidateStore{Store: store}, clock),
+		Candidates:        candidateStore,
+		Curation:          curationService,
 		Clock:             clock,
 		ConsolidationCuts: cutService,
 		CutFreezer:        cutFreezer,
@@ -215,9 +223,21 @@ func main() {
 		log.Fatal(err)
 	}
 	if skillEvolutionEnabled {
-		skillEvolution, err = newProjectorWorker(eventLog, skillEvolutionPoll, config.token)
+		skillEvolution, err = newProjectorWorker(eventLog, skillEvolutionPoll, config.token, config.state, candidateStore)
 		if err != nil {
 			log.Fatal(err)
+		}
+		if config.state != "" {
+			usageStatePath := config.state + ".usage-projection.json"
+			if err := skillEvolution.usageStore.LoadFromFile(usageStatePath); err != nil {
+				log.Fatalf("server: load usage projection state %s: %v", usageStatePath, err)
+			}
+			skillEvolution.usageStore.SetCheckpoint(func([]byte) error {
+				statePersistMu.Lock()
+				defer statePersistMu.Unlock()
+				return skillEvolution.usageStore.PersistToFile(usageStatePath)
+			})
+			bootFields["usage_projection_state_path"] = usageStatePath
 		}
 		bootFields["skill_evolution_enabled"] = true
 		bootFields["skill_evolution_poll_seconds"] = skillEvolutionPoll.Seconds()
@@ -273,6 +293,11 @@ func main() {
 		mux.Handle(httpapi.SkillEvolutionToolExplorePath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionToolExpandPath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionToolSkillGetPath, skillEvolution.skillEvolutionIO)
+		mux.Handle(httpapi.SkillEvolutionInteractionRecordPath, skillEvolution.skillEvolutionIO)
+		mux.Handle(httpapi.SkillEvolutionDiagnosisRecordPath, skillEvolution.skillEvolutionIO)
+		mux.Handle(httpapi.SkillEvolutionAdvisoryReadPath, skillEvolution.skillEvolutionIO)
+		mux.Handle(httpapi.SkillEvolutionUsageSummaryReadPath, skillEvolution.skillEvolutionIO)
+		mux.Handle(httpapi.SkillEvolutionCandidateOutcomesReadPath, skillEvolution.skillEvolutionIO)
 		handler = mux
 	}
 	handler = httpapi.RequestLogger(eventLog)(handler)
@@ -543,6 +568,13 @@ func skillEvolutionConfig() (bool, time.Duration, error) {
 type projectorWorker struct {
 	svc              *projector.Service
 	skillEvolutionIO http.Handler
+	usageStore       *usageprojection.MemoryStore
+	usageProjection  *usageprojection.UsageProjectionService
+	probation        *probation.Service
+	armcStore        *armc.MemoryStore
+	armcService      *armc.Service
+	armcRegistrar    *compositehandoff.ArmCPlanRegistrar
+	policyWorker     *policyactivation.DirectWorker
 	eventLog         *httpapi.JSONLogger
 	poll             time.Duration
 	done             chan struct{}
@@ -573,7 +605,7 @@ func (p projectionWatermark) ProjectionWatermark(ctx context.Context) (map[strin
 
 // newProjectorWorker wires the stack; any wiring failure is fatal
 // (fail-closed construction, Contract §13.7.1 R5).
-func newProjectorWorker(eventLog *httpapi.JSONLogger, poll time.Duration, token string) (*projectorWorker, error) {
+func newProjectorWorker(eventLog *httpapi.JSONLogger, poll time.Duration, token, statePath string, candidates memory.CandidateStore) (*projectorWorker, error) {
 	confDir, err := contract.DefaultConformanceDir()
 	if err != nil {
 		return nil, fmt.Errorf("skill evolution: %w", err)
@@ -638,19 +670,56 @@ func newProjectorWorker(eventLog *httpapi.JSONLogger, poll time.Duration, token 
 	if err != nil {
 		return nil, fmt.Errorf("skill evolution: skill_get readiness gate: %w", err)
 	}
+	usageStore := usageprojection.NewMemoryStore()
+	usageService, err := usageprojection.NewUsageProjectionService(usageprojection.UsageRankingPolicy{Version: "usage-ranking-v1"}, usageStore)
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: usage projection: %w", err)
+	}
 	retrievalTools, err := skillretrieval.NewService(skillretrieval.Config{
 		Projection: svc, Heads: activations, Artifacts: store, Gate: artifacts,
 		Evidence: unwiredEvidence{}, Gates: gates, Registry: registry,
-		Policy: toolPolicy, SkillGetEnabled: skillGetGreen,
+		Policy: toolPolicy, Usage: usageService, SkillGetEnabled: skillGetGreen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("skill evolution: retrieval tools: %w", err)
 	}
+	probationService, err := probation.NewService(probation.Policy{Version: "probation-v1", MinimumIndependentContexts: 2, RefutationSuspensionThreshold: 2, RecoveryAdditionalContexts: 1}, usageStore)
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: probation policy: %w", err)
+	}
+	advisoryReader, err := candidate.NewAdvisoryReader(store)
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: advisory reader: %w", err)
+	}
 	handler := httpapi.NewSkillEvolutionHandler(httpapi.SkillEvolutionDependencies{
-		Token: token, Reader: closure, Retrieval: retrievalTools,
+		Token: token, Reader: closure, Retrieval: retrievalTools, Usage: usageService, Advisory: advisoryReader, Probation: probationService, Outcomes: candidates, WriterIdentity: "server-arm-b",
 	})
+	armcStore := armc.NewMemoryStore()
+	if statePath != "" {
+		armcStatePath := statePath + ".armc.json"
+		if err := armcStore.LoadFromFile(armcStatePath); err != nil {
+			return nil, fmt.Errorf("skill evolution: load Arm C state: %w", err)
+		}
+		armcStore.SetCheckpoint(func([]byte) error { return armcStore.PersistToFile(armcStatePath) })
+	}
+	armcService, err := armc.NewService(armcStore, gates)
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: Arm C evaluator: %w", err)
+	}
+	policyWorker, err := policyactivation.NewDirectWorker(candidates, candidates, armcService.DirectEvaluator(), policyactivation.NewDirectActivator(candidates, systemClock{}))
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: policy activation worker: %w", err)
+	}
+	armcRegistrar, err := compositehandoff.NewArmCPlanRegistrar(armcStore, candidates, func(ctx context.Context, job policyactivation.Job) (policyactivation.Result, error) {
+		return policyWorker.Process(ctx, job)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("skill evolution: direct Arm C registrar: %w", err)
+	}
 	return &projectorWorker{
 		svc: svc, skillEvolutionIO: handler,
+		usageStore: usageStore, usageProjection: usageService, probation: probationService,
+		armcStore: armcStore, armcService: armcService, armcRegistrar: armcRegistrar, policyWorker: policyWorker,
 		eventLog: eventLog, poll: poll, done: make(chan struct{}),
 	}, nil
 }
@@ -708,4 +777,63 @@ func (w *projectorWorker) projectOnce(ctx context.Context) {
 		}
 	}
 	w.eventLog.Log("skill_evolution_projection", fields)
+}
+
+// CompleteArmC is the explicit server-owned synchronous completion entry.
+// It is intentionally not mounted as HTTP and is not scheduled by the
+// projector ticker: an Arm C evaluator producer calls it immediately after
+// it has registered the exact manifest, contract, plan and paired fixture.
+func (w *projectorWorker) CompleteArmC(ctx context.Context, job policyactivation.Job) (policyactivation.Result, error) {
+	result, err := w.policyWorker.Process(ctx, job)
+	fields := map[string]any{"candidate_id": job.CandidateID, "activated": result.Activated, "rejected": result.Rejected}
+	if result.RejectionReason != "" {
+		fields["rejection_reason"] = result.RejectionReason
+	}
+	if result.DecisionRef.DecisionID != "" {
+		fields["decision_id"] = result.DecisionRef.DecisionID
+		fields["decision_digest"] = result.DecisionRef.Digest
+	}
+	if err != nil {
+		fields["error"] = err.Error()
+	}
+	w.eventLog.Log("arm_c_completion", fields)
+	return result, err
+}
+
+// AdmitProbation is a server-owned, non-HTTP governance entry for producers
+// that have already persisted immutable usage evidence and (for tool skills)
+// an exact contract-validation result. It cannot activate a Skill.
+func (w *projectorWorker) AdmitProbation(ctx context.Context, request probation.AdmissionRequest) probation.Decision {
+	if w.probation == nil {
+		return probation.Decision{Reason: probation.ReasonUnknownCandidate}
+	}
+	return w.probation.Admit(ctx, request)
+}
+
+// ReportProbationToolContractValidation is the server-owned path by which a
+// trusted tool-validation producer reports an exact immutable result. It is
+// intentionally not mounted as HTTP.
+func (w *projectorWorker) ReportProbationToolContractValidation(candidateID string, validation probation.ToolContractValidation) probation.Decision {
+	if w.probation == nil {
+		return probation.Decision{Reason: probation.ReasonUnknownCandidate}
+	}
+	return w.probation.ReportToolContractValidation(candidateID, validation)
+}
+
+// RecoverProbation requires an explicit producer action; fresh qualifying
+// evidence remains checked by the probation policy before visibility returns.
+func (w *projectorWorker) RecoverProbation(ctx context.Context, request probation.RecoveryRequest) probation.Decision {
+	if w.probation == nil {
+		return probation.Decision{Reason: probation.ReasonUnknownCandidate}
+	}
+	return w.probation.Recover(ctx, request)
+}
+
+// ObserveProbation is a server-owned governance tick/producer entry. Public
+// Arm B HTTP writes only append observations; an internal producer calls this
+// after durable admission when it wants suspension policy reconciled.
+func (w *projectorWorker) ObserveProbation(ctx context.Context, subject usageprojection.UsageSubjectRef) {
+	if w.probation != nil {
+		w.probation.Observe(ctx, subject)
+	}
 }

@@ -430,3 +430,13 @@ func marshalJSON(value map[string]any) []byte {
 	}
 	return data
 }
+
+// NewCandidateView constructs an immutable view from an already-verified
+// exact ref and canonical body. It is used by trusted direct Arm C adapters
+// and test fixtures; callers still cannot obtain Runtime input from a view.
+func NewCandidateView(ref contract.CandidateArtifactRef, canonicalBody []byte) (*CandidateView, error) {
+	if ref.CandidateID == "" || ref.BodyDigest == "" || contract.DigestBytes(canonicalBody) != ref.BodyDigest {
+		return nil, newError(ReasonCandidateImmutable, "exact candidate ref/body binding is invalid")
+	}
+	return &CandidateView{ref: ref, body: append([]byte(nil), canonicalBody...)}, nil
+}

@@ -1,4 +1,4 @@
-// Package artifact is the GMS-202 canonical three-kind artifact gate
+// Package artifact is the GMS-202 canonical four-kind v2 artifact gate.
 // (Contract §8, GMS §3): the canonical artifact envelope, the closed kind
 // bodies (procedure / step_guidance / composite) validated against the
 // CTR-005 authority schemas, digest recomputation, the extension whitelist,
@@ -66,6 +66,7 @@ const (
 	SchemaHumanProcedure = "procedure-body.schema.json"
 	SchemaStepGuidance   = "step-guidance-body.schema.json"
 	SchemaComposite      = "composite-artifact-body.schema.json"
+	SchemaTool           = "tool-artifact-body.schema.json"
 )
 
 // kindBodySchemas maps each canonical kind to its body authority schema.
@@ -73,6 +74,7 @@ var kindBodySchemas = map[string]string{
 	"human_procedure": SchemaHumanProcedure,
 	"step_guidance":   SchemaStepGuidance,
 	"composite":       SchemaComposite,
+	"tool":            SchemaTool,
 }
 
 // Service is the canonical artifact gate.
@@ -241,6 +243,8 @@ func (s *Service) canonicalizeKind(kind string, envelope, body map[string]any) e
 		return s.gates.ValidateInstance(body, SchemaStepGuidance)
 	case "composite":
 		return s.canonicalizeComposite(body)
+	case "tool":
+		return s.canonicalizeTool(envelope, body)
 	default:
 		return newError(ReasonSkillKindInvalid, "kind %q outside the closed canonical kind set", kind)
 	}
@@ -389,4 +393,28 @@ func deepCopyMap(src map[string]any) map[string]any {
 		out[k] = deepCopyValue(v)
 	}
 	return out
+}
+
+// canonicalizeTool validates the v2 executable contract and proves that the
+// tool body's declared capabilities exactly match the envelope authority.
+func (s *Service) canonicalizeTool(envelope, body map[string]any) error {
+	if err := s.gates.ValidateInstance(body, SchemaTool); err != nil {
+		return err
+	}
+	declaredRaw, _ := contract.AsArray(body["declared_capabilities"])
+	declared := make(map[string]bool, len(declaredRaw))
+	for _, raw := range declaredRaw {
+		capability, _ := contract.AsString(raw)
+		declared[capability] = true
+	}
+	permissions := permissionCapabilities(envelope)
+	if len(declared) != len(permissions) {
+		return newError(ReasonPermissionCapExceeded, "tool declared capabilities do not match envelope permissions")
+	}
+	for _, capability := range permissions {
+		if !declared[capability] {
+			return newError(ReasonPermissionCapExceeded, "tool capability %q is not declared by the executable contract", capability)
+		}
+	}
+	return nil
 }

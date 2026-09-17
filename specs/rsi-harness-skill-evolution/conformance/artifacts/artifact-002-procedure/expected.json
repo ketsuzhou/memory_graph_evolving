@@ -1,1 +1,8 @@
-{"case_id":"artifact-002-procedure","expected_accept":true,"expected_canonical_byte_length":918,"expected_digest":"sha256:6b2b5f4aaa0f5649ba9be76378bdcf13aad44517cf566689014074e2920c2a52","notes":"Contract \u00a716.4 #4: procedure body has no forged causal/future fields","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "artifact-002-procedure",
+  "expected_accept": true,
+  "expected_canonical_byte_length": 918,
+  "expected_digest": "sha256:f4df5db4308953235ac6fae62f8d82f695a5bcdc2f5589ccad82d92b2d220cca",
+  "notes": "Contract §16.4 #4: procedure body has no forged causal/future fields",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

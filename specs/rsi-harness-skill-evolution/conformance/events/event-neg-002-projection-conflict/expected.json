@@ -1,1 +1,9 @@
-{"case_id":"event-neg-002-projection-conflict","expected_accept":false,"expected_canonical_byte_length":2155,"expected_digest":"sha256:e84df242d61bd100cadebcfebb5e46059449d3891a23cb061e3184b88600e099","expected_reason_code":"PROJECTION_EVENT_CONFLICT","notes":"Contract §9.3: same activation_sequence with a different event_digest is a projection conflict","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "event-neg-002-projection-conflict",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 2155,
+  "expected_digest": "sha256:402a286f25cd4f6a1b2dc0d012847edf7a48d9afb7d88b1bfa70a7fb20d0337e",
+  "expected_reason_code": "PROJECTION_EVENT_CONFLICT",
+  "notes": "Contract §9.3: same activation_sequence with a different event_digest is a projection conflict",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

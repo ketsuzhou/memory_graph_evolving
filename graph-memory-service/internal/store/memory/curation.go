@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sort"
 
+	"river2.dev/graph-memory-service/internal/contract"
 	"river2.dev/graph-memory-service/internal/domain"
 	"river2.dev/graph-memory-service/internal/ports"
 )
@@ -55,6 +56,7 @@ var (
 	_ ports.PatternStore           = (*Store)(nil)
 	_ ports.ProposalStore          = (*Store)(nil)
 	_ ports.CandidateStore         = CandidateStore{}
+	_ ports.ActivationPolicyStore  = CandidateStore{}
 )
 
 // CandidateStore adapts the store onto the CandidateStore port. The port's
@@ -98,6 +100,49 @@ func (c CandidateStore) ActivateCandidate(ctx context.Context, activation domain
 	return c.Store.ActivateCandidate(ctx, activation)
 }
 
+func (c CandidateStore) RegisterArmCCandidate(ctx context.Context, registration domain.ArmCCandidateRegistration) (bool, error) {
+	return c.Store.RegisterArmCCandidate(ctx, registration)
+}
+func (c CandidateStore) ArmCCandidate(ctx context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, candidateID string) (domain.ArmCCandidateRegistration, error) {
+	return c.Store.ArmCCandidate(ctx, tenantID, spaceID, candidateID)
+}
+
+func (c CandidateStore) PutActivationPolicyDecision(ctx context.Context, decision domain.ActivationPolicyDecision) (bool, error) {
+	return c.Store.PutActivationPolicyDecision(ctx, decision)
+}
+
+func (c CandidateStore) ActivationPolicyDecision(ctx context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, ref domain.ActivationPolicyDecisionRef) (domain.ActivationPolicyDecision, error) {
+	return c.Store.ActivationPolicyDecision(ctx, tenantID, spaceID, ref)
+}
+
+func (c CandidateStore) PutArmCEvaluation(ctx context.Context, evaluation domain.ArmCEvaluation) (bool, error) {
+	return c.Store.PutArmCEvaluation(ctx, evaluation)
+}
+
+func (c CandidateStore) ArmCEvaluation(ctx context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, ref domain.ArmCEvaluationRef) (domain.ArmCEvaluation, error) {
+	return c.Store.ArmCEvaluation(ctx, tenantID, spaceID, ref)
+}
+
+func (c CandidateStore) PutCoverageProof(ctx context.Context, proof domain.CoverageProof) (bool, error) {
+	return c.Store.PutCoverageProof(ctx, proof)
+}
+
+func (c CandidateStore) CoverageProof(ctx context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, ref domain.CoverageProofRef) (domain.CoverageProof, error) {
+	return c.Store.CoverageProof(ctx, tenantID, spaceID, ref)
+}
+
+func (c CandidateStore) ActivatePolicyDecision(ctx context.Context, activation domain.SkillActivation) (bool, error) {
+	return c.Store.ActivatePolicyDecision(ctx, activation)
+}
+
+func (c CandidateStore) ActivateArmCCandidatePolicyDecision(ctx context.Context, registration domain.ArmCCandidateRegistration, activation domain.SkillActivation) (bool, error) {
+	return c.Store.ActivateArmCCandidatePolicyDecision(ctx, registration, activation)
+}
+
+func (c CandidateStore) CandidateOutcomes(ctx context.Context, refs []contract.CandidateArtifactRef) ([]domain.CandidateLifecycleOutcome, error) {
+	return c.Store.CandidateOutcomes(ctx, refs)
+}
+
 func (s *Store) initCuration() {
 	s.causalTrials = make(map[domain.TenantID]map[domain.SpaceID]map[domain.CausalTrialEventID]domain.CausalTrialEvent)
 	s.causalTrialOrder = make(map[domain.TenantID]map[domain.SpaceID][]domain.CausalTrialEventID)
@@ -130,12 +175,16 @@ func (s *Store) initCuration() {
 	s.rejectionMemory = make(map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]domain.RejectionMemory)
 	s.reviewedDiffs = make(map[string]domain.ReviewedDiff)
 	s.candidates = make(map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillCandidate)
+	s.armCCandidates = make(map[domain.TenantID]map[domain.SpaceID]map[string]domain.ArmCCandidateRegistration)
 	s.candidateByProposal = make(map[string]string)
 	s.pairedReplayPlans = make(map[string]domain.PairedReplayPlan)
 	s.pairedReplayTrials = make(map[string]map[domain.ReplayArm]map[int]domain.PairedReplayTrial)
 	s.pairedReplayResults = make(map[string]domain.PairedReplayResult)
 	s.mutationBacktestResults = make(map[string]any)
 	s.candidateDecisions = make(map[string]domain.CandidateDecision)
+	s.activationPolicyDecisions = make(map[string]domain.ActivationPolicyDecision)
+	s.armCEvaluations = make(map[string]domain.ArmCEvaluation)
+	s.coverageProofs = make(map[string]domain.CoverageProof)
 	s.skillActivations = make(map[string]map[string]domain.SkillActivation)
 	s.activeSkillVersions = make(map[string]int64)
 }
@@ -858,6 +907,116 @@ func (s *Store) ActivateCandidate(ctx context.Context, activation domain.SkillAc
 	return true, nil
 }
 
+func (s *Store) PutActivationPolicyDecision(_ context.Context, decision domain.ActivationPolicyDecision) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if decision.Digest != domain.ActivationPolicyDecisionDigest(decision) {
+		return false, errDecisionConflict
+	}
+	if existing, ok := s.activationPolicyDecisions[decision.DecisionID]; ok {
+		if existing == decision {
+			return false, nil
+		}
+		return false, errDecisionConflict
+	}
+	s.activationPolicyDecisions[decision.DecisionID] = decision
+	return true, nil
+}
+
+func (s *Store) ActivationPolicyDecision(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.ActivationPolicyDecisionRef) (domain.ActivationPolicyDecision, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	decision, ok := s.activationPolicyDecisions[ref.DecisionID]
+	if !ok || decision.Ref() != ref {
+		return domain.ActivationPolicyDecision{}, errDecisionRequired
+	}
+	return decision, nil
+}
+
+func (s *Store) PutArmCEvaluation(_ context.Context, evaluation domain.ArmCEvaluation) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.armCEvaluations[evaluation.EvaluationID]; ok {
+		if reflect.DeepEqual(existing, evaluation) {
+			return false, nil
+		}
+		return false, errReplayResultConf
+	}
+	s.armCEvaluations[evaluation.EvaluationID] = evaluation
+	return true, nil
+}
+
+func (s *Store) ArmCEvaluation(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.ArmCEvaluationRef) (domain.ArmCEvaluation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	evaluation, ok := s.armCEvaluations[ref.EvaluationID]
+	if !ok || evaluation.Ref() != ref {
+		return domain.ArmCEvaluation{}, errReplayResultConf
+	}
+	return evaluation, nil
+}
+
+func (s *Store) PutCoverageProof(_ context.Context, proof domain.CoverageProof) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.coverageProofs[proof.ProofID]; ok {
+		if existing == proof {
+			return false, nil
+		}
+		return false, errDecisionConflict
+	}
+	s.coverageProofs[proof.ProofID] = proof
+	return true, nil
+}
+
+func (s *Store) CoverageProof(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.CoverageProofRef) (domain.CoverageProof, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	proof, ok := s.coverageProofs[ref.ProofID]
+	if !ok || proof.Ref() != ref {
+		return domain.CoverageProof{}, errDecisionRequired
+	}
+	return proof, nil
+}
+
+// ActivatePolicyDecision performs the final atomic compare-and-swap against
+// the immutable policy decision and active skill version. The service has
+// already independently validated evidence; the store repeats binding and head
+// checks under one mutex to close races before publishing activation.
+func (s *Store) ActivatePolicyDecision(_ context.Context, activation domain.SkillActivation) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.skillActivations[activation.CandidateID][activation.ActivationID]; ok {
+		if existing == activation {
+			return false, nil
+		}
+		return false, errActivationConflict
+	}
+	decision, ok := s.activationPolicyDecisions[activation.DecisionRef.DecisionID]
+	if !ok || decision.Ref() != activation.DecisionRef || decision.Outcome != domain.ActivationOutcomeActivate {
+		return false, errDecisionRequired
+	}
+	candidate, ok := s.findCandidate(activation.CandidateID)
+	if !ok || candidate.Diff.CandidateArtifactHash != activation.CandidateDigest || candidate.BaseArtifactVersion != activation.ExpectedBaseVersion {
+		return false, errActivationConflict
+	}
+	evaluation, ok := s.armCEvaluations[activation.EvaluationRef.EvaluationID]
+	if !ok || evaluation.Ref() != activation.EvaluationRef || !evaluation.Passed || evaluation.CandidateID != candidate.CandidateID || evaluation.CandidateDigest != activation.CandidateDigest {
+		return false, errDecisionRequired
+	}
+	coverage, ok := s.coverageProofs[activation.CoverageRef.ProofID]
+	if !ok || coverage.Ref() != activation.CoverageRef || coverage.ThresholdPolicyRef != activation.PolicyRef {
+		return false, errDecisionRequired
+	}
+	if current := s.activeSkillVersions[candidate.TargetSkillID]; current != activation.ExpectedBaseVersion {
+		return false, errActivationConflict
+	}
+	byActivation := ensure2(s.skillActivations, activation.CandidateID, activation.ActivationID)
+	s.activeSkillVersions[candidate.TargetSkillID] = activation.NewArtifactVersion
+	byActivation[activation.ActivationID] = activation
+	return true, nil
+}
+
 // findCandidate resolves a candidate ID across spaces; the caller holds the
 // store mutex.
 func (s *Store) findCandidate(candidateID string) (domain.SkillCandidate, bool) {
@@ -1108,4 +1267,136 @@ func cloneCandidate(candidate domain.SkillCandidate) domain.SkillCandidate {
 	cloned := candidate
 	cloned.PatternRefs = append([]domain.PatternRef(nil), candidate.PatternRefs...)
 	return cloned
+}
+
+// RegisterArmCCandidate stores the immutable GMS-202 candidate binding used
+// exclusively by the direct Arm C path. It never creates a legacy SkillCandidate.
+func (s *Store) RegisterArmCCandidate(_ context.Context, registration domain.ArmCCandidateRegistration) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if registration.TenantID == "" || registration.SpaceID == "" || registration.TargetSkillID == "" || registration.ExpectedActiveVersion < 0 || registration.CandidateRef.CandidateID == "" || registration.CandidateRef.BodyDigest == "" {
+		return false, errCandidateConflict
+	}
+	byID := ensure3level2(s.armCCandidates, registration.TenantID, registration.SpaceID)
+	if existing, ok := byID[registration.CandidateRef.CandidateID]; ok {
+		if existing == registration {
+			return false, nil
+		}
+		return false, errCandidateConflict
+	}
+	if current, exists := s.activeSkillVersions[registration.TargetSkillID]; !exists {
+		// A new lineage has one explicit authoritative creation baseline: zero.
+		// A candidate cannot invent an arbitrary expected head for an unknown target.
+		if registration.ExpectedActiveVersion != 0 {
+			return false, errActivationConflict
+		}
+	} else if current != registration.ExpectedActiveVersion {
+		return false, errActivationConflict
+	}
+	byID[registration.CandidateRef.CandidateID] = registration
+	return true, nil
+}
+
+func (s *Store) ArmCCandidate(_ context.Context, tenantID domain.TenantID, spaceID domain.SpaceID, candidateID string) (domain.ArmCCandidateRegistration, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	registration, ok := s.armCCandidates[tenantID][spaceID][candidateID]
+	if !ok {
+		return domain.ArmCCandidateRegistration{}, errCandidateMissing
+	}
+	return registration, nil
+}
+
+// ActivateArmCCandidatePolicyDecision repeats the direct registration,
+// decision, evaluation, coverage, and expected-head checks under one mutex.
+func (s *Store) ActivateArmCCandidatePolicyDecision(_ context.Context, registration domain.ArmCCandidateRegistration, activation domain.SkillActivation) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	stored, ok := s.armCCandidates[registration.TenantID][registration.SpaceID][registration.CandidateRef.CandidateID]
+	if !ok || stored != registration || activation.CandidateID != registration.CandidateRef.CandidateID || activation.CandidateDigest != registration.CandidateRef.BodyDigest || activation.ExpectedBaseVersion != registration.ExpectedActiveVersion {
+		return false, errActivationConflict
+	}
+	if existing, ok := s.skillActivations[activation.CandidateID][activation.ActivationID]; ok {
+		if existing == activation {
+			return false, nil
+		}
+		return false, errActivationConflict
+	}
+	decision, ok := s.activationPolicyDecisions[activation.DecisionRef.DecisionID]
+	if !ok || decision.Ref() != activation.DecisionRef || decision.Outcome != domain.ActivationOutcomeActivate {
+		return false, errDecisionRequired
+	}
+	evaluation, ok := s.armCEvaluations[activation.EvaluationRef.EvaluationID]
+	if !ok || evaluation.Ref() != activation.EvaluationRef || !evaluation.Passed || evaluation.CandidateID != registration.CandidateRef.CandidateID || evaluation.CandidateDigest != registration.CandidateRef.BodyDigest {
+		return false, errDecisionRequired
+	}
+	coverage, ok := s.coverageProofs[activation.CoverageRef.ProofID]
+	if !ok || coverage.Ref() != activation.CoverageRef || coverage.ThresholdPolicyRef != activation.PolicyRef {
+		return false, errDecisionRequired
+	}
+	if s.activeSkillVersions[registration.TargetSkillID] != registration.ExpectedActiveVersion {
+		return false, errActivationConflict
+	}
+	byActivation := ensure2(s.skillActivations, activation.CandidateID, activation.ActivationID)
+	s.activeSkillVersions[registration.TargetSkillID] = activation.NewArtifactVersion
+	byActivation[activation.ActivationID] = activation
+	return true, nil
+}
+
+// CandidateOutcomes reads only authoritative direct Arm C registrations,
+// policy decisions, and activation records. Absence is reported explicitly;
+// callers must never infer a lifecycle conclusion from usage data.
+func (s *Store) CandidateOutcomes(_ context.Context, refs []contract.CandidateArtifactRef) ([]domain.CandidateLifecycleOutcome, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.CandidateLifecycleOutcome, 0, len(refs))
+	for _, ref := range refs {
+		outcome := domain.CandidateLifecycleOutcome{CandidateRef: ref, Status: "no_evidence"}
+		var registration domain.ArmCCandidateRegistration
+		found := false
+		for _, bySpace := range s.armCCandidates {
+			for _, byID := range bySpace {
+				if value, ok := byID[ref.CandidateID]; ok && value.CandidateRef == ref {
+					registration, found = value, true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			out = append(out, outcome)
+			continue
+		}
+		outcome.Status = "pending"
+		if activations, ok := s.skillActivations[ref.CandidateID]; ok {
+			activationIDs := make([]string, 0, len(activations))
+			for activationID := range activations { activationIDs = append(activationIDs, activationID) }
+			sort.Strings(activationIDs)
+			for _, activationID := range activationIDs {
+				activation := activations[activationID]
+				if activation.CandidateDigest != ref.BodyDigest { continue }
+				if decision, ok := s.activationPolicyDecisions[activation.DecisionID]; ok && decision.Ref() == activation.DecisionRef && decision.Outcome == domain.ActivationOutcomeActivate {
+					decisionRef := domain.VersionedArtifactRef{ID: decision.DecisionID, Version: decision.Version, Digest: decision.Digest}
+					outcome.Status, outcome.DecisionRef = "activated", &decisionRef
+					break
+				}
+			}
+		}
+		if outcome.Status != "activated" {
+			decisionIDs := make([]string, 0)
+			for decisionID, decision := range s.activationPolicyDecisions { if decision.CandidateID == ref.CandidateID && decision.CandidateDigest == ref.BodyDigest { decisionIDs = append(decisionIDs, decisionID) } }
+			sort.Strings(decisionIDs)
+			for _, decisionID := range decisionIDs {
+				decision := s.activationPolicyDecisions[decisionID]
+				decisionRef := domain.VersionedArtifactRef{ID: decision.DecisionID, Version: decision.Version, Digest: decision.Digest}
+				outcome.DecisionRef = &decisionRef
+				if decision.Outcome == domain.ActivationOutcomeReject { outcome.Status, outcome.Reason = "rejected", decision.Reason; break }
+			}
+		}
+		_ = registration
+		out = append(out, outcome)
+	}
+	return out, nil
 }

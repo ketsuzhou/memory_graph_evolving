@@ -70,22 +70,26 @@ type Store struct {
 	retrievalReplayPlans   map[string]domain.RetrievalReplayPlan
 	retrievalReplayResults map[domain.ConsolidationRoundID]domain.CandidateStats
 
-	patternRevisions         map[domain.TenantID]map[domain.SpaceID]map[string]map[int64]domain.PatternRevision
-	patternLatest            map[domain.TenantID]map[domain.SpaceID]map[string]int64
-	proposalRounds           map[domain.TenantID]map[domain.SpaceID]map[string]domain.ProposalRoundOutcome
-	proposals                map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillProposal
-	proposalFingerprintIndex map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]string
-	rejectionMemory          map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]domain.RejectionMemory
-	reviewedDiffs            map[string]domain.ReviewedDiff
-	candidates               map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillCandidate
-	candidateByProposal      map[string]string
-	pairedReplayPlans        map[string]domain.PairedReplayPlan
-	pairedReplayTrials       map[string]map[domain.ReplayArm]map[int]domain.PairedReplayTrial
-	pairedReplayResults      map[string]domain.PairedReplayResult
-	mutationBacktestResults  map[string]any
-	candidateDecisions       map[string]domain.CandidateDecision
-	skillActivations         map[string]map[string]domain.SkillActivation
-	activeSkillVersions      map[string]int64
+	patternRevisions          map[domain.TenantID]map[domain.SpaceID]map[string]map[int64]domain.PatternRevision
+	patternLatest             map[domain.TenantID]map[domain.SpaceID]map[string]int64
+	proposalRounds            map[domain.TenantID]map[domain.SpaceID]map[string]domain.ProposalRoundOutcome
+	proposals                 map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillProposal
+	proposalFingerprintIndex  map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]string
+	rejectionMemory           map[domain.TenantID]map[domain.SpaceID]map[domain.ProposalFingerprint]domain.RejectionMemory
+	reviewedDiffs             map[string]domain.ReviewedDiff
+	candidates                map[domain.TenantID]map[domain.SpaceID]map[string]domain.SkillCandidate
+	armCCandidates            map[domain.TenantID]map[domain.SpaceID]map[string]domain.ArmCCandidateRegistration
+	candidateByProposal       map[string]string
+	pairedReplayPlans         map[string]domain.PairedReplayPlan
+	pairedReplayTrials        map[string]map[domain.ReplayArm]map[int]domain.PairedReplayTrial
+	pairedReplayResults       map[string]domain.PairedReplayResult
+	mutationBacktestResults   map[string]any
+	candidateDecisions        map[string]domain.CandidateDecision
+	activationPolicyDecisions map[string]domain.ActivationPolicyDecision
+	armCEvaluations           map[string]domain.ArmCEvaluation
+	coverageProofs            map[string]domain.CoverageProof
+	skillActivations          map[string]map[string]domain.SkillActivation
+	activeSkillVersions       map[string]int64
 }
 
 type stageKey struct {

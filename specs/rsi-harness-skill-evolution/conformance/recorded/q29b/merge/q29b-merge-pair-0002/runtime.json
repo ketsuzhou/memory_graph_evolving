@@ -88,7 +88,7 @@
       }
     ],
     "artifact_ref": {
-      "schema_version": "gms.candidate-artifact-ref.v1",
+      "schema_version": "gms.candidate-artifact-ref.v2",
       "candidate_id": "cand-merge-0001",
       "kind": "step_guidance",
       "body_digest": "sha256:008427d7f1cc300339a04b209fd8fe7756ebf9392fa60969ca23a591df2f5335",
@@ -214,6 +214,6 @@
     "outcome": "accept",
     "run_status": "succeeded",
     "reason_code": null,
-    "output_digest": "sha256:ab5b0db738232ca5aa02ab8857d1177dcdea50dd6229027ca8c6dfddddcf8366"
+    "output_digest": "sha256:e3eed6f9cf99826da51849ac45cc23d92965f22a83b7ff15c5dfd99d775e1bef"
   }
 }

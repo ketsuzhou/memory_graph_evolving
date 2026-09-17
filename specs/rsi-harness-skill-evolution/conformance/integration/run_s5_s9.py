@@ -545,7 +545,7 @@ class Tracer:
                           "(must be exactly one event, one record)"
                           % ok.get("outbox_pending"))
             ref = ok.get("released_ref") or {}
-            if ref.get("schema_version") != "gms.skill-artifact-ref.v1":
+            if ref.get("schema_version") != "gms.skill-artifact-ref.v2":
                 self.fail("s5", "released_ref schema_version %r is not the "
                           "frozen skill-artifact-ref form"
                           % ref.get("schema_version"))

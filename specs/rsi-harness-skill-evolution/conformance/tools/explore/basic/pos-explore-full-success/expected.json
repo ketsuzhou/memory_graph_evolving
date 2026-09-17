@@ -1,1 +1,8 @@
-{"case_id":"pos-explore-full-success","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:8e0b910e7ae49c7ba8e8ccac2ee573a073e99f12d9237eec7e7e47ed77edf1f7","notes":"complete watermark + budgets (used<=cap) + typed citations + empty truncation codes -> accepted","schema_version":"rsih-skill-evolution.tool-binding-expected.v1"}
+{
+  "case_id": "pos-explore-full-success",
+  "expected_accept": true,
+  "expected_reason_code": null,
+  "expected_result_digest": "sha256:ee6f55448546f794a2e6a3d0a5964de44d8a2bfcb4007cfc8008cf9871134b86",
+  "notes": "complete watermark + budgets (used<=cap) + typed citations + empty truncation codes -> accepted",
+  "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

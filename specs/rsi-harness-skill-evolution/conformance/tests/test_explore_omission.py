@@ -512,7 +512,7 @@ class SchemaFileTests(unittest.TestCase):
         )
         self.assertEqual(
             defs["skill_artifact_ref"]["properties"]["schema_version"]["const"],
-            "gms.skill-artifact-ref.v1",
+            "gms.skill-artifact-ref.v2",
         )
         self.assertEqual(
             defs["evidence_ref"]["properties"]["commit_state"]["enum"],

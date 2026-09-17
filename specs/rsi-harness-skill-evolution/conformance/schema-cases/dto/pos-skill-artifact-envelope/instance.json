@@ -1,5 +1,5 @@
 {
-  "schema_version": "gms.skill-artifact.v1",
+  "schema_version": "gms.skill-artifact.v2",
   "kind": "human_procedure",
   "title": "Deploy checklist",
   "description": "v1",

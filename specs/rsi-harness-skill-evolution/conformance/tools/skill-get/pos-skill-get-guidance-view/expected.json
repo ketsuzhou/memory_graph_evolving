@@ -1,1 +1,8 @@
-{"case_id":"pos-skill-get-guidance-view","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:b88d552488bedbc8926723acccd49ff359cd9d6645839f078458305324721ae7","notes":"legal closed GuidanceView WITHOUT watermark/budgets/citations is a success; freshness/authorization live in request + read audit","schema_version":"rsih-skill-evolution.tool-binding-expected.v1"}
+{
+  "case_id": "pos-skill-get-guidance-view",
+  "expected_accept": true,
+  "expected_reason_code": null,
+  "expected_result_digest": "sha256:9d00b68bd0c2b9e4daa1e69b6790a8ba641de5314826afe3bb4f97e1959f6956",
+  "notes": "legal closed GuidanceView WITHOUT watermark/budgets/citations is a success; freshness/authorization live in request + read audit",
+  "schema_version": "rsih-skill-evolution.tool-binding-expected.v1"
+}

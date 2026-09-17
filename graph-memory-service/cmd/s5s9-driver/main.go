@@ -382,7 +382,7 @@ func guidanceEnvelope(lineage string) map[string]any {
 		"output_port_schema": portRef(lineage + "-out"),
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          lineage + " guidance",
 		"description":    "s5s9 driver guidance envelope",
@@ -405,7 +405,7 @@ func procedureEnvelope(lineage string) map[string]any {
 		"output_port_schema": portRef(lineage + "-out"),
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "human_procedure",
 		"title":          lineage + " procedure",
 		"description":    "s5s9 driver procedure envelope",
@@ -435,7 +435,7 @@ func compositeEnvelope(lineage string, children ...contract.SkillArtifactRef) ma
 		"output_port_schema":        portRef(lineage + "-out"),
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "composite",
 		"title":          lineage + " composite",
 		"description":    "s5s9 driver composite envelope",

@@ -1,1 +1,10 @@
-{"case_id":"mat-neg-008-manifest-field-changed-ref-mismatch","expected_accept":false,"expected_bundle_digest":"sha256:6da73c6b7d87c94bc2183fff1b1124ca8877b145fad275e19fed138986500912","expected_lock_digest":"sha256:99524de3023d4fb3890081859396d338877e6a96b045c6038e76c4f611f05dfd","expected_manifest_digest":"sha256:2bf94b1044a06f6de2c7a5b97280170fecd01bed7a03ec00fa905ea8c1bc1866","expected_reason_code":"MANIFEST_DIGEST_MISMATCH","notes":"one manifest field changed after freeze: materialization_ref.digest no longer equals SHA-256(JCS(manifest_document))","schema_version":"rsih-skill-evolution.materialization-expected.v1"}
+{
+  "case_id": "mat-neg-008-manifest-field-changed-ref-mismatch",
+  "expected_accept": false,
+  "expected_bundle_digest": "sha256:6da73c6b7d87c94bc2183fff1b1124ca8877b145fad275e19fed138986500912",
+  "expected_lock_digest": "sha256:1b97b18964e4bb1652ff0843ef83867826eb22e7556a119c961eb6fc44a48fa5",
+  "expected_manifest_digest": "sha256:4a1e2620c49e1c83dfac9e4186d90a71bdfcaa08785e4e04c826443907c54b0f",
+  "expected_reason_code": "MANIFEST_DIGEST_MISMATCH",
+  "notes": "one manifest field changed after freeze: materialization_ref.digest no longer equals SHA-256(JCS(manifest_document))",
+  "schema_version": "rsih-skill-evolution.materialization-expected.v1"
+}

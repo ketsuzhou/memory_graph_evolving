@@ -1,7 +1,7 @@
 {
   "schema_version": "gms.guidance-view.v1",
   "source_skill_ref": {
-    "schema_version": "gms.skill-artifact-ref.v1",
+    "schema_version": "gms.skill-artifact-ref.v2",
     "lineage_id": "sg-commit-checklist",
     "version": 3,
     "kind": "step_guidance",
@@ -35,5 +35,5 @@
   "content": "# Commit checklist\n",
   "content_token_count": 5,
   "truncated": false,
-  "view_hash": "sha256:b56267b037d62a8ba8821986d5f206eee9605637223eab861316550f71db2841"
+  "view_hash": "sha256:33e8463e8fc439bf1fbb6d370210fec5f0e2d0f37963eea422c248edc594d0f3"
 }

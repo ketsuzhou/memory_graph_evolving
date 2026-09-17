@@ -1,1 +1,1 @@
-{"schema_version": "gms.skill-artifact-ref.v1", "lineage_id": "sg-tamper-demo", "version": 1, "kind": "human_procedure", "artifact_digest": "sha256:e43898e9d397957e0bf9d8c56c996787c2c2e72e5ab03b1bf7f84ef8b4df032f"}
+{"schema_version": "gms.skill-artifact-ref.v2", "lineage_id": "sg-tamper-demo", "version": 1, "kind": "human_procedure", "artifact_digest": "sha256:e43898e9d397957e0bf9d8c56c996787c2c2e72e5ab03b1bf7f84ef8b4df032f"}

@@ -165,55 +165,72 @@ func TestPairedReplayPinsEveryConditionAndRequiresCompleteValidPairs(t *testing.
 	})
 }
 
-func TestAcceptedDecisionDoesNotActivateAndActivationRequiresHumanCuration(t *testing.T) {
-	t.Run("accepted is only a decision", func(t *testing.T) {
-		registry := registryFor(t, domain.PrincipalHuman, domain.GrantPurposeCuration, domain.GrantOperationCandidateDecide)
-		candidates := &candidateStore{candidate: candidateFixture(domain.CandidateEvaluating)}
-		service := skillproposal.New(registry, patternStore{}, newProposalStore(), candidates, fixedClock{now: proposalNow})
-		decision := domain.CandidateDecision{
-			DecisionID: "decision-1", CandidateID: "candidate-1", Decision: "accepted", CandidateDigest: "candidate-digest",
-			ReplayResultID: "replay-1", PolicyVersion: "decision-v1", Reason: "paired replay passed",
-		}
-		got, duplicate, err := service.Decide(context.Background(), "tenant-1", "curator", "space-1", decision)
-		if err != nil || duplicate || got.Decision != "accepted" {
-			t.Fatalf("decide = (%#v, duplicate=%v, %v)", got, duplicate, err)
-		}
-		if candidates.decideCalls != 1 || candidates.activateCalls != 0 {
-			t.Fatalf("accepted decision caused activation: decide=%d activate=%d", candidates.decideCalls, candidates.activateCalls)
+func TestPolicyDecisionActivatesWithoutHumanCuration(t *testing.T) {
+	candidate := candidateFixture(domain.CandidateEvaluating)
+	decision := policyDecisionFor(candidate)
+	policies := &policyStore{
+		decision: decision,
+		evaluation: domain.ArmCEvaluation{
+			EvaluationID: "evaluation-1", Version: 1, Digest: "evaluation-digest",
+			CandidateID: candidate.CandidateID, CandidateDigest: candidate.Diff.CandidateArtifactHash, Passed: true,
+		},
+		coverage: domain.CoverageProof{
+			ProofID: "coverage-1", Version: 1, Digest: "coverage-digest",
+			IndependentLineageCount: 2, IndependentContextProfileCount: 2,
+			ThresholdPolicyRef: decision.PolicyRef,
+		},
+	}
+	candidates := &candidateStore{candidate: candidate}
+	service := skillproposal.New(nil, patternStore{}, newProposalStore(), candidates, fixedClock{now: proposalNow}, policies)
+
+	got, created, err := service.Activate(context.Background(), "tenant-1", "space-1", decision.Ref())
+	if err != nil || !created {
+		t.Fatalf("policy activation = (%#v, created=%v, %v)", got, created, err)
+	}
+	if len(policies.activations) != 1 || got.CandidateID != candidate.CandidateID || got.DecisionRef != decision.Ref() {
+		t.Fatalf("policy activation did not bind the exact decision: %#v", got)
+	}
+	if got.NewArtifactVersion != candidate.BaseArtifactVersion+1 {
+		t.Fatalf("new artifact version = %d, want %d", got.NewArtifactVersion, candidate.BaseArtifactVersion+1)
+	}
+
+	t.Run("rejects candidate digest mismatch before activation", func(t *testing.T) {
+		mismatched := decision
+		mismatched.CandidateDigest = "wrong-candidate-digest"
+		mismatched.Digest = domain.ActivationPolicyDecisionDigest(mismatched)
+		mismatchPolicies := &policyStore{decision: mismatched, evaluation: policies.evaluation, coverage: policies.coverage}
+		mismatchCandidates := &candidateStore{candidate: candidate}
+		mismatchService := skillproposal.New(nil, patternStore{}, newProposalStore(), mismatchCandidates, fixedClock{now: proposalNow}, mismatchPolicies)
+		_, _, err := mismatchService.Activate(context.Background(), "tenant-1", "space-1", mismatched.Ref())
+		if err == nil || mismatchCandidates.activateCalls != 0 {
+			t.Fatalf("candidate digest mismatch activated: err=%v calls=%d", err, mismatchCandidates.activateCalls)
 		}
 	})
 
-	tests := []struct {
-		name      string
-		kind      domain.PrincipalKind
-		purpose   domain.GrantPurpose
-		wantAllow bool
-	}{
-		{name: "agent with curation grant is not a human curator", kind: domain.PrincipalAgent, purpose: domain.GrantPurposeCuration},
-		{name: "human lifecycle grant cannot activate", kind: domain.PrincipalHuman, purpose: domain.GrantPurposeLifecycle},
-		{name: "human curator with exact curation grant may activate", kind: domain.PrincipalHuman, purpose: domain.GrantPurposeCuration, wantAllow: true},
+	t.Run("rejects evaluation reference mismatch before activation", func(t *testing.T) {
+		mismatchPolicies := &policyStore{decision: decision, evaluation: policies.evaluation, coverage: policies.coverage}
+		mismatchPolicies.evaluation.Digest = "wrong-evaluation-digest"
+		mismatchCandidates := &candidateStore{candidate: candidate}
+		mismatchService := skillproposal.New(nil, patternStore{}, newProposalStore(), mismatchCandidates, fixedClock{now: proposalNow}, mismatchPolicies)
+		_, _, err := mismatchService.Activate(context.Background(), "tenant-1", "space-1", decision.Ref())
+		if err == nil || mismatchCandidates.activateCalls != 0 {
+			t.Fatalf("evaluation reference mismatch activated: err=%v calls=%d", err, mismatchCandidates.activateCalls)
+		}
+	})
+}
+
+func policyDecisionFor(candidate domain.SkillCandidate) domain.ActivationPolicyDecision {
+	decision := domain.ActivationPolicyDecision{
+		DecisionID: "policy-decision-1", Version: 1,
+		CandidateID: candidate.CandidateID, CandidateDigest: candidate.Diff.CandidateArtifactHash,
+		EvaluationRef:         domain.ArmCEvaluationRef{EvaluationID: "evaluation-1", Version: 1, Digest: "evaluation-digest"},
+		CoverageRef:           domain.CoverageProofRef{ProofID: "coverage-1", Version: 1, Digest: "coverage-digest"},
+		PolicyRef:             domain.PolicyArtifactRef{PolicyID: "arm-c-policy", Version: 1, Digest: "policy-digest"},
+		ExpectedActiveVersion: candidate.BaseArtifactVersion,
+		Outcome:               domain.ActivationOutcomeActivate,
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			registry := registryFor(t, test.kind, test.purpose, domain.GrantOperationCandidateActivate)
-			candidates := &candidateStore{candidate: candidateFixture(domain.CandidateAccepted)}
-			service := skillproposal.New(registry, patternStore{}, newProposalStore(), candidates, fixedClock{now: proposalNow})
-			activation := domain.SkillActivation{
-				ActivationID: "activation-1", CandidateID: "candidate-1", DecisionID: "decision-1", ReplayResultID: "replay-1",
-				CandidateDigest: "candidate-digest", ExpectedBaseVersion: 4,
-			}
-			got, duplicate, err := service.Activate(context.Background(), "tenant-1", "curator", "space-1", activation)
-			if !test.wantAllow {
-				if err == nil || candidates.activateCalls != 0 {
-					t.Fatalf("forbidden activation = (%#v, duplicate=%v, %v), calls=%d", got, duplicate, err, candidates.activateCalls)
-				}
-				return
-			}
-			if err != nil || duplicate || candidates.activateCalls != 1 || got.CandidateID != "candidate-1" {
-				t.Fatalf("curator activation = (%#v, duplicate=%v, %v), calls=%d", got, duplicate, err, candidates.activateCalls)
-			}
-		})
-	}
+	decision.Digest = domain.ActivationPolicyDecisionDigest(decision)
+	return decision
 }
 
 type patternStore struct{}
@@ -374,4 +391,43 @@ func TestRejectedProposalFingerprintIsPermanentlyBlocked(t *testing.T) {
 	if store.completeCalls != 0 || len(store.rejections) != 1 {
 		t.Fatalf("rejected fingerprint mutated proposal state: calls=%d rejections=%#v", store.completeCalls, store.rejections)
 	}
+}
+
+type policyStore struct {
+	decision    domain.ActivationPolicyDecision
+	evaluation  domain.ArmCEvaluation
+	coverage    domain.CoverageProof
+	activations []domain.SkillActivation
+}
+
+func (s *policyStore) PutActivationPolicyDecision(context.Context, domain.ActivationPolicyDecision) (bool, error) {
+	return true, nil
+}
+func (s *policyStore) ActivationPolicyDecision(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.ActivationPolicyDecisionRef) (domain.ActivationPolicyDecision, error) {
+	if s.decision.Ref() != ref {
+		return domain.ActivationPolicyDecision{}, errors.New("policy decision not found")
+	}
+	return s.decision, nil
+}
+func (s *policyStore) PutArmCEvaluation(context.Context, domain.ArmCEvaluation) (bool, error) {
+	return true, nil
+}
+func (s *policyStore) ArmCEvaluation(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.ArmCEvaluationRef) (domain.ArmCEvaluation, error) {
+	if s.evaluation.Ref() != ref {
+		return domain.ArmCEvaluation{}, errors.New("Arm C evaluation not found")
+	}
+	return s.evaluation, nil
+}
+func (s *policyStore) PutCoverageProof(context.Context, domain.CoverageProof) (bool, error) {
+	return true, nil
+}
+func (s *policyStore) CoverageProof(_ context.Context, _ domain.TenantID, _ domain.SpaceID, ref domain.CoverageProofRef) (domain.CoverageProof, error) {
+	if s.coverage.Ref() != ref {
+		return domain.CoverageProof{}, errors.New("coverage proof not found")
+	}
+	return s.coverage, nil
+}
+func (s *policyStore) ActivatePolicyDecision(_ context.Context, activation domain.SkillActivation) (bool, error) {
+	s.activations = append(s.activations, activation)
+	return true, nil
 }

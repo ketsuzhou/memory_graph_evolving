@@ -1,1 +1,10 @@
-{"case_id":"mat-neg-004-stale-freeze-sequence","expected_accept":false,"expected_bundle_digest":"sha256:33a393f5d19d062a68692fbac0b8c2141569d91f794116f77a34e20cd5317cec","expected_lock_digest":"sha256:ba39d15fb1ef8e1ed14092902a40bfeb84046a4f956fe94a3edf288eefa67077","expected_manifest_digest":"sha256:55d97391c866c3d5eb927addd92f862faae8d4cf823fc0b533bf41d7835e599d","expected_reason_code":"MANIFEST_SEQUENCE_STALE","notes":"stale freeze sequence: activation_sequence_at_freeze != created_from_activation_sequence","schema_version":"rsih-skill-evolution.materialization-expected.v1"}
+{
+  "case_id": "mat-neg-004-stale-freeze-sequence",
+  "expected_accept": false,
+  "expected_bundle_digest": "sha256:33a393f5d19d062a68692fbac0b8c2141569d91f794116f77a34e20cd5317cec",
+  "expected_lock_digest": "sha256:506fa7604de272ccd7d5cca5f7517301fb8b9188f0720c139182925390c7d635",
+  "expected_manifest_digest": "sha256:01362bf24f442419ca982e70893688b313599ca2b84b4d41ef50f7de491ec84e",
+  "expected_reason_code": "MANIFEST_SEQUENCE_STALE",
+  "notes": "stale freeze sequence: activation_sequence_at_freeze != created_from_activation_sequence",
+  "schema_version": "rsih-skill-evolution.materialization-expected.v1"
+}

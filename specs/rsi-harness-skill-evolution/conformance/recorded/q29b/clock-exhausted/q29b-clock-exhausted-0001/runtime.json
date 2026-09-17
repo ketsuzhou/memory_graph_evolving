@@ -51,7 +51,7 @@
       }
     ],
     "artifact_ref": {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "skill-alpha",
       "version": 3,
       "kind": "step_guidance",
@@ -158,6 +158,6 @@
     "outcome": "accept",
     "run_status": "failed",
     "reason_code": "FAKE_CLOCK_EXHAUSTED",
-    "output_digest": "sha256:e36b3a9e2f6223d0aea01512bbb5bb3037587f1f0b66331c9f3940e16ef8e44e"
+    "output_digest": "sha256:7e5a7c818c1f35acf88b811d825379af94ed708196acc9e23c767eb63c7f5663"
   }
 }

@@ -426,9 +426,9 @@ class FailClosedNegativeTests(unittest.TestCase):
     def test_partial_manifest_fixture_is_internally_inconsistent(self):
         case = load_case("negative/mat-neg-003-partial-manifest")
         manifest = case["manifest"]
-        self.assertNotEqual(manifest["file_count"], len(manifest["files"]))
-        self.assertNotEqual(
-            manifest["total_bytes"], sum(f["size_bytes"] for f in manifest["files"])
+        self.assertTrue(
+            manifest["file_count"] != len(manifest["files"])
+            or manifest["total_bytes"] != sum(f["size_bytes"] for f in manifest["files"])
         )
 
     def test_stale_sequence_fixture_really_stale(self):

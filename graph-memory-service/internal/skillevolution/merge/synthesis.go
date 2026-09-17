@@ -207,7 +207,7 @@ func synthesizeEnvelopes(prop *Proposal, a, b map[string]any) (map[string]any, e
 	predicates := append(predicatesOf(appA), predicatesOf(appB)...)
 	exclusions := append(exclusionsOf(appA), exclusionsOf(appB)...)
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           similarity.KindStepGuidance,
 		"title":          fmt.Sprintf("Merged step guidance: %s + %s", prop.Sources()[0].LineageID, prop.Sources()[1].LineageID),
 		"description":    "Symmetric new-lineage merge (strategy symmetric_new_lineage); sources retained.",

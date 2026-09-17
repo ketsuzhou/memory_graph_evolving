@@ -31,11 +31,13 @@ import (
 	"river2.dev/graph-memory-service/internal/httpapi"
 	"river2.dev/graph-memory-service/internal/skillevolution/activation"
 	"river2.dev/graph-memory-service/internal/skillevolution/artifact"
+	"river2.dev/graph-memory-service/internal/skillevolution/candidate"
 	"river2.dev/graph-memory-service/internal/skillevolution/ledger"
 	"river2.dev/graph-memory-service/internal/skillevolution/materializationread"
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
 	"river2.dev/graph-memory-service/internal/skillevolution/proposal"
 	"river2.dev/graph-memory-service/internal/skillevolution/retrieval"
+	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 	"river2.dev/graph-memory-service/internal/skillevolution/validation"
 )
 
@@ -215,7 +217,7 @@ func sevProcedureEnvelope(title string, withPorts bool) map[string]any {
 		body["output_port_schema"] = sevPortRef(title + "-out")
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "human_procedure",
 		"title":          title,
 		"description":    "procedure body under test",
@@ -240,7 +242,7 @@ func sevGuidanceEnvelope(title string, withPorts bool) map[string]any {
 		body["output_port_schema"] = sevPortRef(title + "-out")
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          title,
 		"description":    "step guidance body under test",
@@ -261,7 +263,7 @@ func sevCompositeEnvelope(title string, children ...contract.SkillArtifactRef) m
 		})
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "composite",
 		"title":          title,
 		"description":    "composite body under test",
@@ -737,11 +739,19 @@ func TestSkillEvolutionClosureContract(t *testing.T) {
 		}
 		text := string(spec)
 		routes := httpapi.SkillEvolutionRoutes()
-		if len(routes) != 4 || routes[0].Method != http.MethodPost || routes[0].Path != "/v1/skill-evolution/closure:read" {
+		if len(routes) != 9 || routes[0].Method != http.MethodPost || routes[0].Path != "/v1/skill-evolution/closure:read" {
 			t.Fatalf("SkillEvolutionRoutes() = %#v", routes)
 		}
 		for _, needed := range []string{
 			"/v1/skill-evolution/closure:read:",
+			"/v1/skill-evolution/interactions:record:",
+			"/v1/skill-evolution/diagnoses:record:",
+			"/v1/skill-evolution/advisory-candidates:read:",
+			"/v1/skill-evolution/usage-summary:read:",
+			"/v1/skill-evolution/candidate-outcomes:read:",
+			"UsageSummaryReadRequest", "UsageSummaryReadResponse",
+			"gms.usage-summary-read.v1", "interaction_only",
+			"authority_tier_aggregates", "CandidateArtifactRef", "ContextProfile",
 			"readMaterializationClosure",
 			"gms.materialization-closure-read.v1",
 			"torn_read_token", "activation_sequence", "activation_head_digest",
@@ -1209,4 +1219,71 @@ func TestSkillEvolutionRetrievalContract(t *testing.T) {
 			}
 		}
 	})
+}
+
+type sevAdvisoryReader struct{ candidates []candidate.AdvisoryCandidate }
+
+func (r sevAdvisoryReader) ListAdvisory(context.Context) ([]candidate.AdvisoryCandidate, error) {
+	return r.candidates, nil
+}
+
+func TestSkillEvolutionArmBTransport(t *testing.T) {
+	world := newSkillEvolutionWorld(t)
+	usageStore := usageprojection.NewMemoryStore()
+	usage, err := usageprojection.NewUsageProjectionService(usageprojection.UsageRankingPolicy{Version: "usage-ranking-v1"}, usageStore)
+	if err != nil {
+		t.Fatalf("usage service: %v", err)
+	}
+	advisory := sevAdvisoryReader{candidates: []candidate.AdvisoryCandidate{
+		{CandidateID: "candidate-procedure", Kind: "human_procedure", Guidance: "Inspect the smallest failing input."},
+		{CandidateID: "candidate-tool", Kind: "tool", Guidance: "must not leak"},
+	}}
+	handler := httpapi.NewSkillEvolutionHandler(httpapi.SkillEvolutionDependencies{Token: contractToken, Reader: world.service(t, world.store), Usage: usage, Advisory: advisory, WriterIdentity: "server-diagnostician"})
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	unauth, err := http.NewRequest(http.MethodPost, server.URL+httpapi.SkillEvolutionInteractionRecordPath, strings.NewReader(`{"request_id":"r"}`))
+	if err != nil {
+		t.Fatalf("new unauth request: %v", err)
+	}
+	unauth.Header.Set("Content-Type", "application/json")
+	response, err := server.Client().Do(unauth)
+	if err != nil {
+		t.Fatalf("do unauth request: %v", err)
+	}
+	payload, _ := io.ReadAll(response.Body)
+	response.Body.Close()
+	contractRequireError(t, response.StatusCode, response.Header, payload, http.StatusUnauthorized, "UNAUTHORIZED")
+
+	profile := map[string]any{"schema_version": "context-profile/1.0", "task_family": "code_implementation", "runtime_class": "go-1.26-linux", "workspace_feature_tags": []any{}, "observable_guard_facts": []any{}, "tool_policy_ref": sevVersionedRef("tool-policy"), "environment_class": "sandboxed-linux"}
+	subject := map[string]any{"skill_ref": sevSkillRefDoc(world.activateEnvelope(t, "armb-skill", "armb-prop", sevProcedureEnvelope("Advice", true)))}
+	status, _, payload := contractJSONRequest(t, server, http.MethodPost, httpapi.SkillEvolutionInteractionRecordPath, map[string]any{"request_id": "interaction-1", "subject": subject, "context_profile": profile, "stage": "adopted", "evidence_refs": []any{sevEvidenceRef("armb-evidence")}})
+	contractRequireStatus(t, status, http.StatusCreated, payload)
+	interactionResponse := contractDecodeObject(t, payload)
+	if interactionResponse["non_authoritative"] != true || interactionResponse["writer_identity"] != "server-diagnostician" {
+		t.Fatalf("interaction response=%#v", interactionResponse)
+	}
+
+	status, _, payload = contractJSONRequest(t, server, http.MethodPost, httpapi.SkillEvolutionDiagnosisRecordPath, map[string]any{"request_id": "diagnosis-1", "assessment_id": "assessment-1", "subject": subject, "context_profile": profile, "returned_path_id": "path-1", "addressed_agent_id": "agent-primary", "contribution_score_micros": json.Number("900000"), "confidence_micros": json.Number("800000"), "rationale": "observational only", "evidence_refs": []any{sevEvidenceRef("armb-diagnosis")}, "rubric_ref": sevVersionedRef("rubric"), "evaluation_batch_id": "held-out-1"})
+	contractRequireStatus(t, status, http.StatusCreated, payload)
+
+	status, _, payload = contractJSONRequest(t, server, http.MethodPost, httpapi.SkillEvolutionAdvisoryReadPath, map[string]any{"request_id": "advisory-1", "context_profile": profile})
+	contractRequireStatus(t, status, http.StatusOK, payload)
+	read := contractDecodeObject(t, payload)
+	if read["non_authoritative"] != true {
+		t.Fatalf("advisory response=%#v", read)
+	}
+	candidates, _ := read["candidates"].([]any)
+	if len(candidates) != 1 || candidates[0].(map[string]any)["candidate_id"] != "candidate-procedure" {
+		t.Fatalf("advisory candidates=%#v", candidates)
+	}
+	summary := read["usage_summary"].(map[string]any)
+	entries, _ := summary["entries"].([]any)
+	if len(entries) != 1 {
+		t.Fatalf("diagnostic record leaked into default summary: %#v", summary)
+	}
+}
+
+func sevVersionedRef(id string) map[string]any {
+	return map[string]any{"id": id, "version": sevJN(1), "digest": contract.DigestBytes([]byte(id))}
 }

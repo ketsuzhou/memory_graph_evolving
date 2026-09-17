@@ -2,17 +2,17 @@
   "schema_version": "gms.similarity-assessment.v1",
   "assessment_id": "asmt-0001",
   "assessment_version": 1,
-  "assessment_digest": "sha256:5148cf3c613ef522b208b7eab85546bc10a396da33698f80894d6ab743ec7dd2",
+  "assessment_digest": "sha256:8b7497f5986249475cf389657835576792f237d742119d58a0def3d1a1471f8a",
   "source_skill_refs": [
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-commit-checklist",
       "version": 3,
       "kind": "step_guidance",
       "artifact_digest": "sha256:62a2153bd17ef4ecc7781a689460e615c84b1d75c199bf2d026b33a0b1d10fd1"
     },
     {
-      "schema_version": "gms.skill-artifact-ref.v1",
+      "schema_version": "gms.skill-artifact-ref.v2",
       "lineage_id": "sg-pre-push-check",
       "version": 2,
       "kind": "step_guidance",

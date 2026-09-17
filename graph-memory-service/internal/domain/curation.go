@@ -1,6 +1,13 @@
 package domain
 
-import "time"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"time"
+
+	"river2.dev/graph-memory-service/internal/contract"
+)
 
 // EvidenceRef identifies immutable committed evidence within one Space.
 type EvidenceRef struct {
@@ -639,6 +646,17 @@ type SkillCandidate struct {
 	CreatedAt            time.Time
 }
 
+// ArmCCandidateRegistration is the Arm C-only immutable registration of a
+// GMS-202 CandidateView. It carries the exact CandidateArtifactRef/body
+// digest plus trusted target/base metadata, without legacy review state.
+type ArmCCandidateRegistration struct {
+	TenantID              TenantID
+	SpaceID               SpaceID
+	TargetSkillID         string
+	ExpectedActiveVersion int64
+	CandidateRef          contract.CandidateArtifactRef
+}
+
 type ReplayArm string
 
 const (
@@ -723,6 +741,162 @@ type SkillActivation struct {
 	NewArtifactVersion  int64
 	ActivatedBy         PrincipalID
 	ActivatedAt         time.Time
+	DecisionRef         ActivationPolicyDecisionRef
+	EvaluationRef       ArmCEvaluationRef
+	CoverageRef         CoverageProofRef
+	PolicyRef           PolicyArtifactRef
+}
+
+// ActivationPolicyDecisionRef identifies one immutable server-owned policy
+// decision. Callers can present only this exact reference; the activation
+// service resolves and validates the authority record itself.
+type ActivationPolicyDecisionRef struct {
+	DecisionID string
+	Version    int64
+	Digest     string
+}
+
+type ArmCEvaluationRef struct {
+	EvaluationID string
+	Version      int64
+	Digest       string
+}
+
+type CoverageProofRef struct {
+	ProofID string
+	Version int64
+	Digest  string
+}
+
+type PolicyArtifactRef struct {
+	PolicyID string
+	Version  int64
+	Digest   string
+}
+
+const (
+	ActivationOutcomeActivate = "activate"
+	ActivationOutcomeReject   = "reject"
+)
+
+// ActivationPolicyDecision is an immutable policy-engine output. It binds the
+// exact candidate, Arm C evaluation, coverage proof, policy, and expected head
+// that the server must independently revalidate before activation.
+type ActivationPolicyDecision struct {
+	DecisionID            string
+	Version               int64
+	Digest                string
+	CandidateID           string
+	CandidateDigest       string
+	EvaluationRef         ArmCEvaluationRef
+	CoverageRef           CoverageProofRef
+	PolicyRef             PolicyArtifactRef
+	ExpectedActiveVersion int64
+	Outcome               string
+	Reason                string
+}
+
+func (d ActivationPolicyDecision) Ref() ActivationPolicyDecisionRef {
+	return ActivationPolicyDecisionRef{DecisionID: d.DecisionID, Version: d.Version, Digest: d.Digest}
+}
+
+func ActivationPolicyDecisionDigest(decision ActivationPolicyDecision) string {
+	payload := struct {
+		DecisionID            string
+		Version               int64
+		CandidateID           string
+		CandidateDigest       string
+		EvaluationRef         ArmCEvaluationRef
+		CoverageRef           CoverageProofRef
+		PolicyRef             PolicyArtifactRef
+		ExpectedActiveVersion int64
+		Outcome               string
+		Reason                string
+	}{
+		DecisionID: decision.DecisionID, Version: decision.Version,
+		CandidateID: decision.CandidateID, CandidateDigest: decision.CandidateDigest,
+		EvaluationRef: decision.EvaluationRef, CoverageRef: decision.CoverageRef,
+		PolicyRef: decision.PolicyRef, ExpectedActiveVersion: decision.ExpectedActiveVersion,
+		Outcome: decision.Outcome,
+	}
+	encoded, _ := json.Marshal(payload)
+	digest := sha256.Sum256(encoded)
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
+
+type VersionedArtifactRef struct {
+	ID      string
+	Version int64
+	Digest  string
+}
+
+type ArmCCheckResult struct {
+	CheckID         string
+	CandidatePassed bool
+	BaselinePassed  bool
+	Reason          string
+}
+
+type ArmCEvaluation struct {
+	EvaluationID    string
+	Version         int64
+	Digest          string
+	CandidateID     string
+	CandidateDigest string
+	Passed          bool
+	TaskFamily      string
+	ContractRef     VersionedArtifactRef
+	Checks          []ArmCCheckResult
+	Reason          string
+}
+
+func (e ArmCEvaluation) Ref() ArmCEvaluationRef {
+	return ArmCEvaluationRef{EvaluationID: e.EvaluationID, Version: e.Version, Digest: e.Digest}
+}
+
+func ArmCEvaluationDigest(e ArmCEvaluation) string {
+	payload := struct {
+		EvaluationID    string
+		Version         int64
+		CandidateID     string
+		CandidateDigest string
+		Passed          bool
+		TaskFamily      string
+		ContractRef     VersionedArtifactRef
+		Checks          []ArmCCheckResult
+		Reason          string
+	}{e.EvaluationID, e.Version, e.CandidateID, e.CandidateDigest, e.Passed, e.TaskFamily, e.ContractRef, e.Checks, e.Reason}
+	encoded, _ := json.Marshal(payload)
+	digest := sha256.Sum256(encoded)
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
+
+// CoverageProof is the immutable coverage attestation emitted by the policy
+// engine. Its threshold policy ref binds observed independent coverage to the
+// same policy artifact referenced by the activation decision.
+type CoverageProof struct {
+	ProofID                        string
+	Version                        int64
+	Digest                         string
+	IndependentLineageCount        int
+	IndependentContextProfileCount int
+	ThresholdPolicyRef             PolicyArtifactRef
+}
+
+func (p CoverageProof) Ref() CoverageProofRef {
+	return CoverageProofRef{ProofID: p.ProofID, Version: p.Version, Digest: p.Digest}
+}
+
+func CoverageProofDigest(p CoverageProof) string {
+	payload := struct {
+		ProofID                                                 string
+		Version                                                 int64
+		IndependentLineageCount, IndependentContextProfileCount int
+		ThresholdPolicyRef                                      PolicyArtifactRef
+	}{p.ProofID, p.Version, p.IndependentLineageCount, p.IndependentContextProfileCount, p.ThresholdPolicyRef}
+	encoded, _ := json.Marshal(payload)
+	digest := sha256.Sum256(encoded)
+	return "sha256:" + hex.EncodeToString(digest[:])
 }
 
 const (
@@ -733,3 +907,12 @@ const (
 	GrantOperationCandidateDecide   GrantOperation = "candidate.decide"
 	GrantOperationCandidateActivate GrantOperation = "candidate.activate"
 )
+
+// CandidateLifecycleOutcome is a compact authoritative Arm C lifecycle read.
+// It contains no usage observations or diagnostic material.
+type CandidateLifecycleOutcome struct {
+	CandidateRef contract.CandidateArtifactRef
+	Status       string
+	DecisionRef  *VersionedArtifactRef
+	Reason       string
+}

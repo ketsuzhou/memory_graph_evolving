@@ -1,1 +1,8 @@
-{"case_id":"pos-omission-multi-code","expected_accept":true,"expected_reason_code":null,"expected_result_digest":"sha256:93f4e674a0f3a3ba454d281669c0ea3e13bfd5def08c457f1b49059ea011142d","notes":"two caps hit: truncation_reason_codes == order-preserving dedupe of entries","schema_version":"rsih-skill-evolution.explore-omission-expected.v1"}
+{
+  "case_id": "pos-omission-multi-code",
+  "expected_accept": true,
+  "expected_reason_code": null,
+  "expected_result_digest": "sha256:187c9045b2c46dcd9ae96316d9c2e7b9644ff0063c63739eb34d12231ac1044c",
+  "notes": "two caps hit: truncation_reason_codes == order-preserving dedupe of entries",
+  "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
+}

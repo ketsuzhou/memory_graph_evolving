@@ -61,11 +61,11 @@
    "artifact_digest": "sha256:f02677398c413a51403e8c61e54ad69f13219729a89f863e498089e48833e435",
    "kind": "human_procedure",
    "lineage_id": "lin-ctr003-alpha",
-   "schema_version": "gms.skill-artifact-ref.v1",
+   "schema_version": "gms.skill-artifact-ref.v2",
    "version": 2
   },
   "truncated": false,
-  "view_hash": "sha256:5c02ca566b5edb15a2d9cc27aa343435587931c5b388ddc6605463125386e322"
+  "view_hash": "sha256:47230866e5dbcae7ad7b068644942d1564b5266c4516562659b72aecbf96ebdd"
  },
  "schema_version": "rsih-skill-evolution.explore-omission-case.v1",
  "tool_name": "memory_explore"

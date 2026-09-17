@@ -72,8 +72,6 @@ func Routes() []Route {
 		{http.MethodPost, "/v1/patterns/{pattern_id}:reject"},
 		{http.MethodGet, "/v1/proposals/{proposal_id}"},
 		{http.MethodGet, "/v1/candidates/{candidate_id}"},
-		{http.MethodPost, "/v1/candidates/{candidate_id}:decide"},
-		{http.MethodPost, "/v1/candidates/{candidate_id}:activate"},
 	}
 }
 
@@ -291,24 +289,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		h.withBindingRaw(w, r, func(w http.ResponseWriter, r *http.Request, identity authz.Identity) {
 			h.handleCandidateRead(w, r, identity, candidateID)
-		})
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/candidates/") && strings.HasSuffix(r.URL.Path, ":decide"):
-		candidateID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/candidates/"), ":decide")
-		if !validPathID(candidateID) {
-			writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "candidate_id must be 1-128 UTF-8 bytes", nil)
-			return
-		}
-		h.withBinding(w, r, object, func(w http.ResponseWriter, r *http.Request, o strictObject, identity authz.Identity) {
-			h.handleCandidateDecide(w, r, o, identity, candidateID)
-		})
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/candidates/") && strings.HasSuffix(r.URL.Path, ":activate"):
-		candidateID := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/candidates/"), ":activate")
-		if !validPathID(candidateID) {
-			writeError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "candidate_id must be 1-128 UTF-8 bytes", nil)
-			return
-		}
-		h.withBinding(w, r, object, func(w http.ResponseWriter, r *http.Request, o strictObject, identity authz.Identity) {
-			h.handleCandidateActivate(w, r, o, identity, candidateID)
 		})
 	// PG-50A consolidation-cut composition.
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/rooms/") && strings.HasSuffix(r.URL.Path, "/consolidation-cuts"):

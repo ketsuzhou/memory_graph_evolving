@@ -210,7 +210,7 @@ func procedureEnvelope(title string, withPorts bool) map[string]any {
 		body["output_port_schema"] = portRef(title + "-out")
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "human_procedure",
 		"title":          title,
 		"description":    "procedure body under test",
@@ -229,8 +229,8 @@ func guidanceEnvelope(title string, withPorts bool) map[string]any {
 		"branches": []any{map[string]any{
 			"branch_id": "b1",
 			"when":      map[string]any{},
-			"action": map[string]any{"guidance": "run the checklist", "failure_action": "stop", "evidence_refs": []any{evidenceRef("ev-" + title)}},
-			"future": map[string]any{"expected_outcome": "checked", "critical_steps": []any{}, "final_task_impact": "commit verified"},
+			"action":    map[string]any{"guidance": "run the checklist", "failure_action": "stop", "evidence_refs": []any{evidenceRef("ev-" + title)}},
+			"future":    map[string]any{"expected_outcome": "checked", "critical_steps": []any{}, "final_task_impact": "commit verified"},
 		}},
 	}
 	if withPorts {
@@ -238,7 +238,7 @@ func guidanceEnvelope(title string, withPorts bool) map[string]any {
 		body["output_port_schema"] = portRef(title + "-out")
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "step_guidance",
 		"title":          title,
 		"description":    "step guidance body under test",
@@ -268,7 +268,7 @@ func compositeEnvelope(title string, children ...contract.SkillArtifactRef) map[
 		"output_port_schema":        portRef(title + "-out"),
 	}
 	return map[string]any{
-		"schema_version": "gms.skill-artifact.v1",
+		"schema_version": "gms.skill-artifact.v2",
 		"kind":           "composite",
 		"title":          title,
 		"description":    "composite body under test",
@@ -866,7 +866,7 @@ func TestClosureFailClosedMatrix(t *testing.T) {
 		heads := map[string]*contract.SkillArtifactRef{}
 		bytes := map[string][]byte{}
 		ref := seedFake(t, base.artifacts, heads, bytes, "proc-tamper", 1, procedureEnvelope("Tampered", true))
-		bytes[ref.ArtifactDigest] = []byte(`{"schema_version":"gms.skill-artifact.v1"}`) // same address, different bytes
+		bytes[ref.ArtifactDigest] = []byte(`{"schema_version":"gms.skill-artifact.v2"}`) // same address, different bytes
 		_, err := fakeWorld(t, heads, bytes, stream).Read(ctx, ReadRequest{Roots: []contract.SkillArtifactRef{ref}})
 		requireCode(t, err, ReasonDigestMismatch)
 	})

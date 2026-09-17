@@ -2,18 +2,18 @@
   "schema_version": "gms.activation-event.v1",
   "activation_sequence": 2,
   "event_id": "act-0002",
-  "event_digest": "sha256:5b2a790dd95ea67ba09af0d894d6c56c2b59441f09ba73b718aac9c52e0ceee2",
+  "event_digest": "sha256:db52ae4a3c7f8a7f727b097801100c6e1e78a6c78eae002a1fd333680f674481",
   "event_type": "deactivate",
   "lineage_id": "sg-commit-checklist",
   "skill_ref": {
-    "schema_version": "gms.skill-artifact-ref.v1",
+    "schema_version": "gms.skill-artifact-ref.v2",
     "lineage_id": "sg-commit-checklist",
     "version": 3,
     "kind": "step_guidance",
     "artifact_digest": "sha256:730e46ddc888923046991b70b32b8c5139937a7dd5dfbaf54caac4431c779d35"
   },
   "previous_active_ref": {
-    "schema_version": "gms.skill-artifact-ref.v1",
+    "schema_version": "gms.skill-artifact-ref.v2",
     "lineage_id": "sg-commit-checklist",
     "version": 2,
     "kind": "step_guidance",

@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const SkillArtifactSchemaV1 = "skill-artifact/1.0"
+const SkillArtifactSchemaV2 = "skill-artifact/2.0"
 
 type SkillArtifactKind string
 
@@ -18,6 +18,7 @@ const (
 	SkillArtifactHumanProcedure SkillArtifactKind = "human_procedure"
 	SkillArtifactStepGuidance   SkillArtifactKind = "step_guidance"
 	SkillArtifactComposite      SkillArtifactKind = "composite"
+	SkillArtifactTool           SkillArtifactKind = "tool"
 )
 
 var skillArtifactDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
@@ -67,6 +68,23 @@ type SkillArtifactBody struct {
 	HumanProcedure *HumanProcedureSkillBody `json:"human_procedure,omitempty"`
 	StepGuidance   *StepGuidanceSkillBody   `json:"step_guidance,omitempty"`
 	Composite      *CompositeSkillBody      `json:"composite,omitempty"`
+	Tool           *ToolSkillBody           `json:"tool,omitempty"`
+}
+
+type ToolSkillBody struct {
+	PackageRef            ToolPackageRef       `json:"package_ref"`
+	InputSchemaRef        ImmutableArtifactRef `json:"input_schema_ref"`
+	OutputSchemaRef       ImmutableArtifactRef `json:"output_schema_ref"`
+	ErrorSchemaRef        ImmutableArtifactRef `json:"error_schema_ref"`
+	ValidationContractRef ImmutableArtifactRef `json:"validation_contract_ref"`
+	DeclaredCapabilities  []string             `json:"declared_capabilities"`
+	NetworkDisabled       bool                 `json:"network_disabled"`
+}
+
+type ToolPackageRef struct {
+	OCIImageDigest      string               `json:"oci_image_digest"`
+	Entrypoint          []string             `json:"entrypoint"`
+	BuildAttestationRef ImmutableArtifactRef `json:"build_attestation_ref"`
 }
 
 type HumanProcedureSkillBody struct {
@@ -189,7 +207,7 @@ type CompositeFailureHandling struct {
 }
 
 func ValidateSkillArtifactRef(ref SkillArtifactRef) error {
-	if ref.Kind != SkillArtifactHumanProcedure && ref.Kind != SkillArtifactStepGuidance && ref.Kind != SkillArtifactComposite {
+	if ref.Kind != SkillArtifactHumanProcedure && ref.Kind != SkillArtifactStepGuidance && ref.Kind != SkillArtifactComposite && ref.Kind != SkillArtifactTool {
 		return fmt.Errorf("skill artifact ref: unsupported kind %q", ref.Kind)
 	}
 	if strings.TrimSpace(ref.SkillID) == "" || strings.TrimSpace(ref.LineageID) == "" {
@@ -198,7 +216,7 @@ func ValidateSkillArtifactRef(ref SkillArtifactRef) error {
 	if ref.Version < 1 {
 		return fmt.Errorf("skill artifact ref: version must be at least 1")
 	}
-	if ref.SchemaVersion != SkillArtifactSchemaV1 {
+	if ref.SchemaVersion != SkillArtifactSchemaV2 {
 		return fmt.Errorf("skill artifact ref: unsupported schema_version %q", ref.SchemaVersion)
 	}
 	if !skillArtifactDigestPattern.MatchString(ref.Digest) {
@@ -208,7 +226,7 @@ func ValidateSkillArtifactRef(ref SkillArtifactRef) error {
 }
 
 func ValidateSkillArtifact(artifact SkillArtifact) error {
-	if artifact.SchemaVersion != SkillArtifactSchemaV1 {
+	if artifact.SchemaVersion != SkillArtifactSchemaV2 {
 		return fmt.Errorf("skill artifact: unsupported schema_version %q", artifact.SchemaVersion)
 	}
 	if strings.TrimSpace(artifact.SkillID) == "" || strings.TrimSpace(artifact.LineageID) == "" || strings.TrimSpace(artifact.Name) == "" {
@@ -249,6 +267,9 @@ func ValidateSkillArtifact(artifact SkillArtifact) error {
 	if artifact.Body.Composite != nil {
 		present++
 	}
+	if artifact.Body.Tool != nil {
+		present++
+	}
 	if present != 1 {
 		return fmt.Errorf("skill artifact: body must contain exactly one kind")
 	}
@@ -269,6 +290,11 @@ func ValidateSkillArtifact(artifact SkillArtifact) error {
 			return fmt.Errorf("skill artifact: composite kind requires composite body")
 		}
 		return validateComposite(artifact, *artifact.Body.Composite)
+	case SkillArtifactTool:
+		if artifact.Body.Tool == nil {
+			return fmt.Errorf("skill artifact: tool kind requires tool body")
+		}
+		return validateTool(*artifact.Body.Tool)
 	default:
 		return fmt.Errorf("skill artifact: unsupported kind %q", artifact.Kind)
 	}
@@ -348,14 +374,28 @@ func validateStepGuidance(body StepGuidanceSkillBody) error {
 		}
 		stepIDs := map[string]bool{}
 		for _, step := range branch.Future.CriticalSteps {
-			if err := uniqueID(stepIDs, step.StepID, "future critical step"); err != nil { return err }
-			if strings.TrimSpace(step.Instruction) == "" { return fmt.Errorf("future critical step %s: instruction is required", step.StepID) }
+			if err := uniqueID(stepIDs, step.StepID, "future critical step"); err != nil {
+				return err
+			}
+			if strings.TrimSpace(step.Instruction) == "" {
+				return fmt.Errorf("future critical step %s: instruction is required", step.StepID)
+			}
 		}
 		for _, evidence := range branch.Future.EvidenceSupport {
-			if err := validateImmutableArtifactRef(evidence.EvidenceRef); err != nil { return fmt.Errorf("step guidance branch %s evidence: %w", branch.BranchID, err) }
-			if evidence.Relation != BranchEvidenceSupports && evidence.Relation != BranchEvidenceRefutes { return fmt.Errorf("step guidance branch %s: unsupported evidence relation %q", branch.BranchID, evidence.Relation) }
-			switch evidence.Coverage { case BranchCoverageExercised, BranchCoverageAvoided, BranchCoverageRecovered, BranchCoverageInapplicable: default: return fmt.Errorf("step guidance branch %s: unsupported coverage %q", branch.BranchID, evidence.Coverage) }
-			if len(evidence.Claims) == 0 { return fmt.Errorf("step guidance branch %s: evidence claims are required", branch.BranchID) }
+			if err := validateImmutableArtifactRef(evidence.EvidenceRef); err != nil {
+				return fmt.Errorf("step guidance branch %s evidence: %w", branch.BranchID, err)
+			}
+			if evidence.Relation != BranchEvidenceSupports && evidence.Relation != BranchEvidenceRefutes {
+				return fmt.Errorf("step guidance branch %s: unsupported evidence relation %q", branch.BranchID, evidence.Relation)
+			}
+			switch evidence.Coverage {
+			case BranchCoverageExercised, BranchCoverageAvoided, BranchCoverageRecovered, BranchCoverageInapplicable:
+			default:
+				return fmt.Errorf("step guidance branch %s: unsupported coverage %q", branch.BranchID, evidence.Coverage)
+			}
+			if len(evidence.Claims) == 0 {
+				return fmt.Errorf("step guidance branch %s: evidence claims are required", branch.BranchID)
+			}
 		}
 	}
 	return nil
@@ -564,4 +604,24 @@ func ValidateSkillCandidateArtifactRefs(candidate SkillCandidate) error {
 		return fmt.Errorf("skill candidate: base artifact digest does not match reviewed diff")
 	}
 	return nil
+}
+
+func validateTool(body ToolSkillBody) error {
+	if !skillArtifactDigestPattern.MatchString(body.PackageRef.OCIImageDigest) || len(body.PackageRef.Entrypoint) == 0 {
+		return fmt.Errorf("tool skill: OCI package digest and entrypoint are required")
+	}
+	for _, entry := range body.PackageRef.Entrypoint {
+		if strings.TrimSpace(entry) == "" {
+			return fmt.Errorf("tool skill: entrypoint contains an empty argument")
+		}
+	}
+	for _, ref := range []ImmutableArtifactRef{body.PackageRef.BuildAttestationRef, body.InputSchemaRef, body.OutputSchemaRef, body.ErrorSchemaRef, body.ValidationContractRef} {
+		if err := validateImmutableArtifactRef(ref); err != nil {
+			return fmt.Errorf("tool skill: immutable contract reference: %w", err)
+		}
+	}
+	if !body.NetworkDisabled {
+		return fmt.Errorf("tool skill: network must be disabled")
+	}
+	return validateUniqueNonempty(body.DeclaredCapabilities, "tool declared capability")
 }

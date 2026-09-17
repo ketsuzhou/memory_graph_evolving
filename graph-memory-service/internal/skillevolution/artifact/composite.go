@@ -195,7 +195,7 @@ func (s *Service) canonicalizeComposite(body map[string]any) error {
 		}
 		sort.Strings(capabilities)
 		for _, capability := range capabilities {
-			if !validation.HostCapabilityCapV1[capability] {
+			if !validation.HostCapabilityCapV2[capability] {
 				return newError(ReasonPermissionCapExceeded, "composite permission union (children + orchestration) exceeds the Host cap at %q", capability)
 			}
 		}

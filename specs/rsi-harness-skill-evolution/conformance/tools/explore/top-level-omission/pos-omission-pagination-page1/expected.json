@@ -2,7 +2,7 @@
   "case_id": "pos-omission-pagination-page1",
   "expected_accept": true,
   "expected_reason_code": null,
-  "expected_result_digest": "sha256:aa6499cf2ceaafb4b3f47250c4c9c562810d81c719cd0e9ffa8d949e4aa9a175",
+  "expected_result_digest": "sha256:3ccc4ae9dc3c967fee779cabf4d17f1f240f5837c8623ebbfe0e3e5dd560e711",
   "notes": "page 1 of the mixed pagination scenario: empty omissions + empty codes",
   "schema_version": "rsih-skill-evolution.explore-omission-expected.v1"
 }

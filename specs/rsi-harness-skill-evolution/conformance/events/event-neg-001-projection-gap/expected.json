@@ -1,1 +1,9 @@
-{"case_id":"event-neg-001-projection-gap","expected_accept":false,"expected_canonical_byte_length":2845,"expected_digest":"sha256:e8147363f82c680d3170d07a76b5641c7a97260c9a9c06e7b4a65fbe9c199e09","expected_reason_code":"PROJECTION_SEQUENCE_GAP","notes":"Contract §9.3: projector consumes contiguous activation sequences; gap at 3 blocks the watermark","schema_version":"rsih-skill-evolution.conformance-expected.v1"}
+{
+  "case_id": "event-neg-001-projection-gap",
+  "expected_accept": false,
+  "expected_canonical_byte_length": 2845,
+  "expected_digest": "sha256:9da884262721a7229d626629d4f7a9866c5848486e913c79f75f065e7fa77d4b",
+  "expected_reason_code": "PROJECTION_SEQUENCE_GAP",
+  "notes": "Contract §9.3: projector consumes contiguous activation sequences; gap at 3 blocks the watermark",
+  "schema_version": "rsih-skill-evolution.conformance-expected.v1"
+}

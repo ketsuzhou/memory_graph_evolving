@@ -1,128 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "rsih-skill-evolution.shared.common-types.v1.schema.json",
-  "title": "Contract 7.2 common value types (library, not an instance schema)",
-  "description": "Shared $defs for the Contract 7.2 common value types plus the closed kind/failure-action/permission vocabularies of 5.2/8/13.3. Referenced from the sibling DTO schemas via common-types.schema.json#/$defs/<name>; no cycles.",
-  "contract_refs": [
-    "system-contract.md 7.2",
-    "system-contract.md 5.2",
-    "system-contract.md 13.3",
-    "system-contract.md 6.4"
-  ],
+  "$id": "rsih-skill-evolution.shared.common-types.v2.schema.json",
+  "title": "Contract 7.2 common value types",
+  "description": "Shared v2 value types and the closed Tool Skill capable canonical kind set.",
+  "contract_refs": ["system-contract.md 7.2", "system-contract.md 5.2", "system-contract.md 13.3", "system-contract.md 6.4"],
   "$defs": {
-    "sha256": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
-    },
-    "non_empty_string": {
-      "type": "string",
-      "minLength": 1
-    },
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "non_empty_string": {"type": "string", "minLength": 1},
     "versioned_ref": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "version",
-        "digest"
-      ],
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version", "digest"],
       "properties": {
-        "id": {
-          "$ref": "common-types.schema.json#/$defs/non_empty_string"
-        },
-        "version": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "digest": {
-          "$ref": "common-types.schema.json#/$defs/sha256"
-        }
-      },
-      "description": "Contract 7.2 VersionedRef; all three fields MUST be verified on resolution (6.2); never latest/naked/Graph-node."
+        "id": {"$ref": "common-types.schema.json#/$defs/non_empty_string"},
+        "version": {"type": "integer", "minimum": 1},
+        "digest": {"$ref": "common-types.schema.json#/$defs/sha256"}
+      }
     },
     "rational": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "numerator",
-        "denominator"
-      ],
-      "properties": {
-        "numerator": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "denominator": {
-          "type": "integer",
-          "minimum": 1
-        }
-      },
-      "description": "Contract 7.2 Rational; the only legal ratio encoding (6.1.4 - no floats in hashed cores)."
+      "type": "object", "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {"numerator": {"type": "integer", "minimum": 0}, "denominator": {"type": "integer", "minimum": 1}}
     },
     "json_schema_ref": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "schema_id",
-        "version",
-        "digest"
-      ],
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_id", "version", "digest"],
       "properties": {
-        "schema_id": {
-          "$ref": "common-types.schema.json#/$defs/non_empty_string"
-        },
-        "version": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "digest": {
-          "$ref": "common-types.schema.json#/$defs/sha256"
-        }
-      },
-      "description": "Contract 7.2 JsonSchemaRef; REQUIRED on any Skill used as a Composite child (5.2.5/8.2-8.4)."
+        "schema_id": {"$ref": "common-types.schema.json#/$defs/non_empty_string"},
+        "version": {"type": "integer", "minimum": 1},
+        "digest": {"$ref": "common-types.schema.json#/$defs/sha256"}
+      }
     },
-    "extensions": {
-      "type": "object",
-      "description": "Contract 6.4 extensions envelope. Keys are reverse-domain or organization namespaces; unknown required:true extensions fail closed (UNKNOWN_REQUIRED_EXTENSION); extensions never enter a core digest preimage unless the DTO explicitly freezes otherwise (6.2.1 manifest)."
-    },
+    "extensions": {"type": "object"},
     "canonical_kind": {
-      "enum": [
-        "human_procedure",
-        "step_guidance",
-        "composite"
-      ],
-      "description": "Contract 5.2.1 closed canonical kind set."
+      "enum": ["human_procedure", "step_guidance", "composite", "tool"],
+      "description": "Contract 5.2.1 v2 closed canonical kind set."
     },
-    "failure_action": {
-      "enum": [
-        "stop",
-        "skip",
-        "fallback",
-        "request_human",
-        "mark_inconclusive"
-      ],
-      "description": "Contract 13.3 closed failure action set."
-    },
+    "failure_action": {"enum": ["stop", "skip", "fallback", "request_human", "mark_inconclusive"]},
     "permission": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "capability",
-        "scope"
-      ],
+      "type": "object", "additionalProperties": false,
+      "required": ["capability", "scope"],
       "properties": {
-        "capability": {
-          "$ref": "common-types.schema.json#/$defs/non_empty_string"
-        },
-        "scope": {
-          "$ref": "common-types.schema.json#/$defs/non_empty_string"
-        }
-      },
-      "description": "Contract 8.1 permission entry; a capability without an explicit scope is invalid (CTR-005 permission profile)."
+        "capability": {"$ref": "common-types.schema.json#/$defs/non_empty_string"},
+        "scope": {"$ref": "common-types.schema.json#/$defs/non_empty_string"}
+      }
     },
-    "predicate": {
-      "type": "object",
-      "description": "Opaque applicability/branch predicate object (Contract 8.1-8.3); schema-validated by the enclosing kind validator, never executed."
-    }
+    "predicate": {"type": "object"}
   }
 }

@@ -16,6 +16,7 @@ import (
 	"river2.dev/graph-memory-service/internal/contract"
 	"river2.dev/graph-memory-service/internal/skillevolution/ledger"
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
+	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 )
 
 // ToolRequest is one Contract §7.18 ToolProxyRequest (the Host wire shape;
@@ -59,6 +60,7 @@ type Config struct {
 	Gates      SchemaGate
 	Registry   ledger.ReasonRegistry
 	Policy     *ToolPolicy
+	Usage      *usageprojection.UsageProjectionService
 	// SkillGetEnabled is the M6 readiness-gate state: VerifySkillGetReadiness
 	// MUST be green before this is true (disabled-until-green).
 	SkillGetEnabled bool
@@ -96,6 +98,7 @@ type Service struct {
 	gates           SchemaGate
 	registry        ledger.ReasonRegistry
 	policy          *ToolPolicy
+	usage           *usageprojection.UsageProjectionService
 	skillGetEnabled bool
 
 	mu       sync.Mutex
@@ -135,6 +138,7 @@ func NewService(cfg Config) (*Service, error) {
 		gates:           cfg.Gates,
 		registry:        cfg.Registry,
 		policy:          cfg.Policy,
+		usage:           cfg.Usage,
 		skillGetEnabled: cfg.SkillGetEnabled,
 		sessions:        map[string]*exploreSession{},
 	}, nil
@@ -215,7 +219,7 @@ func (s *Service) Explore(ctx context.Context, req ToolRequest) (*Response, erro
 		}
 	}
 
-	response, err := s.buildExplorePage(req, session, args, snapshot, watermark, sequence)
+	response, err := s.buildExplorePage(ctx, req, session, args, snapshot, watermark, sequence)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +230,7 @@ func (s *Service) Explore(ctx context.Context, req ToolRequest) (*Response, erro
 }
 
 // buildExplorePage ranks, allocates and renders one explore result page.
-func (s *Service) buildExplorePage(req ToolRequest, session *exploreSession, args *exploreArguments, snapshot projector.GraphSnapshot, watermark map[string]any, sequence uint64) (*Response, error) {
+func (s *Service) buildExplorePage(ctx context.Context, req ToolRequest, session *exploreSession, args *exploreArguments, snapshot projector.GraphSnapshot, watermark map[string]any, sequence uint64) (*Response, error) {
 	skills, evidence, err := s.collectCandidates(snapshot, args.Filters, args.QueryTerms)
 	if err != nil {
 		return nil, err
@@ -243,6 +247,7 @@ func (s *Service) buildExplorePage(req ToolRequest, session *exploreSession, arg
 		views[skillKey(skill.ref)] = view
 	}
 	rankScores(skills, evidence, args.QueryTerms, snapshot)
+	usagePolicy := s.applyUsagePriority(ctx, skills)
 	rankOrderSkills(skills)
 	rankOrderEvidence(evidence)
 
@@ -287,7 +292,7 @@ func (s *Service) buildExplorePage(req ToolRequest, session *exploreSession, arg
 	}
 	session.refreshFences()
 
-	result, err := s.renderExploreResult(session, args, alloc, views, watermark, req)
+	result, err := s.renderExploreResult(session, args, alloc, views, watermark, req, usagePolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +308,7 @@ func (s *Service) buildExplorePage(req ToolRequest, session *exploreSession, arg
 }
 
 // renderExploreResult assembles the closed ExploreResult document.
-func (s *Service) renderExploreResult(session *exploreSession, args *exploreArguments, alloc *allocation, views map[string]*renderedView, watermark map[string]any, req ToolRequest) (map[string]any, error) {
+func (s *Service) renderExploreResult(session *exploreSession, args *exploreArguments, alloc *allocation, views map[string]*renderedView, watermark map[string]any, req ToolRequest, usagePolicy string) (map[string]any, error) {
 	evidenceResults := make([]any, 0, len(alloc.servedEvidence))
 	for _, served := range alloc.servedEvidence {
 		doc := evidenceRefDoc(served.ref)
@@ -361,10 +366,83 @@ func (s *Service) renderExploreResult(session *exploreSession, args *exploreArgu
 		"truncation_reason_codes": alloc.truncationCodes(),
 		"omissions":               alloc.omissionDocs(),
 	}
+	if usagePolicy != "" {
+		explanations := make([]any, 0, len(alloc.servedSkills))
+		for _, served := range alloc.servedSkills {
+			explanations = append(explanations, usageExplanationDoc(served.usage))
+		}
+		result["extensions"] = map[string]any{
+			"gms.usage-ranking.v1": map[string]any{
+				"required":             false,
+				"policy_version":       usagePolicy,
+				"authority_preserving": true,
+				"skill_explanations":   explanations,
+			},
+		}
+	}
 	if req.HasMinActivationSequence {
 		result["min_activation_sequence"] = json.Number(fmt.Sprintf("%d", req.RequestedMinActivationSequence))
 	}
 	return result, nil
+}
+
+// applyUsagePriority reads the fixed non-diagnostic UsageSummary once and
+// projects it onto active retrieval candidates. It returns an empty policy
+// when no usable observation exists, preserving the frozen lexical/graph
+// order during usage-read unavailability or an all-zero summary.
+func (s *Service) applyUsagePriority(ctx context.Context, skills []*skillCandidate) string {
+	if s.usage == nil || len(skills) == 0 {
+		return ""
+	}
+	summary, err := s.usage.UsageSummary(ctx, usageprojection.UsageSummaryRequest{IncludeDiagnostic: false})
+	if err != nil {
+		return ""
+	}
+	inputs := make([]usageprojection.PriorityInput, 0, len(skills))
+	for _, skill := range skills {
+		ref := skill.ref
+		inputs = append(inputs, usageprojection.PriorityInput{
+			Key: skillKey(ref), AuthorityTier: usageprojection.AuthorityTierActive,
+			Subject: usageprojection.UsageSubjectRef{SkillRef: &ref},
+		})
+	}
+	decisions := usageprojection.Prioritize(summary, inputs)
+	applied := false
+	for index, decision := range decisions {
+		if decision.Explanation.UsageApplied {
+			applied = true
+		}
+		for _, skill := range skills {
+			if skillKey(skill.ref) == decision.Key {
+				skill.usageRank, skill.usage = index, decision.Explanation
+				break
+			}
+		}
+	}
+	if !applied {
+		for _, skill := range skills {
+			skill.usageRank = 0
+		}
+		return ""
+	}
+	return summary.PolicyVersion
+}
+
+func usageExplanationDoc(explanation usageprojection.PriorityExplanation) map[string]any {
+	return map[string]any{
+		"authority_tier":                    string(explanation.AuthorityTier),
+		"usage_applied":                     explanation.UsageApplied,
+		"subject":                           explanation.SubjectKey,
+		"average_contribution_score_micros": explanation.AverageContributionScoreMicros,
+		"average_confidence_micros":         explanation.AverageConfidenceMicros,
+		"independent_context_count":         explanation.IndependentContextCount,
+		"independent_lineage_count":         explanation.IndependentLineageCount,
+		"adopted_count":                     explanation.AdoptedCount,
+		"verified_count":                    explanation.VerifiedCount,
+		"outcome_correlated_count":          explanation.OutcomeCorrelatedCount,
+		"counterevidence_count":             explanation.CounterevidenceCount,
+		"deduplicated_reuse_count":          explanation.DeduplicatedReuseCount,
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -963,6 +1041,12 @@ func mergeCandidates(skills []*skillCandidate, evidence []*evidenceCandidate) []
 	classOrder := map[string]int{"evidence": 0, "skill": 1}
 	sort.SliceStable(merged, func(i, j int) bool {
 		a, b := merged[i], merged[j]
+		// Both runtime skill candidates are active in v1. Their observational
+		// usage order therefore applies before lexical/graph fallback, but only
+		// within that single authority tier.
+		if a.class == "skill" && b.class == "skill" && a.skill.usageRank != b.skill.usageRank {
+			return a.skill.usageRank < b.skill.usageRank
+		}
 		if a.total() != b.total() {
 			return a.total() > b.total()
 		}
