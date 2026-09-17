@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"river2.dev/pi-group-chat-host/internal/domain"
+	"river2.dev/pi-group-chat-host/internal/pi/sessionctrl"
 	"river2.dev/pi-group-chat-host/internal/ports"
 )
 
@@ -122,6 +124,57 @@ func (l *Launcher) Start(ctx context.Context, profile domain.AgentProfile) (port
 		requestID: l.config.RequestID,
 		scanner:   newLineScanner(stdout),
 	}, nil
+}
+
+// StartExactSession launches Pi attached to one Host-recorded session file.
+// It deliberately appends only the non-interactive --session selector; callers
+// cannot fall back to Pi's interactive --resume or ambiguous --continue modes.
+// Start and argv remain the legacy one-shot path and are not changed here.
+func (l *Launcher) StartExactSession(ctx context.Context, profile domain.AgentProfile, session sessionctrl.Session, generation uint64) (*sessionctrl.Controller, error) {
+	if err := session.Validate(); err != nil {
+		return nil, err
+	}
+	if err := l.VerifyExactVersion(ctx, l.config.Executable); err != nil {
+		return nil, err
+	}
+	args := append(l.argv(profile), "--session", session.File)
+	command := exec.CommandContext(ctx, l.config.Executable, args...)
+	command.Env = append([]string(nil), l.config.Environment...)
+	if profile.WorkingDirectory != "" {
+		if err := os.MkdirAll(profile.WorkingDirectory, 0o755); err == nil {
+			command.Dir = profile.WorkingDirectory
+		}
+	}
+	stdin, err := command.StdinPipe()
+	if err != nil {
+		return nil, fmt.Errorf("pi stdin pipe: %w", err)
+	}
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("pi stdout pipe: %w", err)
+	}
+	command.Stderr = l.config.Stderr
+	if err := command.Start(); err != nil {
+		return nil, fmt.Errorf("pi start: %w", err)
+	}
+	controller, err := sessionctrl.New(sessionctrl.Config{
+		Session: session, Generation: generation, Stdin: stdin, Stdout: stdout,
+		Close: func() error {
+			closeErr := stdin.Close()
+			waitErr := command.Wait()
+			if closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
+				return closeErr
+			}
+			return waitErr
+		},
+		RequestID: l.config.RequestID,
+	})
+	if err != nil {
+		_ = stdin.Close()
+		_ = command.Wait()
+		return nil, err
+	}
+	return controller, nil
 }
 
 // argv builds the documented flag sequence. Ordinary keeps Pi's full coding
