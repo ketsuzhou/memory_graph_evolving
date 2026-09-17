@@ -37,6 +37,10 @@ func composeGraphBatchRuntime(config armConfig) (*graphBatchRuntime, error) {
 	trains, heldOut := partitionGraphBatchEpisodes(config.episodes)
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 30 * time.Second}, 1<<20)
 	ledger := &gmsGraphBatchLedger{client: client, evidenceIDs: evidenceIDsFromTrains(trains)}
+	heldOutExecutor, err := newProductionGraphBatchHeldOut(config)
+	if err != nil {
+		return nil, err
+	}
 	return &graphBatchRuntime{
 		Config:            defaultGraphBatchFrozenConfig(),
 		Parallelism:       config.batchParallelism,
@@ -49,6 +53,7 @@ func composeGraphBatchRuntime(config armConfig) (*graphBatchRuntime, error) {
 		Freezer:           ledger,
 		Retriever:         ledger,
 		HeldOut:           heldOut,
+		HeldOutExecutor:   heldOutExecutor,
 	}, nil
 }
 
@@ -63,6 +68,7 @@ func partitionGraphBatchEpisodes(episodes []manifestEpisode) ([]graphBatchTrainS
 				Sequence:  testSeq,
 				AttemptID: episode.EpisodeID,
 				Opening:   openingFromEpisode(item),
+				Episode:   &item,
 			})
 			testSeq++
 			continue

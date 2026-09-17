@@ -255,6 +255,13 @@ type attemptRecord struct {
 	SkillReplayRecall    string  `json:"skill_replay_recall,omitempty"`
 	SkillReplayCitations int     `json:"skill_replay_citations,omitempty"`
 	SkillReplayOutput    *string `json:"skill_replay_output,omitempty"`
+	// Directed skill-offer telemetry for warm-skill-graph-batch production
+	// held-out. Legacy arms leave these empty. LCB grading ignores them.
+	Offers            []skillOfferAttempt  `json:"offers,omitempty"`
+	Served            []skillServedAttempt `json:"served,omitempty"`
+	Disposition       string               `json:"disposition,omitempty"`
+	DispositionReason string               `json:"reason,omitempty"`
+	NamedInReasoning  bool                 `json:"named_in_reasoning,omitempty"`
 }
 
 type skillStrategy string

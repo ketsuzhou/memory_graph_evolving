@@ -42,8 +42,11 @@ type graphBatchRuntime struct {
 	TrainExecutor graphBatchTrainExecutor
 	AuthorityKind string
 
-	HeldOut []graphBatchHeldOutSpec
-	Probe   *graphBatchProbe
+	HeldOut         []graphBatchHeldOutSpec
+	HeldOutExecutor graphBatchHeldOutExecutor
+	Probe           *graphBatchProbe
+	productionMu    sync.Mutex
+	ProductionAttempts []attemptRecord
 }
 
 const (
@@ -76,6 +79,7 @@ type graphBatchHeldOutSpec struct {
 	MemoryHold    <-chan struct{}
 	MemoryTimeout bool
 	MemoryErr     error
+	Episode       *manifestEpisode
 }
 
 type graphBatchTestFeedback struct {
@@ -147,6 +151,7 @@ type graphBatchPipelineResult struct {
 	HeldOutTraces          []graphBatchHeldOutTrace
 	FailureAccounting      graphBatchFailureAccounting
 	Authority              graphBatchAuthorityRecord
+	ProductionAttempts     []attemptRecord
 }
 
 type graphBatchConsolidator interface {
@@ -223,8 +228,9 @@ func (p *graphBatchProbe) startedTests() int {
 	return int(atomic.LoadInt32(&p.testsStarted))
 }
 
-// runGraphBatchArm is the runArm composition seam. It never initializes the
-// legacy runner-local []skillProposal ledger or emits attemptRecord rows.
+// runGraphBatchArm is the runArm composition seam. Fixture and empty runs
+// never emit attemptRecord rows. Production held-out emits one row per
+// test episode so LCB grading can read offers/served/disposition.
 func runGraphBatchArm(ctx context.Context, config armConfig, emit func(attemptRecord)) error {
 	if config.graphBatch != nil {
 		_, err := runGraphBatchCanonicalPipeline(ctx, config.graphBatch)
@@ -237,8 +243,16 @@ func runGraphBatchArm(ctx context.Context, config armConfig, emit func(attemptRe
 	if err != nil {
 		return err
 	}
-	_, err = runGraphBatchCanonicalPipeline(ctx, runtime)
-	return err
+	result, err := runGraphBatchCanonicalPipeline(ctx, runtime)
+	if err != nil {
+		return err
+	}
+	if emit != nil && result != nil {
+		for _, record := range result.ProductionAttempts {
+			emit(record)
+		}
+	}
+	return nil
 }
 
 // runGraphBatchCanonicalPipeline is the unique composition: parallel train
@@ -412,22 +426,41 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 			return fmt.Errorf("held-out %s retrieval digest %q != sealed %q", job.Value.AttemptID, retrieval.ManifestDigest, digest)
 		}
 
-		task := concurrentepisode.NewScriptedSession("task-" + job.Value.AttemptID)
-		task.Hold = job.Value.TaskHold
-		memory := concurrentepisode.NewScriptedSession("memory-" + job.Value.AttemptID)
-		memory.Hold = job.Value.MemoryHold
-		memory.Timeout = job.Value.MemoryTimeout
-		memory.Err = job.Value.MemoryErr
-		episode, err := concurrentepisode.Run(ctx, concurrentepisode.Request{
-			Opening:                job.Value.Opening,
-			Graph:                  job.Value.Graph,
-			ApplicableCandidateIDs: job.Value.ApplicableIDs,
-			Task:                   task,
-			Memory:                 memory,
-			TaskContextMonitoring:  concurrentepisode.ContextOpeningOnly,
-		})
-		if err != nil {
-			return err
+		var (
+			memoryTerminal string
+			taskStatus     string
+			failureClass   string
+		)
+		if runtime.HeldOutExecutor != nil {
+			episode, err := runtime.HeldOutExecutor.Execute(ctx, digest, retrieval, job.Value, snapshot)
+			if err != nil {
+				return err
+			}
+			memoryTerminal, taskStatus, failureClass = episode.MemoryTerminal, episode.TaskStatus, episode.FailureClass
+			if episode.Record != nil {
+				runtime.productionMu.Lock()
+				runtime.ProductionAttempts = append(runtime.ProductionAttempts, *episode.Record)
+				runtime.productionMu.Unlock()
+			}
+		} else {
+			task := concurrentepisode.NewScriptedSession("task-" + job.Value.AttemptID)
+			task.Hold = job.Value.TaskHold
+			memory := concurrentepisode.NewScriptedSession("memory-" + job.Value.AttemptID)
+			memory.Hold = job.Value.MemoryHold
+			memory.Timeout = job.Value.MemoryTimeout
+			memory.Err = job.Value.MemoryErr
+			episode, err := concurrentepisode.Run(ctx, concurrentepisode.Request{
+				Opening:                job.Value.Opening,
+				Graph:                  job.Value.Graph,
+				ApplicableCandidateIDs: job.Value.ApplicableIDs,
+				Task:                   task,
+				Memory:                 memory,
+				TaskContextMonitoring:  concurrentepisode.ContextOpeningOnly,
+			})
+			if err != nil {
+				return err
+			}
+			memoryTerminal, taskStatus, failureClass = episode.MemoryTerminal, episode.TaskStatus, episode.FailureClass
 		}
 
 		trace := graphBatchHeldOutTrace{
@@ -439,14 +472,14 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 			AttemptID:      job.Value.AttemptID,
 			ManifestDigest: digest,
 			Retrieval:      retrieval,
-			MemoryTerminal: episode.MemoryTerminal,
-			TaskStatus:     episode.TaskStatus,
-			FailureClass:   episode.FailureClass,
+			MemoryTerminal: memoryTerminal,
+			TaskStatus:     taskStatus,
+			FailureClass:   failureClass,
 		}
 		traceMu.Lock()
 		traces = append(traces, trace)
 		attempts = append(attempts, attempt)
-		switch episode.FailureClass {
+		switch failureClass {
 		case concurrentepisode.FailureNormalNoSkill:
 			accounting.NormalNoSkillEpisodes++
 		case concurrentepisode.FailureMemoryTimeout:
@@ -480,6 +513,7 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 		HeldOutTraces:          traces,
 		FailureAccounting:      accounting,
 		Authority:              graphBatchAuthority(runtime.AuthorityKind, proposalIDs),
+		ProductionAttempts:     append([]attemptRecord(nil), runtime.ProductionAttempts...),
 	}, nil
 }
 

@@ -75,6 +75,12 @@ type ExecutionAuthority struct {
 	// the surface, so hosts seating diagnosis-style agents must list their
 	// read-only extension tools here.
 	ExtraMemoryTools []string
+	// ExtraOrdinaryTools names extension-registered tools an ordinary
+	// (task) agent may invoke in addition to Pi's coding builtins. The
+	// Host records them for adjudication; argv stays unrestricted so
+	// bash/read/write remain available. Used by warm-skill-graph-batch
+	// production held-out to expose skill_get / skill_feedback.
+	ExtraOrdinaryTools []string
 }
 
 type VisibleMessage struct {
@@ -174,6 +180,14 @@ type TurnRequest struct {
 	// stream to that file and keeps a tail in memory so a mid-turn process
 	// death can be explained from the returned error alone.
 	PiStderrPath string
+	// SkipRecall disables the Host-owned pre-turn GMS Recall and the
+	// "Memory from earlier sessions..." prompt header. Zero value keeps
+	// every existing caller on the historical performRecall=true path.
+	SkipRecall bool
+	// SkillProtocol, when set, observes this turn's tool starts/ends so
+	// a lightweight skill fence can record served facts and disposition
+	// without abort/resume. Nil keeps existing turns unchanged.
+	SkillProtocol SkillProtocolHandler
 }
 
 type TurnResult struct {
@@ -185,6 +199,17 @@ type TurnResult struct {
 	Delivery          DeliveryRecord
 	Segment           SegmentRecord
 	Outbox            []OutboxRecord
+}
+
+// SkillProtocolHandler observes ordinary-turn tool calls for the lightweight
+// skill fence (offer → skill_get → skill_feedback). It does not abort Pi
+// builtin tools; those execute inside Pi. The handler records served
+// facts, disposition, and protocol_error, and may publish the §4.4
+// SKILL_ACCEPTED / SKILL_REJECTED room message through the Host.
+type SkillProtocolHandler interface {
+	ObserveToolStart(tool, callID, args string)
+	ObserveToolEnd(tool, callID string, isError bool, result string)
+	PublishFeedback(messages []VisibleMessage) []VisibleMessage
 }
 
 type TracerIDs struct {
@@ -260,9 +285,10 @@ func ExecuteOrdinaryTurn(ctx context.Context, request TurnRequest) (TurnResult, 
 		humanMessageID:  request.HumanMessageID,
 		humanKey:        request.HumanMessageID,
 		memoryClient:    client,
-		performRecall:   true,
+		performRecall:   !request.SkipRecall,
 		piBinary:        request.PiBinary,
 		promptRequestID: request.PromptRequestID,
+		skillProtocol:   request.SkillProtocol,
 	})
 	if err != nil {
 		return TurnResult{}, err
@@ -667,6 +693,8 @@ type turnInput struct {
 	// (Host §5.4). Room side-effect tools keep their post-completion
 	// semantics either way.
 	toolProxy *toolproxy.Bridge
+	// skillProtocol observes tool starts/ends for the lightweight fence.
+	skillProtocol SkillProtocolHandler
 }
 
 type turnTrace struct {
@@ -929,6 +957,9 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 			input.log.event("pi_agent_end", map[string]any{"will_retry": event.WillRetry != nil && *event.WillRetry})
 			return nil
 		case "tool_execution_start":
+			if input.skillProtocol != nil {
+				input.skillProtocol.ObserveToolStart(event.ToolName, event.ToolCallID, event.Content)
+			}
 			input.log.event("pi_tool_start", map[string]any{
 				"tool_call_id": event.ToolCallID, "tool_name": event.ToolName, "args_bytes": len(event.Content),
 			})
@@ -954,6 +985,10 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 			pendingCalls[event.ToolCallID] = event
 			return nil
 		case "tool_execution_end":
+			if input.skillProtocol != nil {
+				isError := event.IsError != nil && *event.IsError
+				input.skillProtocol.ObserveToolEnd(event.ToolName, event.ToolCallID, isError, event.Result)
+			}
 			input.log.event("pi_tool_end", map[string]any{
 				"tool_call_id": event.ToolCallID, "tool_name": event.ToolName,
 				"is_error": event.IsError != nil && *event.IsError, "result_bytes": len(event.Result),
@@ -1061,6 +1096,9 @@ func (o *Orchestrator) executeTurnUnchecked(ctx context.Context, input turnInput
 		"published_messages": len(trace.visibleMessages) - 1,
 	})
 
+	if input.skillProtocol != nil {
+		trace.visibleMessages = input.skillProtocol.PublishFeedback(trace.visibleMessages)
+	}
 	outcome.delivery = DeliveryRecord{
 		ID:        string(claimed.ID),
 		AgentID:   string(claimed.AgentID),
