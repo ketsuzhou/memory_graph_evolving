@@ -288,11 +288,11 @@ TB-01 strategy skeleton ───────── TB-06 ───────�
 
 **Acceptance criteria:**
 
-- [ ] 机器逐项断言 `system-contract.md §10` 的十二项 smoke 条件。
-- [ ] Real Pi 0.85.1 smoke 证明 exact-session abort/resume；binary不可用时不得把 contract 标成 green。
-- [ ] Bundle记录命令、版本、config、manifest、body digests和每项 assertion evidence。
-- [ ] Host/GMS targeted tests、repository-wide tests及 race suites通过。
-- [ ] Known limitations 固化：generation-0无train feedback、opening-only、无protocol-cost control、crash uncertainty fail closed。
+- [x] 机器逐项断言 `system-contract.md §10` 的十二项 smoke 条件。
+- [x] Real Pi 0.85.1 smoke 证明 exact-session abort/resume；binary不可用时不得把 contract 标成 green。
+- [x] Bundle记录命令、版本、config、manifest、body digests和每项 assertion evidence。
+- [x] Host/GMS targeted tests、repository-wide tests及 race suites通过。
+- [x] Known limitations 固化：generation-0无train feedback、opening-only、无protocol-cost control、crash uncertainty fail closed。
 
 ## 5. 最大并行前沿
 
