@@ -1894,8 +1894,10 @@ func commitRetrievalNote(ctx context.Context, config armConfig, spaceID, family,
 		StreamID:        "evidence-" + id,
 		SourceSegmentID: id,
 		Provenance: ports.EvidenceProvenance{
+			// SourceKind is contract-bound to the two projection kinds; the
+			// note's identity rides on the batch/event ids.
 			HostType: "pi-group-chat-host", HostInstanceID: "bench-runner",
-			SourceKind: "retrieval_note", CapturedAt: now, ContentSHA256: hex.EncodeToString(digest[:]),
+			SourceKind: "room_shared", CapturedAt: now, ContentSHA256: hex.EncodeToString(digest[:]),
 		},
 		Events: []ports.EvidenceEvent{{
 			EventID: id + "-note", Sequence: 1, Kind: "room_message", Content: note, OccurredAt: now,
