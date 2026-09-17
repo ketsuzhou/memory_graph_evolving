@@ -289,12 +289,13 @@ func TestRetrievalTurnDeadlineScalesWithChunks(t *testing.T) {
 		chunks int
 		want   time.Duration
 	}{
-		{0, 120 * time.Second},
-		{7, 176 * time.Second},
-		{10, 200 * time.Second},
-		{44, 472 * time.Second},
-		{45, 480 * time.Second},
-		{130, 480 * time.Second},
+		{0, 240 * time.Second},
+		{7, 520 * time.Second},
+		{10, 640 * time.Second},
+		{14, 800 * time.Second},
+		{20, 1040 * time.Second},
+		{21, 1080 * time.Second},
+		{130, 1080 * time.Second},
 	}
 	for _, testCase := range cases {
 		if got := retrievalTurnDeadline(testCase.chunks); got != testCase.want {

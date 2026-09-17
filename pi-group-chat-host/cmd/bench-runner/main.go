@@ -1254,8 +1254,9 @@ const (
 	ledgerTriggerMaxChars = 90
 	// skills_list hard call budget: past it the tool answers with a
 	// publish-now nudge instead of another page, so a model stuck paging
-	// cannot stall the retrieval turn until its deadline.
-	skillsListCallBudget = 15
+	// cannot stall the retrieval turn until its deadline. 18 covers fully
+	// paging a 14-chunk ledger plus a few re-reads before the nudge fires.
+	skillsListCallBudget = 18
 	// Governance cap on a family's consolidated ledger: past it the tail is
 	// dropped after consolidation, keeping test-time retrieval affordable.
 	maxConsolidatedSkills = 60
@@ -1940,11 +1941,15 @@ func commitRetrievalNote(ctx context.Context, config armConfig, spaceID, family,
 // drafted publish, plus a per-chunk allowance for the serial skills_list
 // round-trips, hard-capped so one slow retrieval turn cannot eat the
 // episode's own budget. batch-5 died on the old flat 5-minute deadline when
-// the ledger grew to 38 chunks at evening LLM latency.
+// the ledger grew to 38 chunks at evening LLM latency; batch-6's first
+// launch died at 120s+8s/chunk because a 14-chunk ledger under 32-way
+// parallel load needs ~30s per skills_list round-trip (observed 12-41s in
+// the aborted run's retrieval transcripts), so the per-chunk allowance must
+// cover a real model round-trip, not a fast tool call.
 func retrievalTurnDeadline(chunks int) time.Duration {
-	budget := 120*time.Second + time.Duration(chunks)*8*time.Second
-	if budget > 480*time.Second {
-		budget = 480 * time.Second
+	budget := 240*time.Second + time.Duration(chunks)*40*time.Second
+	if budget > 1080*time.Second {
+		budget = 1080 * time.Second
 	}
 	return budget
 }
