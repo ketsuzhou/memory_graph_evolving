@@ -186,6 +186,11 @@ type attemptRecord struct {
 	RecallCitations int               `json:"recall_citations"`
 	RecallSpaces    map[string]int    `json:"recall_spaces,omitempty"`
 	FinalOutput     *string           `json:"final_output"`
+	// The last task-agent publish carrying a fenced code block — what grading
+	// reads. final_output keeps its historical last-non-empty-publish
+	// semantics for comparability; the two differ exactly when a trailing
+	// bare "TASK_COMPLETE" publish buries the code message.
+	FinalCodeOutput *string           `json:"final_code_output,omitempty"`
 	Transcript      []transcriptEntry `json:"transcript,omitempty"`
 	UserTurns       int               `json:"user_turns,omitempty"`
 	Termination     string            `json:"termination,omitempty"`         // user_stop | agent_error | max_turns
@@ -986,15 +991,17 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 				}
 				record.RecallSpaces = spaces
 			}
-			if output := finalAgentOutput(turn.Messages, "agent-primary"); output != nil {
-				record.FinalOutput = output
-			} else if output := finalPiSessionOutput(episodeDir); output != nil {
-				// A model may finish with a valid final answer without room_send.
-				// Preserve it for grading and diagnosis rather than treating the
-				// trajectory as prompt-only.
-				record.FinalOutput = output
-				transcript = append(transcript, transcriptEntry{Role: "agent", Content: *output})
-				record.Transcript = transcript
+			capture := captureTaskOutput(episodeDir, turn.Messages)
+			record.FinalCodeOutput = capture.graded
+			if capture.final != nil {
+				record.FinalOutput = capture.final
+				if capture.fromSession {
+					// A model may finish with a valid final answer without room_send.
+					// Preserve it for grading and diagnosis rather than treating the
+					// trajectory as prompt-only.
+					transcript = append(transcript, transcriptEntry{Role: "agent", Content: *capture.final})
+					record.Transcript = transcript
+				}
 			}
 			// The recall-visibility boundary: evidence of this episode becomes
 			// recallable for the next episode only after the drain commits.
@@ -1219,8 +1226,22 @@ const (
 	// carries; ledger chunks pack a fixed number of proposals each. Both keep
 	// every single tool response comfortably inside one model context.
 	maxTrajectoryChunkChars = 2400
-	ledgerEntriesPerChunk   = 3
+	ledgerEntriesPerChunk   = 12
 	skillTextMaxChars       = 1200
+	// The ledger's first chunks are a compact index — one line per skill with
+	// its name, trigger, sha256 prefix, and the detail chunk holding the full
+	// entry — so a retrieval agent can shortlist from the index and page only
+	// into plausible detail chunks. Index pages pack to their own char cap.
+	ledgerIndexChunkChars = 4000
+	ledgerNameMaxChars    = 40
+	ledgerTriggerMaxChars = 90
+	// skills_list hard call budget: past it the tool answers with a
+	// publish-now nudge instead of another page, so a model stuck paging
+	// cannot stall the retrieval turn until its deadline.
+	skillsListCallBudget = 15
+	// Governance cap on a family's consolidated ledger: past it the tail is
+	// dropped after consolidation, keeping test-time retrieval affordable.
+	maxConsolidatedSkills = 60
 	// Extension tools the memory-profile turns register; the same names must
 	// ride on the turn authority or pi's --tools filter drops them.
 	trajectoryReadToolName = "trajectory_read"
@@ -1250,7 +1271,7 @@ func streamDiagnosisPromptFor(episodeID string) string {
 // the raw proposals the diagnosis turns accumulated, GMS-skillevolution
 // semantics (fingerprint dedup, similarity merge, source provenance) minus
 // the curator gates.
-const consolidationPrompt = "Skill consolidation turn. You are this family's consolidation agent. The diagnosis agent has distilled raw skill proposals from every train task; they are available through the skills_list tool: call it with chunk 0 first — every response header states total_chunks — and read all chunks before deciding.\n\nMerge and deduplicate the raw proposals: combine near-duplicates into one stronger skill (union the concrete steps and pitfalls, keep the sharpest name and trigger), drop strictly weaker variants, and keep every skill that stands alone unchanged. Then publish via room_send one message with the final consolidated set, one block per skill in exactly this shape:\n\nCONSOLIDATED SKILL\nname: <short imperative name>\ntrigger: <situations where it applies>\nsteps: <concrete numbered steps>\npitfalls: <what goes wrong when skipped>\nsources: <comma-separated sha256 prefixes of the raw proposals this skill merges; a kept-unchanged skill lists its own prefix>\n\nEvery raw proposal must appear in exactly one sources list. If nothing merges, republish the unchanged set in this same format."
+const consolidationPrompt = "Skill consolidation turn. You are this family's consolidation agent. The diagnosis agent has distilled raw skill proposals from every train task; they are available through the skills_list tool: chunk 0 is a compact index — one line per raw proposal with its entry number, name, trigger, sha256 prefix, and the chunk holding its full text. Start from the index, then read all detail chunks (every response header states total_chunks) before deciding.\n\nMerge and deduplicate aggressively: combine near-duplicates into one stronger skill (union the concrete steps and pitfalls, keep the sharpest name and trigger), drop strictly weaker variants, and keep every skill that stands alone unchanged. Prefer the smallest set that covers every raw proposal — when two skills could serve the same trigger, merge them into one. The consolidated set must stay under 60 skills; if merging alone cannot get there, fold the most overlapping skills until it does. Then publish via room_send one message with the final consolidated set, one block per skill in exactly this shape:\n\nCONSOLIDATED SKILL\nname: <short imperative name>\ntrigger: <situations where it applies>\nsteps: <concrete numbered steps>\npitfalls: <what goes wrong when skipped>\nsources: <comma-separated sha256 prefixes of the raw proposals this skill merges; a kept-unchanged skill lists its own prefix>\n\nEvery raw proposal must appear in exactly one sources list. If nothing merges, republish the unchanged set in this same format."
 
 // retrievalPromptHead opens the retrieval turn; the upcoming test task prompt
 // is appended verbatim by runRetrievalTurn. This text is committed to the
@@ -1258,12 +1279,12 @@ const consolidationPrompt = "Skill consolidation turn. You are this family's con
 // the task agent's prompt, so every role statement is scoped to this one turn
 // and addressed situationally — never as a bare second-person imperative that
 // a recalling agent would read as its own standing instruction.
-const retrievalPromptHead = "Skill retrieval turn. For this one turn you act as this room's diagnosis agent. A test task is about to start in this room; its prompt is quoted at the end of this message. The skill ledger distilled from earlier episodes is available through the skills_list tool: call it with chunk 0 first — every response header states total_chunks — and read as many chunks as you need.\n\n1. Decide which ledger proposals genuinely apply to this task: the trigger must match the task's shape. Select at most 3.\n2. Publish via room_send one message addressed to both teammates, starting exactly with \"@task-agent @memory-agent\", then one block per selected skill:\n[skill <sha256 prefix> from episode <episode id>]\n<the verbatim proposal text>\n\nQuote each skill's sha256 prefix and source episode exactly as the ledger states them. If no proposal applies, publish exactly: NO_SKILL_APPLICABLE. Solving the quoted task belongs to the task agent's upcoming turn, not to this retrieval turn.\n\n--- upcoming test task ---\n"
+const retrievalPromptHead = "Skill retrieval turn. For this one turn you act as this room's diagnosis agent. A test task is about to start in this room; its prompt is quoted at the end of this message. The skill ledger distilled from earlier episodes is available through the skills_list tool: chunk 0 is a compact index — one line per skill with its entry number, name, trigger, sha256 prefix, and the chunk holding its full text. Start from the index, then read only the detail chunks whose triggers plausibly match this task; every response header states total_chunks.\n\n1. Decide which ledger proposals genuinely apply to this task: the trigger must match the task's shape. Select at most 3.\n2. Publish via room_send one message addressed to both teammates, starting exactly with \"@task-agent @memory-agent\", then one block per selected skill:\n[skill <sha256 prefix> from episode <episode id>]\n<the verbatim proposal text>\n\nQuote each skill's sha256 prefix and source episode exactly as the ledger states them. If no proposal applies, publish exactly: NO_SKILL_APPLICABLE. Solving the quoted task belongs to the task agent's upcoming turn, not to this retrieval turn.\n\n--- upcoming test task ---\n"
 
 // streamRetrievalPromptHead is the continual arm's variant: the upcoming
 // task is the next episode of a stream that never froze, not a held-out
 // test task. The room conventions stay identical.
-const streamRetrievalPromptHead = "Skill retrieval turn. For this one turn you act as this room's diagnosis agent. The next task of the ongoing stream is about to start in this room; its prompt is quoted at the end of this message. The skill ledger distilled from earlier episodes is available through the skills_list tool: call it with chunk 0 first — every response header states total_chunks — and read as many chunks as you need.\n\n1. Decide which ledger proposals genuinely apply to this task: the trigger must match the task's shape. Select at most 3.\n2. Publish via room_send one message addressed to both teammates, starting exactly with \"@task-agent @memory-agent\", then one block per selected skill:\n[skill <sha256 prefix> from episode <episode id>]\n<the verbatim proposal text>\n\nQuote each skill's sha256 prefix and source episode exactly as the ledger states them. If no proposal applies, publish exactly: NO_SKILL_APPLICABLE. Solving the quoted task belongs to the task agent's upcoming turn, not to this retrieval turn.\n\n--- upcoming task ---\n"
+const streamRetrievalPromptHead = "Skill retrieval turn. For this one turn you act as this room's diagnosis agent. The next task of the ongoing stream is about to start in this room; its prompt is quoted at the end of this message. The skill ledger distilled from earlier episodes is available through the skills_list tool: chunk 0 is a compact index — one line per skill with its entry number, name, trigger, sha256 prefix, and the chunk holding its full text. Start from the index, then read only the detail chunks whose triggers plausibly match this task; every response header states total_chunks.\n\n1. Decide which ledger proposals genuinely apply to this task: the trigger must match the task's shape. Select at most 3.\n2. Publish via room_send one message addressed to both teammates, starting exactly with \"@task-agent @memory-agent\", then one block per selected skill:\n[skill <sha256 prefix> from episode <episode id>]\n<the verbatim proposal text>\n\nQuote each skill's sha256 prefix and source episode exactly as the ledger states them. If no proposal applies, publish exactly: NO_SKILL_APPLICABLE. Solving the quoted task belongs to the task agent's upcoming turn, not to this retrieval turn.\n\n--- upcoming task ---\n"
 
 type skillProposal struct {
 	Sequence  int    `json:"sequence"`
@@ -1576,7 +1597,12 @@ func runConsolidationTurn(ctx context.Context, session *runtime.Session, input c
 	status := "kept_raw"
 	if reply := finalAgentOutput(turn.Messages, "agent-memory"); reply != nil {
 		if consolidated, provenance, valid := parseConsolidatedSkills(*reply, raw); valid {
-			(*input.ledger)[input.family], sourceMap, status = consolidated, provenance, "consolidated"
+			capped, dropped := capConsolidatedSkills(consolidated, maxConsolidatedSkills)
+			if dropped > 0 {
+				fmt.Printf("[%s] consolidation %s: governance cap dropped the last %d consolidated skills (had %d, keeping %d)\n",
+					input.config.arm, input.family, dropped, len(consolidated), len(capped))
+			}
+			(*input.ledger)[input.family], sourceMap, status = capped, provenance, "consolidated"
 		}
 	}
 	drainCtx, drainCancel := context.WithTimeout(ctx, 30*time.Second)
@@ -1597,6 +1623,17 @@ func runConsolidationTurn(ctx context.Context, session *runtime.Session, input c
 		_ = os.WriteFile(filepath.Join(skillsDir, "consolidated-"+sanitizeID(input.family)+".md"), []byte(out.String()), 0o644)
 	}
 	return status, sourceMap
+}
+
+// capConsolidatedSkills enforces the ledger governance cap after a valid
+// consolidation: the kept head preserves consolidation order and the tail is
+// dropped so test-time retrieval stays pageable. Provenance bookkeeping is
+// left untouched — the summary still records where every raw proposal went.
+func capConsolidatedSkills(consolidated []skillProposal, limit int) ([]skillProposal, int) {
+	if limit <= 0 || len(consolidated) <= limit {
+		return consolidated, 0
+	}
+	return consolidated[:limit:limit], len(consolidated) - limit
 }
 
 // parseConsolidatedSkills enforces exact-one-source coverage and strips the sources line.
@@ -1752,10 +1789,11 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 		return fmt.Errorf("retrieval work dir: %w", err)
 	}
 	extensionPath := filepath.Join(retDir, "retrieval-extension.mjs")
-	if err := writeMemoryTurnExtension(input.extensionPath, extensionPath, skillsToolJS((*input.ledger)[input.family])); err != nil {
+	ledger := (*input.ledger)[input.family]
+	if err := writeMemoryTurnExtension(input.extensionPath, extensionPath, skillsToolJS(ledger)); err != nil {
 		return err
 	}
-	retCtx, retCancel := context.WithTimeout(ctx, 5*time.Minute)
+	retCtx, retCancel := context.WithTimeout(ctx, retrievalTurnDeadline(len(buildLedgerChunks(ledger))))
 	defer retCancel()
 	promptHead := retrievalPromptHead
 	if input.stream {
@@ -1812,6 +1850,20 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	return drainErr
 }
 
+// retrievalTurnDeadline scales the retrieval turn's wall-clock budget with
+// the ledger it must page through: a floor covering the index read and the
+// drafted publish, plus a per-chunk allowance for the serial skills_list
+// round-trips, hard-capped so one slow retrieval turn cannot eat the
+// episode's own budget. batch-5 died on the old flat 5-minute deadline when
+// the ledger grew to 38 chunks at evening LLM latency.
+func retrievalTurnDeadline(chunks int) time.Duration {
+	budget := 120*time.Second + time.Duration(chunks)*8*time.Second
+	if budget > 480*time.Second {
+		budget = 480 * time.Second
+	}
+	return budget
+}
+
 func skillLedgerHas(ledger map[string][]skillProposal, family, fingerprint string) bool {
 	for _, proposal := range ledger[family] {
 		if proposal.SHA256 == fingerprint {
@@ -1856,28 +1908,107 @@ func buildTrajectoryChunks(transcript []transcriptEntry) []string {
 	return chunks
 }
 
-// buildLedgerChunks renders the family ledger as skills_list pages: one
-// numbered block per proposal with its provenance, ledgerEntriesPerChunk
-// proposals per chunk.
+// buildLedgerChunks renders the family ledger as skills_list pages: the
+// leading chunk(s) are a compact index — one line per proposal with its entry
+// number, name, trigger, sha256 prefix, and the detail chunk holding its full
+// text — followed by detail chunks with ledgerEntriesPerChunk full proposals
+// each. The index keeps a retrieval turn cheap: the agent shortlists from
+// names and triggers, then pages only into plausible detail chunks.
 func buildLedgerChunks(ledger []skillProposal) []string {
-	var entries []string
-	for index, proposal := range ledger {
-		prefix := proposal.SHA256
-		if len(prefix) > 12 {
-			prefix = prefix[:12]
-		}
-		entries = append(entries, fmt.Sprintf("entry %d | from episode %s | sha256 %s\n%s",
-			index, proposal.EpisodeID, prefix, truncateRunes(proposal.Text, skillTextMaxChars)))
+	if len(ledger) == 0 {
+		return nil
 	}
-	var chunks []string
-	for start := 0; start < len(entries); start += ledgerEntriesPerChunk {
+	var details []string
+	for start := 0; start < len(ledger); start += ledgerEntriesPerChunk {
 		end := start + ledgerEntriesPerChunk
-		if end > len(entries) {
-			end = len(entries)
+		if end > len(ledger) {
+			end = len(ledger)
 		}
-		chunks = append(chunks, strings.Join(entries[start:end], "\n\n"))
+		var entries []string
+		for index := start; index < end; index++ {
+			proposal := ledger[index]
+			entries = append(entries, fmt.Sprintf("entry %d | from episode %s | sha256 %s\n%s",
+				index+1, proposal.EpisodeID, shaPrefix(proposal.SHA256), truncateRunes(proposal.Text, skillTextMaxChars)))
+		}
+		details = append(details, strings.Join(entries, "\n\n"))
 	}
-	return chunks
+	// Index pages precede the details and each index line names the detail
+	// chunk holding that entry, so the per-line chunk numbers must agree with
+	// the page count. Chunk numbering is 0-based, so with P index pages the
+	// first detail chunk is chunk P. Pack to a fixpoint: the detail-chunk
+	// reference adds at most a couple of digits, so this converges
+	// immediately in practice.
+	detailBase := 1
+	var index []string
+	for iteration := 0; iteration < 8; iteration++ {
+		index = packLedgerIndex(ledger, detailBase)
+		if len(index) == detailBase {
+			return append(index, details...)
+		}
+		detailBase = len(index)
+	}
+	return append(index, details...)
+}
+
+// packLedgerIndex renders one index line per proposal (name, trigger, sha256
+// prefix, and the detail chunk holding the full entry at the given base) and
+// packs the lines into pages of at most ledgerIndexChunkChars runes.
+func packLedgerIndex(ledger []skillProposal, detailBase int) []string {
+	lines := make([]string, len(ledger))
+	for index, proposal := range ledger {
+		name, trigger := skillMetaLine(proposal.Text)
+		lines[index] = fmt.Sprintf("entry %d | name: %s | trigger: %s | sha256 %s | full text in chunk %d",
+			index+1, name, trigger, shaPrefix(proposal.SHA256), detailBase+index/ledgerEntriesPerChunk)
+	}
+	var pages []string
+	var current strings.Builder
+	for _, line := range lines {
+		if current.Len() > 0 && current.Len()+len(line)+1 > ledgerIndexChunkChars {
+			pages = append(pages, current.String())
+			current.Reset()
+		}
+		if current.Len() > 0 {
+			current.WriteString("\n")
+		}
+		current.WriteString(line)
+	}
+	if current.Len() > 0 {
+		pages = append(pages, current.String())
+	}
+	return pages
+}
+
+var (
+	skillNameLinePattern    = regexp.MustCompile(`(?im)^name:\s*(.+)$`)
+	skillTriggerLinePattern = regexp.MustCompile(`(?im)^trigger:\s*(.+)$`)
+)
+
+// skillMetaLine pulls the declared name and trigger out of a proposal's
+// structured text for the ledger index; an unstructured proposal falls back
+// to its first non-empty line so the index line never goes blank.
+func skillMetaLine(text string) (name, trigger string) {
+	if match := skillNameLinePattern.FindStringSubmatch(text); match != nil {
+		name = strings.TrimSpace(match[1])
+	}
+	if match := skillTriggerLinePattern.FindStringSubmatch(text); match != nil {
+		trigger = strings.TrimSpace(match[1])
+	}
+	if name == "" {
+		for _, line := range strings.Split(text, "\n") {
+			if trimmed := strings.TrimSpace(line); trimmed != "" {
+				name = trimmed
+				break
+			}
+		}
+	}
+	return truncateRunes(name, ledgerNameMaxChars), truncateRunes(trigger, ledgerTriggerMaxChars)
+}
+
+func shaPrefix(sha string) string {
+	if len(sha) > 12 {
+		return sha[:12]
+	}
+	return sha
 }
 
 // splitBlocks extracts non-empty bodies following an exact block header.
@@ -1995,7 +2126,9 @@ func trajectoryToolJS(chunks []string) string {
 }
 
 // skillsToolJS registers the skills_list tool with the family ledger pages
-// baked in as a JSON literal.
+// baked in as a JSON literal. Past skillsListCallBudget calls the tool stops
+// serving pages and nudges the agent to publish, so a model stuck paging
+// cannot stall the turn until its deadline.
 func skillsToolJS(ledger []skillProposal) string {
 	chunks := buildLedgerChunks(ledger)
 	chunksJSON, err := json.Marshal(chunks)
@@ -2004,13 +2137,18 @@ func skillsToolJS(ledger []skillProposal) string {
 	}
 	return `
   const SKILL_LEDGER_CHUNKS = ` + string(chunksJSON) + `;
+  let SKILL_LIST_CALLS = 0;
   pi.registerTool({
     name: "skills_list",
     label: "Skills list",
-    description: "Read one chunk of this room's skill ledger: the proposals distilled from earlier episodes, each with its entry number, source episode, and sha256 prefix.",
+    description: "Read this room's skill ledger. The first chunks are a compact index (one line per skill: entry number, name, trigger, sha256 prefix, and the chunk holding its full text); the later chunks hold the full entries, ` + strconv.Itoa(ledgerEntriesPerChunk) + ` per chunk. Chunk indices are 0-based; every response header states total_chunks.",
     parameters: { type: "object", properties: { chunk: { type: "integer", description: "0-based chunk index" } }, additionalProperties: false },
     async execute(_toolCallId, args, _signal, _onUpdate, _ctx) {
       // See trajectory_read: params are the second callback argument in Pi 0.85.
+      SKILL_LIST_CALLS++;
+      if (SKILL_LIST_CALLS > ` + strconv.Itoa(skillsListCallBudget) + `) {
+        return { content: [{ type: "text", text: "skills_list budget exhausted after " + SKILL_LIST_CALLS + " calls: you have seen the index and enough entries. Stop paging and publish your reply now via room_send, or publish NO_SKILL_APPLICABLE if nothing applies." }] };
+      }
       let index = Math.trunc(Number(args && args.chunk));
       if (!Number.isInteger(index)) {
         index = 0;
@@ -2173,6 +2311,47 @@ func finalAgentOutput(messages []runtime.VisibleMessage, agentID string) *string
 		}
 	}
 	return nil
+}
+
+// finalTaskOutput returns the last room message the task agent published that
+// carries a fenced code block, falling back to its last non-empty publish.
+// Models that close with a bare "TASK_COMPLETE" room_send after the code
+// message would otherwise bury their solution from grading.
+func finalTaskOutput(messages []runtime.VisibleMessage) *string {
+	for index := len(messages) - 1; index >= 0; index-- {
+		if messages[index].AuthorID != "agent-primary" || strings.TrimSpace(messages[index].Content) == "" {
+			continue
+		}
+		content := messages[index].Content
+		if strings.Contains(content, "```") {
+			return &content
+		}
+	}
+	return finalAgentOutput(messages, "agent-primary")
+}
+
+// taskOutputCapture is what a finished task turn leaves for the record: the
+// graded view prefers the last code-bearing publish, while final_output keeps
+// its historical last-non-empty-publish semantics for run-to-run
+// comparability.
+type taskOutputCapture struct {
+	final       *string // last non-empty publish; Pi session text when none was published
+	graded      *string // last publish carrying a code fence, when any
+	fromSession bool    // final came from the session log, not a room publish
+}
+
+// captureTaskOutput collects both outputs from one finished task turn. When
+// the agent never published through room_send (or published only codeless
+// text), Pi's session log recovers the final answer exactly as the old
+// single-field capture did.
+func captureTaskOutput(episodeDir string, messages []runtime.VisibleMessage) taskOutputCapture {
+	capture := taskOutputCapture{final: finalAgentOutput(messages, "agent-primary"), graded: finalTaskOutput(messages)}
+	if capture.final == nil {
+		if session := finalPiSessionOutput(episodeDir); session != nil {
+			capture.final, capture.fromSession = session, true
+		}
+	}
+	return capture
 }
 
 // roomTranscript turns a plain episode's room messages into the trajectory

@@ -414,12 +414,14 @@ func executeBatchEpisode(ctx context.Context, session *runtime.Session, config a
 			record.RecallSpaces[item.SourceSpaceID]++
 		}
 	}
-	if output := finalAgentOutput(turn.Messages, "agent-primary"); output != nil {
-		record.FinalOutput = output
-	} else if output := finalPiSessionOutput(episodeDir); output != nil {
-		record.FinalOutput = output
-		transcript = append(transcript, transcriptEntry{Role: "agent", Content: *output})
-		record.Transcript = transcript
+	capture := captureTaskOutput(episodeDir, turn.Messages)
+	record.FinalCodeOutput = capture.graded
+	if capture.final != nil {
+		record.FinalOutput = capture.final
+		if capture.fromSession {
+			transcript = append(transcript, transcriptEntry{Role: "agent", Content: *capture.final})
+			record.Transcript = transcript
+		}
 	}
 	drainCtx, drainCancel := context.WithTimeout(ctx, 30*time.Second)
 	_, drainErr := session.DrainEvidence(drainCtx, runtime.DrainRequest{RoomID: roomID, MemoryBaseURL: config.gmsURL, MemoryAuthToken: config.gmsToken, EventLogPath: filepath.Join(episodeDir, "host-events.jsonl")})
