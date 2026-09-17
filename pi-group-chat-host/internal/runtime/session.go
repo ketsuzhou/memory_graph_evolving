@@ -54,12 +54,13 @@ func (s *Session) Turn(ctx context.Context, request TurnRequest) (TurnResult, er
 		humanMessageID:  request.HumanMessageID,
 		humanKey:        request.HumanMessageID,
 		memoryClient:    client,
-		performRecall:   true,
+		performRecall:   !request.SkipRecall,
 		piBinary:        request.PiBinary,
 		piExtensionPath: request.PiExtensionPath,
 		promptRequestID: request.PromptRequestID,
 		log:             log,
 		piStderrPath:    request.PiStderrPath,
+		skillProtocol:   request.SkillProtocol,
 	})
 	if err != nil {
 		return TurnResult{}, err
