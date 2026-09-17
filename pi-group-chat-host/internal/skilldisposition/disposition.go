@@ -20,12 +20,16 @@ const (
 	DispositionRejected      = "rejected"
 	DispositionProtocolError = "protocol_error"
 
-	StageAccepted = "accepted"
-	StageRejected = "rejected"
-	StageAdopted  = "adopted"
-	StageVerified = "verified"
-	StageActive   = "active"
+	StageAccepted            = "accepted"
+	StageRejected            = "rejected"
+	StageAdopted             = "adopted"
+	StageVerified            = "verified"
+	StageOutcomeCorrelated   = "outcome-correlated"
+	StageCausallySupported   = "causally supported"
 
+	// ForbiddenActiveSkillLabel is not a Skill Interaction Signal. This arm
+	// must never record it: glossary Avoid Active Skill, contract §1.2.
+	ForbiddenActiveSkillLabel   = "active"
 	StatusMarginalGainSupported = "marginal-gain-supported"
 
 	MarkerAccepted = "SKILL_ACCEPTED"
@@ -266,8 +270,9 @@ func (c *Coordinator) Adoptions() []AdoptionRecord {
 	return append([]AdoptionRecord(nil), c.adoptions...)
 }
 
-// LaterStages reports adopted/verified/active/marginal-gain-supported
-// facts this coordinator has recorded. accepted never writes them.
+// LaterStages reports later Skill Interaction Signals this coordinator
+// has recorded (adopted, verified, outcome-correlated, causally supported).
+// accepted never writes them, and the forbidden "active" label is never a stage.
 func (c *Coordinator) LaterStages() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()

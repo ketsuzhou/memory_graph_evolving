@@ -167,10 +167,10 @@ func TestAcceptedDoesNotAutoProduceAdoptedVerifiedActiveOrMarginalGainSupported(
 	if err != nil || accepted.Disposition == nil || accepted.Disposition.Value != DispositionAccepted {
 		t.Fatalf("accepted = %#v err=%v, want an accepted disposition", accepted, err)
 	}
-	if accepted.Signal != nil && (accepted.Signal.Stage == StageAdopted || accepted.Signal.Stage == StageVerified || accepted.Signal.Stage == StageActive) {
+	if accepted.Signal != nil && (accepted.Signal.Stage == StageAdopted || accepted.Signal.Stage == StageVerified || accepted.Signal.Stage == ForbiddenActiveSkillLabel) {
 		t.Fatalf("accepted signal = %#v, must not imply a later stage", accepted.Signal)
 	}
-	assertNoLaterStage(t, h.coord, StageAdopted, StageVerified, StageActive, StatusMarginalGainSupported)
+	assertNoLaterStage(t, h.coord, StageAdopted, StageVerified, ForbiddenActiveSkillLabel, StatusMarginalGainSupported)
 	if got := h.coord.Adoptions(); len(got) != 0 {
 		t.Fatalf("adoptions = %#v, want none from accepted alone", got)
 	}
@@ -197,7 +197,7 @@ func TestAcceptedDoesNotAutoProduceAdoptedVerifiedActiveOrMarginalGainSupported(
 	if got := h.coord.LaterStages(); len(got) != 1 || got[0] != StageAdopted {
 		t.Fatalf("later stages = %#v, want only the explicit adopted record", got)
 	}
-	assertNoLaterStage(t, h.coord, StageVerified, StageActive, StatusMarginalGainSupported)
+	assertNoLaterStage(t, h.coord, StageVerified, ForbiddenActiveSkillLabel, StatusMarginalGainSupported)
 	if len(h.coord.Adoptions()) != 1 {
 		t.Fatalf("adoptions = %#v, want the single explicit record", h.coord.Adoptions())
 	}

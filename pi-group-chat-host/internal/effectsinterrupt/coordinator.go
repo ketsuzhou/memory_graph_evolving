@@ -3,7 +3,6 @@ package effectsinterrupt
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"syscall"
 	"time"
@@ -89,8 +88,8 @@ func NewCoordinator(policy Policy, runner *Runner) *Coordinator {
 // Attach binds one exact task session and an optional fake process tree.
 // The stored Session file/id is the only resume selector.
 func (c *Coordinator) Attach(binding directedoffer.Binding, taskID string, session Session, tree ProcessTree) error {
-	if err := binding.Session.Validate(); err != nil {
-		return fmt.Errorf("%w: %v", ErrExactSessionRequired, err)
+	if err := binding.Validate(); err != nil {
+		return err
 	}
 	if session == nil {
 		return ErrSessionRequired

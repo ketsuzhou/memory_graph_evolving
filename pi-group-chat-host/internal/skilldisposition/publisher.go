@@ -14,33 +14,21 @@ type Publisher interface {
 	Publish(ctx context.Context, req directedoffer.Request) (directedoffer.Result, error)
 }
 
-// OfferPublisher is the production Publisher. It delegates to the Host
-// directed-offer coordinator so the mention and unique Delivery stay
-// atomic with existing Room semantics.
-type OfferPublisher struct {
-	offers *directedoffer.Coordinator
-}
-
-func NewOfferPublisher(offers *directedoffer.Coordinator) *OfferPublisher {
+// NewOfferPublisher returns the Host directed-offer coordinator as the
+// production Publisher. The coordinator already owns atomic Room message
+// plus unique Delivery; this helper only supplies a default instance.
+func NewOfferPublisher(offers *directedoffer.Coordinator) *directedoffer.Coordinator {
 	if offers == nil {
 		offers = directedoffer.NewCoordinator()
 	}
-	return &OfferPublisher{offers: offers}
-}
-
-func (p *OfferPublisher) Publish(ctx context.Context, req directedoffer.Request) (directedoffer.Result, error) {
-	return p.offers.Offer(ctx, req)
-}
-
-func (p *OfferPublisher) Coordinator() *directedoffer.Coordinator {
-	return p.offers
+	return offers
 }
 
 // ScriptedPublisher is a fixture Publisher. Fail, when set, is returned
 // without writing. Tests use it to prove Signal / Room message / Memory
 // Delivery stay all-or-none.
 type ScriptedPublisher struct {
-	Inner *OfferPublisher
+	Inner Publisher
 	Fail  error
 
 	mu      sync.Mutex
@@ -48,7 +36,7 @@ type ScriptedPublisher struct {
 	results []directedoffer.Result
 }
 
-func NewScriptedPublisher(inner *OfferPublisher) *ScriptedPublisher {
+func NewScriptedPublisher(inner Publisher) *ScriptedPublisher {
 	if inner == nil {
 		inner = NewOfferPublisher(nil)
 	}

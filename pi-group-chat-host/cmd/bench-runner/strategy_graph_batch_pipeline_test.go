@@ -115,8 +115,8 @@ func TestGraphBatchPipelineRefusesRunnerLocalSkillProposalAndHashPrefixAuthority
 	if err != nil {
 		t.Fatalf("pipeline: %v", err)
 	}
-	if result.Authority.Kind != "gms_canonical" || result.Authority.UsedRunnerLocalSkillProposal || result.Authority.UsedMarkdownHashPrefix {
-		t.Fatalf("authority = %#v; want gms_canonical without runner-local ledger", result.Authority)
+	if result.Authority.Kind != graphBatchAuthorityFixture || result.Authority.UsedRunnerLocalSkillProposal || result.Authority.UsedMarkdownHashPrefix {
+		t.Fatalf("authority = %#v; want fixture_memory without runner-local ledger", result.Authority)
 	}
 	if len(result.Authority.ProposalIDs) == 0 {
 		t.Fatal("canonical pipeline produced no proposal ids")
@@ -142,8 +142,8 @@ func TestGraphBatchPipelineRefusesRunnerLocalSkillProposalAndHashPrefixAuthority
 			EpisodeID: "held-out-1", Split: "test", FamilyID: "family",
 		}},
 	}, func(attemptRecord) { called = true })
-	if err == nil || !strings.Contains(err.Error(), "refuses the legacy []skillProposal pipeline") {
-		t.Fatalf("runArm error = %v; want a refuse-legacy composition error", err)
+	if err == nil || !strings.Contains(err.Error(), "requires a GMS instance") {
+		t.Fatalf("runArm error = %v; want a GMS composition error, not the legacy pipeline", err)
 	}
 	if called {
 		t.Fatal("graph batch must not emit a legacy attemptRecord")
@@ -338,6 +338,8 @@ func newGraphBatchFixtureRuntime(t *testing.T, trainIDs []string, trainHold, dia
 		Config:            defaultGraphBatchFrozenConfig(),
 		Parallelism:       len(trainIDs),
 		Trains:            trains,
+		TrainExecutor:     scriptedTrainExecutor{},
+		AuthorityKind:     graphBatchAuthorityFixture,
 		DiagnosisWorker:   worker,
 		DiagnosisAdmitter: &pipelineAdmitter{},
 		Consolidator:      ledger,

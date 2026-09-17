@@ -39,14 +39,30 @@ type graphBatchRuntime struct {
 	Freezer      graphBatchFreezer
 	Retriever    graphBatchRetriever
 
+	TrainExecutor graphBatchTrainExecutor
+	AuthorityKind string
+
 	HeldOut []graphBatchHeldOutSpec
 	Probe   *graphBatchProbe
 }
 
+const (
+	graphBatchAuthorityGMS     = "gms_canonical"
+	graphBatchAuthorityFixture = "fixture_memory"
+)
+
 type graphBatchTrainSpec struct {
 	Sequence   int
+	Episode    *manifestEpisode
 	Trajectory diagnosisfanout.Trajectory
 	Hold       <-chan struct{}
+}
+
+// graphBatchTrainExecutor runs one generation-0 train task and returns the
+// frozen trajectory plus a structured public outcome. The pipeline refuses
+// to diagnose a train that was never executed.
+type graphBatchTrainExecutor interface {
+	Execute(ctx context.Context, spec graphBatchTrainSpec) (diagnosisfanout.Trajectory, error)
 }
 
 type graphBatchHeldOutSpec struct {
@@ -138,8 +154,23 @@ type graphBatchConsolidator interface {
 	Calls() int
 }
 
+type graphBatchFreezeRequest struct {
+	ProposalIDs         []string
+	Ledger              graphBatchConsolidateResult
+	EvidenceBatches     []string
+	EvidenceWatermark   string
+	GraphDigest         string
+	GraphWatermark      string
+	PromptDigest        string
+	SchemaDigest        string
+	ModelDigest         string
+	ToolDigest          string
+	ConfigDigest        string
+	GradingPolicyDigest string
+}
+
 type graphBatchFreezer interface {
-	Freeze(ctx context.Context, proposalIDs []string, ledger graphBatchConsolidateResult) (string, error)
+	Freeze(ctx context.Context, req graphBatchFreezeRequest) (string, error)
 	TestBinding() (string, error)
 	RecordTestAttempt(attemptID string) error
 	Attempts() []string
@@ -202,7 +233,12 @@ func runGraphBatchArm(ctx context.Context, config armConfig, emit func(attemptRe
 	if len(config.episodes) == 0 {
 		return nil
 	}
-	return fmt.Errorf("%s refuses the legacy []skillProposal pipeline; supply a composed graph-batch runtime", graphBatchStrategyID)
+	runtime, err := composeGraphBatchRuntime(config)
+	if err != nil {
+		return err
+	}
+	_, err = runGraphBatchCanonicalPipeline(ctx, runtime)
+	return err
 }
 
 // runGraphBatchCanonicalPipeline is the unique composition: parallel train
@@ -224,6 +260,9 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 	if runtime.DiagnosisWorker == nil || runtime.DiagnosisAdmitter == nil {
 		return nil, fmt.Errorf("graph batch pipeline requires diagnosisfanout worker and admitter")
 	}
+	if runtime.TrainExecutor == nil {
+		return nil, fmt.Errorf("graph batch pipeline requires a train executor; train tasks must actually run")
+	}
 
 	parallelism := runtime.Parallelism
 	if parallelism < 1 {
@@ -237,6 +276,8 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 
 	var trainPeak atomic.Int32
 	var trainInflight atomic.Int32
+	var trainErrMu sync.Mutex
+	var trainErr error
 	trainResults := runParallelBatchStage(ctx, sortedBatchJobs(trainJobs), parallelism, func(ctx context.Context, job parallelBatchJob[graphBatchTrainSpec]) diagnosisfanout.Trajectory {
 		n := trainInflight.Add(1)
 		for {
@@ -248,21 +289,28 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 		if runtime.Probe != nil && runtime.Probe.trainStarted != nil {
 			runtime.Probe.trainStarted <- job.Sequence
 		}
-		if job.Value.Hold != nil {
-			select {
-			case <-job.Value.Hold:
-			case <-ctx.Done():
-				trainInflight.Add(-1)
-				return job.Value.Trajectory
-			}
-		}
+		traj, err := runtime.TrainExecutor.Execute(ctx, job.Value)
 		trainInflight.Add(-1)
-		return job.Value.Trajectory
+		if err != nil {
+			trainErrMu.Lock()
+			if trainErr == nil {
+				trainErr = fmt.Errorf("train task %s: %w", job.Value.Trajectory.ID, err)
+			}
+			trainErrMu.Unlock()
+			return diagnosisfanout.Trajectory{}
+		}
+		return traj
 	})
 	runtime.Probe.event("reduce-train")
+	if trainErr != nil {
+		return nil, trainErr
+	}
 
 	trajectories := make([]diagnosisfanout.Trajectory, 0, len(trainResults))
 	for _, result := range trainResults {
+		if result.Value.ID == "" || result.Value.Outcome.Status == "" {
+			return nil, fmt.Errorf("graph batch train task did not produce a structured public outcome")
+		}
 		trajectories = append(trajectories, result.Value)
 	}
 
@@ -308,7 +356,7 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 	}
 	runtime.Probe.event("consolidate")
 
-	digest, err := runtime.Freezer.Freeze(ctx, proposalIDs, consolidation)
+	digest, err := runtime.Freezer.Freeze(ctx, graphBatchFreezePins(proposalIDs, consolidation, runtime.Config))
 	if err != nil {
 		runtime.Probe.event("freeze-failed")
 		return &graphBatchPipelineResult{
@@ -319,7 +367,7 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 			ConsolidationCalls:     runtime.Consolidator.Calls(),
 			ConsolidationDecisions: consolidation.Decisions,
 			TestsStarted:           runtime.Probe.startedTests(),
-			Authority:              graphBatchAuthority(proposalIDs),
+			Authority:              graphBatchAuthority(runtime.AuthorityKind, proposalIDs),
 		}, err
 	}
 	binding, err := runtime.Freezer.TestBinding()
@@ -431,7 +479,7 @@ func runGraphBatchCanonicalPipeline(ctx context.Context, runtime *graphBatchRunt
 		TestAttempts:           attempts,
 		HeldOutTraces:          traces,
 		FailureAccounting:      accounting,
-		Authority:              graphBatchAuthority(proposalIDs),
+		Authority:              graphBatchAuthority(runtime.AuthorityKind, proposalIDs),
 	}, nil
 }
 
@@ -447,12 +495,36 @@ func graphBatchInterruptPolicy(config graphBatchFrozenConfig) (effectsinterrupt.
 	return effectsinterrupt.Policy{InterruptGrace: interrupt, KillGrace: kill}, nil
 }
 
-func graphBatchAuthority(proposalIDs []string) graphBatchAuthorityRecord {
+func graphBatchAuthority(kind string, proposalIDs []string) graphBatchAuthorityRecord {
+	if kind == "" {
+		kind = graphBatchAuthorityFixture
+	}
 	return graphBatchAuthorityRecord{
-		Kind:                         "gms_canonical",
+		Kind:                         kind,
 		UsedRunnerLocalSkillProposal: false,
 		UsedMarkdownHashPrefix:       false,
 		ProposalIDs:                  append([]string(nil), proposalIDs...),
+	}
+}
+
+func graphBatchFreezePins(proposalIDs []string, ledger graphBatchConsolidateResult, config graphBatchFrozenConfig) graphBatchFreezeRequest {
+	evidence := append([]string(nil), proposalIDs...)
+	sort.Strings(evidence)
+	watermark := canonicalDigest(append([]string{"evidence"}, evidence...))
+	graph := canonicalDigest(append([]string{"graph", ledger.LedgerDigest}, evidence...))
+	return graphBatchFreezeRequest{
+		ProposalIDs:         append([]string(nil), proposalIDs...),
+		Ledger:              ledger,
+		EvidenceBatches:     evidence,
+		EvidenceWatermark:   watermark,
+		GraphDigest:         graph,
+		GraphWatermark:      graph,
+		PromptDigest:        canonicalDigest([]string{"prompt", config.Strategy}),
+		SchemaDigest:        canonicalDigest([]string{"schema", graphBatchStrategyID}),
+		ModelDigest:         canonicalDigest([]string{"model", config.Strategy}),
+		ToolDigest:          canonicalDigest([]string{"tool", config.Strategy}),
+		ConfigDigest:        canonicalDigest([]string{"config", config.Strategy, config.InitialSkillSnapshot}),
+		GradingPolicyDigest: canonicalDigest([]string{"grading", config.Strategy}),
 	}
 }
 
@@ -469,9 +541,8 @@ func rejectGraphBatchNonCanonicalID(id string) error {
 	return nil
 }
 
-// memoryGraphBatchLedger is the fixture consolidator/freezer/retriever. It
-// seals one digest from complete proposal IDs and ignores held-out traces
-// during retrieval. Production GMS services bind the same ports.
+// memoryGraphBatchLedger is a test-only consolidator/freezer/retriever.
+// It is not GMS authority. Production composition uses gmsGraphBatchLedger.
 type memoryGraphBatchLedger struct {
 	mu sync.Mutex
 
@@ -524,7 +595,7 @@ func (m *memoryGraphBatchLedger) Consolidate(_ context.Context, req graphBatchCo
 	}, nil
 }
 
-func (m *memoryGraphBatchLedger) Freeze(_ context.Context, proposalIDs []string, ledger graphBatchConsolidateResult) (string, error) {
+func (m *memoryGraphBatchLedger) Freeze(_ context.Context, req graphBatchFreezeRequest) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.freezeErr != nil {
@@ -533,15 +604,28 @@ func (m *memoryGraphBatchLedger) Freeze(_ context.Context, proposalIDs []string,
 	if m.calls != 1 {
 		return "", fmt.Errorf("unified freeze requires exactly one consolidation; got %d", m.calls)
 	}
-	if ledger.LedgerDigest == "" || len(ledger.Decisions) != 1 {
+	if req.Ledger.LedgerDigest == "" || len(req.Ledger.Decisions) != 1 {
 		return "", fmt.Errorf("unified freeze requires a single canonical consolidation decision")
 	}
-	for _, id := range proposalIDs {
+	if len(req.EvidenceBatches) == 0 || req.EvidenceWatermark == "" || req.GraphDigest == "" {
+		return "", fmt.Errorf("unified freeze requires evidence cut, ledger, and graph pins")
+	}
+	if req.PromptDigest == "" || req.SchemaDigest == "" || req.ModelDigest == "" || req.ToolDigest == "" || req.ConfigDigest == "" || req.GradingPolicyDigest == "" {
+		return "", fmt.Errorf("unified freeze requires prompt/schema/model/tool/config/grading policy pins")
+	}
+	for _, id := range req.ProposalIDs {
 		if err := rejectGraphBatchNonCanonicalID(id); err != nil {
 			return "", err
 		}
 	}
-	digest := canonicalDigest(append(append([]string(nil), proposalIDs...), ledger.LedgerDigest))
+	digest := canonicalDigest([]string{
+		strings.Join(req.ProposalIDs, ","),
+		req.Ledger.LedgerDigest,
+		req.EvidenceWatermark,
+		req.GraphDigest,
+		req.PromptDigest, req.SchemaDigest, req.ModelDigest,
+		req.ToolDigest, req.ConfigDigest, req.GradingPolicyDigest,
+	})
 	m.sealedDigest = digest
 	return digest, nil
 }
@@ -589,4 +673,58 @@ func (m *memoryGraphBatchLedger) Retrieve(_ string, manifestDigest string, _ []g
 func canonicalDigest(parts []string) string {
 	sum := sha256.Sum256([]byte(strings.Join(parts, "\n")))
 	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+// scriptedTrainExecutor runs the generation-0 train task session (empty
+// Skill graph) and refuses to return a trajectory without a public outcome.
+type scriptedTrainExecutor struct{}
+
+func (scriptedTrainExecutor) Execute(ctx context.Context, spec graphBatchTrainSpec) (diagnosisfanout.Trajectory, error) {
+	if spec.Hold != nil {
+		select {
+		case <-spec.Hold:
+		case <-ctx.Done():
+			return diagnosisfanout.Trajectory{}, ctx.Err()
+		}
+	}
+	task := concurrentepisode.NewScriptedSession("train-task-" + spec.Trajectory.ID)
+	memory := concurrentepisode.NewScriptedSession("train-memory-" + spec.Trajectory.ID)
+	episode, err := concurrentepisode.Run(ctx, concurrentepisode.Request{
+		Opening: concurrentepisode.OpeningContext{Messages: []concurrentepisode.OpeningMessage{{
+			ID: "train-open-" + spec.Trajectory.ID, Author: "user", Content: "train " + spec.Trajectory.ID,
+		}}},
+		Task:                  task,
+		Memory:                memory,
+		TaskContextMonitoring: concurrentepisode.ContextOpeningOnly,
+	})
+	if err != nil {
+		return diagnosisfanout.Trajectory{}, err
+	}
+	traj := spec.Trajectory
+	if traj.Outcome.Status == "" {
+		traj.Outcome = publicOutcomeFromTaskStatus(episode.TaskStatus)
+	}
+	if traj.Outcome.Status == "" {
+		return diagnosisfanout.Trajectory{}, fmt.Errorf("train task produced no structured public outcome")
+	}
+	traj.CompleteTrajectory = append(append([]string(nil), traj.CompleteTrajectory...), "train-executed:"+traj.Outcome.CanonicalString())
+	return traj, nil
+}
+
+func publicOutcomeFromTaskStatus(status string) diagnosisfanout.PublicOutcome {
+	switch status {
+	case "completed", "pass":
+		return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusPass}
+	case "timeout":
+		return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusTimeout}
+	case "no-output", "no_output":
+		return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusNoOutput}
+	case "protocol-error", "protocol_error":
+		return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusProtocolError}
+	default:
+		if status == "" {
+			return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusFail, Cause: diagnosisfanout.CauseUnknown}
+		}
+		return diagnosisfanout.PublicOutcome{Status: diagnosisfanout.StatusFail, RuntimeError: status}
+	}
 }

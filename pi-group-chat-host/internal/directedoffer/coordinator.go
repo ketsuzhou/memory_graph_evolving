@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"sync"
 
@@ -26,7 +27,17 @@ var (
 	ErrAgentMismatch          = errors.New("directed offer: session agent does not match the binding")
 	ErrSessionMismatch        = errors.New("directed offer: session file/id does not match the binding")
 	ErrAlreadyAttached        = errors.New("directed offer: agent already has an attached exact session")
+	ErrBindingPinsRequired    = errors.New("directed offer: binding pins are required")
+	ErrBindingDigest          = errors.New("directed offer: binding digest must match sha256:<64 lowercase hex>")
 )
+
+const (
+	// TestBindingDigest is the identical profile/provider/model/tool-policy
+	// digest used by TestBinding (system contract §4.2).
+	TestBindingDigest = "sha256:56db56db56db56db56db56db56db56db56db56db56db56db56db56db56db56db"
+)
+
+var bindingDigestRE = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 
 // Request is one Skill Offer or display-only Room publication.
 // RecipientAgentID is the structured routing target. Content may contain
@@ -52,14 +63,60 @@ type Result struct {
 // Binding pins one Agent to one exact session and the currently open
 // Segment. The key fields match system contract §4.2.
 type Binding struct {
-	EvaluationID string
-	LogicalRunID string
-	AttemptID    string
-	RoomID       string
-	AgentID      string
-	Session      sessionctrl.Session
-	Generation   uint64
-	SegmentID    string
+	EvaluationID     string
+	LogicalRunID     string
+	AttemptID        string
+	RoomID           string
+	AgentID          string
+	Session          sessionctrl.Session
+	SessionDir       string
+	WorkDir          string
+	ProfileDigest    string
+	ProviderDigest   string
+	ModelDigest      string
+	ToolPolicyDigest string
+	Generation       uint64
+	SegmentID        string
+}
+
+// Validate fail-closes when any required §4.2 pin is empty or a digest
+// is not an exact sha256:<64 lowercase hex> value.
+func (b Binding) Validate() error {
+	if b.EvaluationID == "" || b.LogicalRunID == "" || b.AttemptID == "" ||
+		b.RoomID == "" || b.AgentID == "" ||
+		b.SessionDir == "" || b.WorkDir == "" ||
+		b.ProfileDigest == "" || b.ProviderDigest == "" ||
+		b.ModelDigest == "" || b.ToolPolicyDigest == "" {
+		return ErrBindingPinsRequired
+	}
+	if err := b.Session.Validate(); err != nil {
+		return fmt.Errorf("%w: %v", ErrExactSessionRequired, err)
+	}
+	for _, digest := range []string{b.ProfileDigest, b.ProviderDigest, b.ModelDigest, b.ToolPolicyDigest} {
+		if !bindingDigestRE.MatchString(digest) {
+			return ErrBindingDigest
+		}
+	}
+	return nil
+}
+
+// TestBinding returns a complete §4.2 binding for tests. All four
+// profile/provider/model/tool-policy digests are TestBindingDigest.
+func TestBinding(agentID string, session sessionctrl.Session) Binding {
+	return Binding{
+		EvaluationID:     "eval-1",
+		LogicalRunID:     "run-1",
+		AttemptID:        "attempt-1",
+		RoomID:           "room-1",
+		AgentID:          agentID,
+		Session:          session,
+		SessionDir:       "/sessions",
+		WorkDir:          "/work",
+		ProfileDigest:    TestBindingDigest,
+		ProviderDigest:   TestBindingDigest,
+		ModelDigest:      TestBindingDigest,
+		ToolPolicyDigest: TestBindingDigest,
+	}
 }
 
 // QueuedMessage is one pending directed mention waiting for a single
@@ -139,8 +196,8 @@ func NewCoordinator() *Coordinator {
 // Attach binds one exact task session. The stored Session file/id is the
 // only resume selector; interactive --resume / --continue are never used.
 func (c *Coordinator) Attach(binding Binding, session ExactSession) error {
-	if err := binding.Session.Validate(); err != nil {
-		return fmt.Errorf("%w: %v", ErrExactSessionRequired, err)
+	if err := binding.Validate(); err != nil {
+		return err
 	}
 	if session == nil {
 		return ErrExactSessionRequired
@@ -201,6 +258,11 @@ func (c *Coordinator) Segments(agentID string) []Segment {
 // RecipientAgentID creates exactly one unique Delivery and, when the
 // target session is running, joins a single abort/resume cycle. Free-text
 // @agent without a recipient is stored as display and does not route.
+// Publish is the Publisher seam used by skilldisposition. It is Offer.
+func (c *Coordinator) Publish(ctx context.Context, req Request) (Result, error) {
+	return c.Offer(ctx, req)
+}
+
 func (c *Coordinator) Offer(ctx context.Context, req Request) (Result, error) {
 	if err := req.validate(); err != nil {
 		return Result{}, err

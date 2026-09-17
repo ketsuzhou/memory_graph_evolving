@@ -236,16 +236,10 @@ func TestContinuationSegmentRecordsContinuationOfAndDirectedMentionReason(t *tes
 
 	session := newRunningTask(t, ctx)
 	c := NewCoordinator()
-	if err := c.Attach(Binding{
-		EvaluationID: "eval-1",
-		LogicalRunID: "run-1",
-		AttemptID:    "attempt-1",
-		RoomID:       "room-1",
-		AgentID:      "task-agent",
-		Session:      session.Session(),
-		Generation:   3,
-		SegmentID:    "seg-task-open",
-	}, session); err != nil {
+	binding := TestBinding("task-agent", session.Session())
+	binding.Generation = 3
+	binding.SegmentID = "seg-task-open"
+	if err := c.Attach(binding, session); err != nil {
 		t.Fatalf("Attach() error = %v", err)
 	}
 
@@ -296,18 +290,39 @@ func newRunningTask(t *testing.T, ctx context.Context) *ScriptedExactSession {
 	return session
 }
 
+func TestAttachFailsClosedWhenBindingPinsMissing(t *testing.T) {
+	t.Parallel()
+	session := NewScriptedExactSession("task-agent", sessionctrl.Session{
+		File: "/sessions/exact-task.jsonl",
+		ID:   "exact-session-id",
+	})
+
+	t.Run("missing SessionDir", func(t *testing.T) {
+		t.Parallel()
+		c := NewCoordinator()
+		binding := TestBinding(session.AgentID(), session.Session())
+		binding.SessionDir = ""
+		if err := c.Attach(binding, session); !errors.Is(err, ErrBindingPinsRequired) {
+			t.Fatalf("Attach() error = %v, want %v", err, ErrBindingPinsRequired)
+		}
+	})
+	t.Run("missing ToolPolicyDigest", func(t *testing.T) {
+		t.Parallel()
+		c := NewCoordinator()
+		binding := TestBinding(session.AgentID(), session.Session())
+		binding.ToolPolicyDigest = ""
+		if err := c.Attach(binding, session); !errors.Is(err, ErrBindingPinsRequired) {
+			t.Fatalf("Attach() error = %v, want %v", err, ErrBindingPinsRequired)
+		}
+	})
+}
+
 func attachTask(t *testing.T, c *Coordinator, session *ScriptedExactSession) {
 	t.Helper()
-	if err := c.Attach(Binding{
-		EvaluationID: "eval-1",
-		LogicalRunID: "run-1",
-		AttemptID:    "attempt-1",
-		RoomID:       "room-1",
-		AgentID:      session.AgentID(),
-		Session:      session.Session(),
-		Generation:   3,
-		SegmentID:    "seg-task-open",
-	}, session); err != nil {
+	binding := TestBinding(session.AgentID(), session.Session())
+	binding.Generation = 3
+	binding.SegmentID = "seg-task-open"
+	if err := c.Attach(binding, session); err != nil {
 		t.Fatalf("Attach() error = %v", err)
 	}
 }

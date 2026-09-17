@@ -20,6 +20,7 @@ import (
 	rawadmit "river2.dev/graph-memory-service/testdata/rawadmit"
 	smokefix "river2.dev/graph-memory-service/testdata/smokefix"
 
+	"river2.dev/pi-group-chat-host/internal/agentrun"
 	"river2.dev/pi-group-chat-host/internal/concurrentepisode"
 	"river2.dev/pi-group-chat-host/internal/diagnosisfanout"
 	"river2.dev/pi-group-chat-host/internal/directedoffer"
@@ -373,17 +374,13 @@ func proveStructuredMentionExactSession(ctx context.Context) (graphBatchSmokeAss
 		return graphBatchSmokeAssertion{}, err
 	}
 
-	coord := directedoffer.NewCoordinator()
-	if err := coord.Attach(directedoffer.Binding{
-		EvaluationID: "eval-smoke",
-		LogicalRunID: "run-smoke",
-		AttemptID:    "attempt-1",
-		RoomID:       "room-1",
-		AgentID:      "task-agent",
-		Session:      pinned,
-		Generation:   1,
-		SegmentID:    "seg-task-open",
-	}, session); err != nil {
+	coord := agentrun.New(effectsinterrupt.Policy{}).Offers()
+	binding := directedoffer.TestBinding("task-agent", pinned)
+	binding.EvaluationID = "eval-smoke"
+	binding.LogicalRunID = "run-smoke"
+	binding.Generation = 1
+	binding.SegmentID = "seg-task-open"
+	if err := coord.Attach(binding, session); err != nil {
 		return graphBatchSmokeAssertion{}, err
 	}
 	got, err := coord.Offer(ctx, directedoffer.Request{
@@ -574,7 +571,7 @@ func (r *smokeSkillResolver) Resolve(_ context.Context, req skillfence.ResolveRe
 }
 
 func proveSameAgentNoOverlap(ctx context.Context) (graphBatchSmokeAssertion, error) {
-	flights := concurrentepisode.NewAgentRunCoordinator()
+	flights := agentrun.New(effectsinterrupt.Policy{}).Flights()
 	firstHold := make(chan struct{})
 	first := concurrentepisode.NewScriptedSession("shared-agent")
 	first.Hold = firstHold
@@ -648,11 +645,12 @@ func proveEffectsUnknownFailClosed(ctx context.Context, config graphBatchFrozenC
 	if err := waitUntil(ctx, session.Running); err != nil {
 		return graphBatchSmokeAssertion{}, err
 	}
-	if err := coord.Attach(directedoffer.Binding{
-		EvaluationID: "eval-smoke", LogicalRunID: taskID, AttemptID: attemptID,
-		RoomID: "room-1", AgentID: "task-agent",
-		Session: session.Session(), Generation: 1,
-	}, taskID, session, nil); err != nil {
+	binding := directedoffer.TestBinding("task-agent", session.Session())
+	binding.EvaluationID = "eval-smoke"
+	binding.LogicalRunID = taskID
+	binding.AttemptID = attemptID
+	binding.Generation = 1
+	if err := coord.Attach(binding, taskID, session, nil); err != nil {
 		return graphBatchSmokeAssertion{}, err
 	}
 	got, err := coord.Interrupt(ctx, "task-agent")
@@ -915,7 +913,9 @@ func newGraphBatchFixtureRuntimeForSmoke(ledger *memoryGraphBatchLedger, heldOut
 	return &graphBatchRuntime{
 		Config:      defaultGraphBatchFrozenConfig(),
 		Parallelism: 1,
-		Trains:      []graphBatchTrainSpec{{Sequence: 1, Trajectory: smokeTrainTrajectory("traj-a")}},
+		Trains:        []graphBatchTrainSpec{{Sequence: 1, Trajectory: smokeTrainTrajectory("traj-a")}},
+		TrainExecutor: scriptedTrainExecutor{},
+		AuthorityKind: graphBatchAuthorityFixture,
 		DiagnosisWorker: &smokeDiagnosisWorker{draft: diagnosisfanout.WorkerDraft{
 			IdempotencyKey: "idem-traj-a",
 			ProposalBody:   map[string]any{"proposal_id": "raw-proposal-traj-a-00001"},

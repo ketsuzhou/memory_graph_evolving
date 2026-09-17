@@ -9,9 +9,7 @@ package evaluationexplore
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"river2.dev/graph-memory-service/internal/skillevolution/evaluationgraph"
@@ -54,8 +52,6 @@ var (
 	ErrInvalidBudget       = errors.New("evaluation explore: invalid budget")
 	ErrInvalidOpening      = errors.New("evaluation explore: invalid opening context")
 )
-
-var exactSkillRef = regexp.MustCompile(`^skill://([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)@([1-9][0-9]*)$`)
 
 var allowedRelations = map[string]bool{
 	RelSpecializes:                true,
@@ -392,22 +388,17 @@ func ParseSkillReference(raw string, scope evaluationgraph.Scope) (evaluationgra
 	if strings.Contains(trimmed, "@latest") || isUnpinnedSkillURI(trimmed) {
 		return evaluationgraph.RevisionRef{}, fmt.Errorf("%w: %s", ErrLatestAlias, raw)
 	}
-	match := exactSkillRef.FindStringSubmatch(trimmed)
-	if match == nil {
+	namespace, ref, err := evaluationgraph.ParseRevisionURI(trimmed)
+	if err != nil {
 		if looksLikeLocalPath(trimmed) {
 			return evaluationgraph.RevisionRef{}, fmt.Errorf("%w: %s", ErrLocalPathRef, raw)
 		}
 		return evaluationgraph.RevisionRef{}, fmt.Errorf("%w: %s", ErrLatestAlias, raw)
 	}
-	namespace := match[1]
 	if namespace != string(evaluationgraph.ScopeEvaluation) && namespace != evaluationgraph.StreamEvaluation {
 		return evaluationgraph.RevisionRef{}, fmt.Errorf("%w: %s", ErrCrossScopeRef, raw)
 	}
-	revision, err := strconv.ParseUint(match[3], 10, 64)
-	if err != nil {
-		return evaluationgraph.RevisionRef{}, fmt.Errorf("%w: %s", ErrLatestAlias, raw)
-	}
-	return evaluationgraph.RevisionRef{LineageID: match[2], Revision: revision}, nil
+	return ref, nil
 }
 
 func looksLikeLocalPath(raw string) bool {

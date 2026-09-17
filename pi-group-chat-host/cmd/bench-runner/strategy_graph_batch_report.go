@@ -39,6 +39,7 @@ var graphBatchKnownLimitations = []string{
 	"protocol token/time unmatched: memory, interrupt, and Skill-tool token and wall-clock costs are not matched across arms",
 	"test feedback is trace_only and never writes back to the trainable graph",
 	"crash uncertainty fail closed: inconsistent process state is not auto-recovered",
+	"contract smoke Host session seams stay scripted until real Pi 0.85.1 abort/resume is proven; diagnosis/consolidation/freeze production path is GMS HTTP",
 }
 
 // graphBatchReportPolicy is the frozen pairing identity. Warm and cold must

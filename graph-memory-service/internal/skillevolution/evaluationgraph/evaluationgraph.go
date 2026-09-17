@@ -9,8 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 )
+
+var exactSkillRefRE = regexp.MustCompile(`^skill://([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)@([1-9][0-9]*)$`)
 
 const StreamEvaluation = "evaluation"
 
@@ -45,6 +50,19 @@ type RevisionRef struct {
 
 func (r RevisionRef) String() string {
 	return fmt.Sprintf("skill://%s/%s@%d", StreamEvaluation, r.LineageID, r.Revision)
+}
+
+// ParseRevisionURI accepts only skill://<namespace>/<lineage>@<revision>.
+func ParseRevisionURI(raw string) (namespace string, ref RevisionRef, err error) {
+	match := exactSkillRefRE.FindStringSubmatch(strings.TrimSpace(raw))
+	if match == nil {
+		return "", RevisionRef{}, fmt.Errorf("%w: %s", ErrInvalidCanonicalInput, raw)
+	}
+	revision, parseErr := strconv.ParseUint(match[3], 10, 64)
+	if parseErr != nil {
+		return "", RevisionRef{}, fmt.Errorf("%w: %s", ErrInvalidCanonicalInput, raw)
+	}
+	return match[1], RevisionRef{LineageID: match[2], Revision: revision}, nil
 }
 
 type Proposal struct {

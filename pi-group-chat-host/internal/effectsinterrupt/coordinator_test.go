@@ -287,20 +287,40 @@ type resultOrErr struct {
 	err    error
 }
 
+func TestAttachFailsClosedWhenBindingPinsMissing(t *testing.T) {
+	t.Parallel()
+	session := NewScriptedSession("task-agent", pinnedSession(), KindModel)
+
+	t.Run("missing SessionDir", func(t *testing.T) {
+		t.Parallel()
+		c := NewCoordinator(Policy{}, nil)
+		binding := directedoffer.TestBinding(session.AgentID(), session.Session())
+		binding.SessionDir = ""
+		if err := c.Attach(binding, "task-1", session, nil); !errors.Is(err, directedoffer.ErrBindingPinsRequired) {
+			t.Fatalf("Attach() error = %v, want %v", err, directedoffer.ErrBindingPinsRequired)
+		}
+	})
+	t.Run("missing ToolPolicyDigest", func(t *testing.T) {
+		t.Parallel()
+		c := NewCoordinator(Policy{}, nil)
+		binding := directedoffer.TestBinding(session.AgentID(), session.Session())
+		binding.ToolPolicyDigest = ""
+		if err := c.Attach(binding, "task-1", session, nil); !errors.Is(err, directedoffer.ErrBindingPinsRequired) {
+			t.Fatalf("Attach() error = %v, want %v", err, directedoffer.ErrBindingPinsRequired)
+		}
+	})
+}
+
 func startAndAttach(t *testing.T, ctx context.Context, c *Coordinator, taskID, attemptID string, session *ScriptedSession, tree ProcessTree) {
 	t.Helper()
 	go func() { _ = session.Start(ctx) }()
 	waitUntil(t, session.Running)
-	if err := c.Attach(directedoffer.Binding{
-		EvaluationID: "eval-1",
-		LogicalRunID: taskID,
-		AttemptID:    attemptID,
-		RoomID:       "room-1",
-		AgentID:      session.AgentID(),
-		Session:      session.Session(),
-		Generation:   3,
-		SegmentID:    "seg-task-open",
-	}, taskID, session, tree); err != nil {
+	binding := directedoffer.TestBinding(session.AgentID(), session.Session())
+	binding.LogicalRunID = taskID
+	binding.AttemptID = attemptID
+	binding.Generation = 3
+	binding.SegmentID = "seg-task-open"
+	if err := c.Attach(binding, taskID, session, tree); err != nil {
 		t.Fatalf("Attach() error = %v", err)
 	}
 }

@@ -6,4 +6,4 @@ Issues live as local markdown files under `.scratch/<feature-slug>/`. See `docs/
 
 ### Domain docs
 
-Single-context: root `CONTEXT.md` plus `docs/adr/`. See `docs/agents/domain.md`.
+Multi-context: glossary is `graph-memory-service/CONTEXT.md`, mapped from root `CONTEXT-MAP.md`. See `docs/agents/domain.md`.

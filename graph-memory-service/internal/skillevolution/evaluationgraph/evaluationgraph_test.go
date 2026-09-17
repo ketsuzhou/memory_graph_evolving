@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func TestParseRevisionURIAcceptsExactSkillReference(t *testing.T) {
+	ns, ref, err := ParseRevisionURI("skill://evaluation/alpha@2")
+	if err != nil || ns != StreamEvaluation || ref.LineageID != "alpha" || ref.Revision != 2 {
+		t.Fatalf("parse = %q %#v %v", ns, ref, err)
+	}
+	if _, _, err := ParseRevisionURI("skill://evaluation/alpha@latest"); err == nil {
+		t.Fatal("latest alias must fail closed")
+	}
+}
+
 func TestBuildSameCanonicalInputProducesDeterministicDigestNodesEdgesAndOrder(t *testing.T) {
 	fixture := consolidatedFixture(t)
 
