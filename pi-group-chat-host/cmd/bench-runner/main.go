@@ -262,6 +262,15 @@ type attemptRecord struct {
 	Disposition       string               `json:"disposition,omitempty"`
 	DispositionReason string               `json:"reason,omitempty"`
 	NamedInReasoning  bool                 `json:"named_in_reasoning,omitempty"`
+	StartOverlap      bool                 `json:"start_overlap,omitempty"`
+	DeliveryStatus    string               `json:"delivery_status,omitempty"`
+	ContinuationOf    string               `json:"continuation_of,omitempty"`
+	SegmentReason     string               `json:"segment_reason,omitempty"`
+	AbortCount        int                  `json:"abort_count,omitempty"`
+	ResumeCount       int                  `json:"resume_count,omitempty"`
+	UsedResumeFlag    bool                 `json:"used_resume_flag,omitempty"`
+	UsedContinueFlag  bool                 `json:"used_continue_flag,omitempty"`
+	EffectsUnknown    bool                 `json:"effects_unknown,omitempty"`
 }
 
 type skillStrategy string

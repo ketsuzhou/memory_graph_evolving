@@ -59,11 +59,17 @@ func TestProductionHeldOutSkipRecallOfferAndDisposition(t *testing.T) {
 		t.Fatal("missing attempt record")
 	}
 	record := got.Record
-	if record.SkillRetrievalStatus != "published" {
-		t.Fatalf("retrieval status=%q text=%v err=%q", record.SkillRetrievalStatus, record.SkillRetrievalText, record.Error)
+	if record.SkillRetrievalStatus != "published" && record.DeliveryStatus != deliveryStatusTaskFinishedFirst {
+		t.Fatalf("retrieval status=%q delivery=%q text=%v err=%q", record.SkillRetrievalStatus, record.DeliveryStatus, record.SkillRetrievalText, record.Error)
+	}
+	if !record.StartOverlap {
+		t.Fatal("task and memory start times must overlap")
 	}
 	if record.RecallCitations != 0 || record.RecallState == "complete" {
 		t.Fatalf("task recall leaked: state=%q citations=%d", record.RecallState, record.RecallCitations)
+	}
+	if record.UsedResumeFlag || record.UsedContinueFlag {
+		t.Fatal("exact-session path used --resume or --continue")
 	}
 	if recallHits == 0 {
 		t.Fatal("retrieval turn must still be allowed to recall; only the task turn skips it")
@@ -71,11 +77,19 @@ func TestProductionHeldOutSkipRecallOfferAndDisposition(t *testing.T) {
 	if len(record.Offers) == 0 || record.Offers[0].SkillReference != skill.SkillReference {
 		t.Fatalf("offers = %#v", record.Offers)
 	}
-	if len(record.Served) == 0 || record.Served[0].BodyDigest != skill.BodyDigest {
-		t.Fatalf("served = %#v, want digest %s", record.Served, skill.BodyDigest)
-	}
-	if record.Disposition != "accepted" {
-		t.Fatalf("disposition = %q reason=%q", record.Disposition, record.DispositionReason)
+	if record.DeliveryStatus == deliveryStatusDelivered {
+		if record.SegmentReason != "DIRECTED_MENTION" || record.ContinuationOf == "" {
+			t.Fatalf("resume segment = reason=%q continuation_of=%q", record.SegmentReason, record.ContinuationOf)
+		}
+		if record.AbortCount < 1 || record.ResumeCount < 1 {
+			t.Fatalf("interrupt/resume counts = %d/%d", record.AbortCount, record.ResumeCount)
+		}
+		if len(record.Served) == 0 || record.Served[0].BodyDigest != skill.BodyDigest {
+			t.Fatalf("served = %#v, want digest %s", record.Served, skill.BodyDigest)
+		}
+		if record.Disposition != "accepted" {
+			t.Fatalf("disposition = %q reason=%q", record.Disposition, record.DispositionReason)
+		}
 	}
 	output := ""
 	if record.FinalCodeOutput != nil {
@@ -136,6 +150,12 @@ func TestProductionHeldOutDeclinedHasNoOfferOrFence(t *testing.T) {
 	if record.SkillRetrievalStatus != "declined" {
 		t.Fatalf("retrieval status=%q text=%v", record.SkillRetrievalStatus, record.SkillRetrievalText)
 	}
+	if record.DeliveryStatus != deliveryStatusDeclined {
+		t.Fatalf("delivery = %q, want declined", record.DeliveryStatus)
+	}
+	if record.AbortCount != 0 {
+		t.Fatalf("declined path must not interrupt, abort=%d", record.AbortCount)
+	}
 	if len(record.Offers) != 0 || len(record.Served) != 0 || record.Disposition != "" {
 		t.Fatalf("declined path must skip offer/fence: offers=%#v served=%#v disposition=%q", record.Offers, record.Served, record.Disposition)
 	}
@@ -176,13 +196,14 @@ func writeGraphBatchFakePi(t *testing.T, skillRef, selection string) string {
 		t.Fatalf("write frames: %v", err)
 	}
 	script := `#!/usr/bin/env python3
-import json, sys
+import json, sys, threading, time
 if len(sys.argv) > 1 and sys.argv[1] == "--version":
     print("0.85.1")
     raise SystemExit(0)
 if "--resume" in sys.argv or "--continue" in sys.argv:
     raise SystemExit("forbidden interactive resume flag")
 frames = json.load(open("` + framePath + `"))
+aborted = False
 
 def emit(key, req_id):
     for frame in frames[key]:
@@ -191,6 +212,12 @@ def emit(key, req_id):
             frame["id"] = req_id
         print(json.dumps(frame), flush=True)
 
+def idle_settle():
+    time.sleep(0.5)
+    if not aborted:
+        print(json.dumps({"type": "agent_end", "messages": [], "willRetry": False}), flush=True)
+        print(json.dumps({"type": "agent_settled"}), flush=True)
+
 for line in sys.stdin:
     line = line.strip()
     if not line:
@@ -198,6 +225,11 @@ for line in sys.stdin:
     req = json.loads(line)
     kind = req.get("type")
     req_id = req.get("id", "ignored")
+    if kind == "abort":
+        aborted = True
+        print(json.dumps({"id": req_id, "type": "response", "command": "abort", "success": True}), flush=True)
+        print(json.dumps({"type": "agent_settled"}), flush=True)
+        continue
     if kind in ("get_state", "clear_queue"):
         print(json.dumps({"id": req_id, "type": "response", "command": kind, "success": True, "data": {}}), flush=True)
         continue
@@ -207,7 +239,12 @@ for line in sys.stdin:
     if "Skill retrieval turn" in message or str(req_id).endswith("-retr"):
         emit("retr", req_id)
         continue
-    emit("task", req_id)
+    if "Directed skill offers" in message:
+        emit("task", req_id)
+        continue
+    print(json.dumps({"id": req_id, "type": "response", "command": "prompt", "success": True}), flush=True)
+    print(json.dumps({"type": "agent_start"}), flush=True)
+    threading.Thread(target=idle_settle, daemon=True).start()
 `
 	if err := os.WriteFile(path, []byte(script), 0o700); err != nil {
 		t.Fatalf("write fake pi: %v", err)
