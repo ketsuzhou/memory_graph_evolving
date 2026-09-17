@@ -259,10 +259,11 @@ type attemptRecord struct {
 type skillStrategy string
 
 const (
-	skillStrategyBatch     skillStrategy = "batch"
-	skillStrategyReplay    skillStrategy = "task_replay"
-	skillStrategyOnline    skillStrategy = "online"
-	skillStrategyContinual skillStrategy = "continual"
+	skillStrategyBatch      skillStrategy = "batch"
+	skillStrategyGraphBatch skillStrategy = "graph_batch"
+	skillStrategyReplay     skillStrategy = "task_replay"
+	skillStrategyOnline     skillStrategy = "online"
+	skillStrategyContinual  skillStrategy = "continual"
 )
 
 // skillStrategyFor maps runner arms to their experiment protocol. warm-skill
@@ -271,6 +272,8 @@ func skillStrategyFor(arm string) (skillStrategy, bool) {
 	switch arm {
 	case "warm-skill", "warm-skill-batch":
 		return skillStrategyBatch, true
+	case graphBatchStrategyID:
+		return skillStrategyGraphBatch, true
 	case "warm-skill-replay":
 		return skillStrategyReplay, true
 	case "warm-skill-online":
@@ -419,7 +422,7 @@ func main() {
 	}
 	for _, arm := range armList {
 		if arm != "warm" && arm != "cold" && arm != "warm-ma" && arm != "reset" && !isSkillArm(arm) {
-			fatal("unknown arm %q: only warm, cold, warm-ma, reset, warm-skill, warm-skill-batch, warm-skill-replay, warm-skill-online, and warm-skill-continual exist", arm)
+			fatal("unknown arm %q: only warm, cold, warm-ma, reset, warm-skill, warm-skill-batch, warm-skill-graph-batch, warm-skill-replay, warm-skill-online, and warm-skill-continual exist", arm)
 		}
 		policy := "read_write"
 		if arm == "cold" {
@@ -570,6 +573,13 @@ func (instance *gmsInstance) stop() {
 }
 
 func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) error {
+	strategy, skillArm := skillStrategyFor(config.arm)
+	if skillArm && strategy == skillStrategyGraphBatch {
+		// TB-01 validates the standalone empty-graph adapter only. Do not let
+		// this arm fall through to the legacy runner-local []skillProposal
+		// pipeline; TB-14 composes canonical GMS and Host/Pi execution.
+		return fmt.Errorf("%s execution is not composed; use the TB-01 empty-graph adapter", graphBatchStrategyID)
+	}
 	tenantID := sanitizeID(config.evaluationID) + "-" + config.arm + "-t"
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 10 * time.Second}, 1<<20)
 	var summary *c3ArmSummary
@@ -614,7 +624,6 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 	}
 
 	familyOrder := familySequence(config.episodes)
-	strategy, skillArm := skillStrategyFor(config.arm)
 	var grants []string
 	// Warm-skill freeze semantics: every test episode gets its own fresh room
 	// with throwaway spaces, so test evidence never touches the train spaces
