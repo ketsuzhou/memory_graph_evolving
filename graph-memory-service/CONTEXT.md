@@ -209,6 +209,50 @@ _Avoid_: Memory Note, Active Skill, implicit authority
 A persistent Room participant that explores memory in response to the evolving Room context or an explicit mention, then publishes exact references to applicable authoritative Skills or Runtime Advisory Skill Proposals. It may draft an adaptation proposal but does not rank, evaluate, or activate its own output authoritatively.
 _Avoid_: deterministic retrieval service, Skill activator, unbounded search loop
 
+**Skill Reference**:
+An immutable URI that identifies one exact Skill or Runtime Advisory Skill Proposal revision and resolves under the evaluation's pinned snapshot.
+_Avoid_: mutable alias, local file path, unversioned Skill name
+
+**Skill Offer**:
+A directed Room message that gives one target Agent an exact Skill Reference to inspect before reporting whether it is useful at the current Decision Checkpoint.
+_Avoid_: undirected memory note, implicit adoption, unversioned recommendation
+
+**Skill Offer Acceptance**:
+A target Agent's immutable judgment, made after the exact offered Skill body was served, that the Skill is useful for the current Decision Checkpoint; it records selected relevance, not adoption or benefit.
+_Avoid_: request to unlock content, Skill Adoption Declaration, verified utility
+
+**Skill Offer Rejection**:
+A target Agent's immutable judgment, made after the exact offered Skill body was served, that the Skill is not useful for the current Decision Checkpoint, together with a reason that may redirect further exploration.
+_Avoid_: unserved offer, proof that the Skill is globally wrong, silent ignore
+
+**Skill Delivery Record**:
+A Host-authored immutable fact that the full body of one exact Skill revision became available to one target Agent at one Decision Checkpoint; it records serving, not acceptance, adoption, or benefit.
+_Avoid_: recall activity, Agent self-report, Skill Adoption Declaration
+
+**Directed Mention Interruption**:
+A Host-coordinated safe interruption caused only by a structured directed message, preserving the exact Agent session and continuing it with the ordered message after the prior run reaches a known terminal boundary.
+_Avoid_: text-pattern mention, blind process kill, fresh-session restart
+
+**Agent Session Binding**:
+The fenced association of one evaluation attempt, Room, and Agent with one exact persistent Pi session and its current run generation.
+_Avoid_: Agent display name, latest session lookup, cross-episode session reuse
+
+**Contextual Skill Adaptation**:
+An immutable Runtime Advisory Skill Proposal that binds one exact source Skill revision to one Replayable Context Snapshot and records an explicit adaptation delta without mutating the source Skill.
+_Avoid_: in-place Skill edit, context-free rewrite, source revision alias
+
+**Skill Evolution Ledger**:
+The canonical immutable sequence of Raw, Consolidated, and Contextual Skill records together with their exact evidence and predecessor references; it remains distinct from historical evidence while preserving complete lineage to it.
+_Avoid_: runner-local list, mutable Skill graph, consolidated Markdown file
+
+**Runtime Skill Graph Projection**:
+A rebuildable, versioned graph view derived from the Skill Evolution Ledger and committed evidence for bounded multi-hop exploration.
+_Avoid_: Skill authority, independent source of truth, unversioned search index
+
+**Held-Out Skill Feedback Trace**:
+An evaluation artifact containing test-time Skill offers, deliveries, responses, and outcomes that is excluded from every trainable Graph and subsequent consolidation input.
+_Avoid_: train feedback edge, discarded metric, frozen Graph mutation
+
 **Replayable Context Snapshot**:
 An immutable, scope-bound capture of the task context, observable environment, and pinned state needed to reproduce a Decision Checkpoint and compare replay branches.
 _Avoid_: raw prompt only, mutable Room state, semantic context label
