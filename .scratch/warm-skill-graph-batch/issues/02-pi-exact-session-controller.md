@@ -4,12 +4,15 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Controller 暴露 exact session file/id、process generation 和 settled state。
-- [ ] Agent running 时可发送 `get_state/clear_queue/abort`，stdout 只有一个 reader。
-- [ ] Launcher 能使用 exact `--session`，禁止用交互 `--resume` 或模糊 `--continue`。
-- [ ] Legacy launcher flags、one-shot runtime 行为与现有测试保持不变。
-- [ ] Race test 证明 RPC writer、response correlation 和 event stream 无并发读写竞争。
+- [x] Controller 暴露 exact session file/id、process generation 和 settled state。
+- [x] Agent running 时可发送 `get_state/clear_queue/abort`，stdout 只有一个 reader。
+- [x] Launcher 能使用 exact `--session`，禁止用交互 `--resume` 或模糊 `--continue`。
+- [x] Legacy launcher flags、one-shot runtime 行为与现有测试保持不变。
+- [x] Race test 证明 RPC writer、response correlation 和 event stream 无并发读写竞争。
 
 ## Comments
+模块：`pi-group-chat-host/internal/pi/sessionctrl/`（包 `sessionctrl`）；launcher seam：`Launcher.StartExactSession`（`pi-group-chat-host/internal/pi/launcher.go`）。未改 `Process.Prompt`、`internal/runtime/**`、`cmd/bench-runner/**`、`graph-memory-service/**`。
+
+验证：`GOCACHE=/tmp/wsgb-pf02-go-cache $HOME/go/bin/go test ./internal/pi/... -count=1`；`GOCACHE=/tmp/wsgb-pf02-go-cache $HOME/go/bin/go test -race ./internal/pi/sessionctrl/ -count=1`。
