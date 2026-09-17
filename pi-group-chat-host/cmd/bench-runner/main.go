@@ -493,6 +493,10 @@ type armConfig struct {
 	userSimModel     string
 	sidecarURL       string
 	armBReporter     *armBReporter
+	// graphBatch is the TB-14 composition runtime. It is required when the
+	// arm has episodes: the new strategy must not fall through to the
+	// legacy runner-local []skillProposal pipeline.
+	graphBatch *graphBatchRuntime
 }
 
 // gmsInstance is one arm-private graph-memory-service process. The service is
@@ -575,10 +579,7 @@ func (instance *gmsInstance) stop() {
 func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) error {
 	strategy, skillArm := skillStrategyFor(config.arm)
 	if skillArm && strategy == skillStrategyGraphBatch {
-		// TB-01 validates the standalone empty-graph adapter only. Do not let
-		// this arm fall through to the legacy runner-local []skillProposal
-		// pipeline; TB-14 composes canonical GMS and Host/Pi execution.
-		return fmt.Errorf("%s execution is not composed; use the TB-01 empty-graph adapter", graphBatchStrategyID)
+		return runGraphBatchArm(ctx, config, emit)
 	}
 	tenantID := sanitizeID(config.evaluationID) + "-" + config.arm + "-t"
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 10 * time.Second}, 1<<20)

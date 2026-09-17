@@ -6,34 +6,34 @@ import (
 )
 
 // graphBatchStrategyID is intentionally distinct from the legacy batch arm.
-// Its adapter owns no runner-local proposal ledger; TB-14 will compose it with
-// the canonical GMS ledger and the Host runtime coordinator.
+// Authority is the GMS canonical ledger plus a sealed EvaluationFreezeManifest.
+// runner-local []skillProposal and Markdown/hash-prefix ledgers are not writers.
 const graphBatchStrategyID = "warm-skill-graph-batch"
 
 const (
-	defaultMaxGraphStepsPerEpisode          = 12
-	defaultMaxOffersPerAgentPerCheckpoint   = 3
-	defaultMaxMemoryTurnsPerEpisode         = 6
-	graphBatchEmptyGraphTerminal            = "no_candidate_from_empty_graph"
+	defaultMaxGraphStepsPerEpisode        = 12
+	defaultMaxOffersPerAgentPerCheckpoint = 3
+	defaultMaxMemoryTurnsPerEpisode       = 6
+	graphBatchEmptyGraphTerminal          = "no_candidate_from_empty_graph"
+	graphBatchMentionInterruptGrace       = "50ms"
+	graphBatchMentionKillGrace            = "50ms"
 )
 
 // graphBatchFrozenConfig is the generation-0 configuration recorded verbatim
-// in every skeleton artifact. The budgets are deliberately exact defaults,
-// rather than tunable values, until the full pipeline composes this adapter.
+// in every skeleton artifact. Budgets and interrupt graces are the contract
+// defaults composed by the canonical pipeline.
 type graphBatchFrozenConfig struct {
-	Strategy                         string `json:"strategy"`
-	InitialSkillSnapshot             string `json:"initial_skill_snapshot"`
-	SkillFeedbackPersistence         string `json:"skill_feedback_persistence"`
-	MaxGraphStepsPerEpisode          int    `json:"max_graph_steps_per_episode"`
-	MaxOffersPerAgentPerCheckpoint   int    `json:"max_offers_per_agent_per_checkpoint"`
-	MaxMemoryTurnsPerEpisode         int    `json:"max_memory_turns_per_episode"`
-	// Interrupt timing is deliberately frozen as uncomposed in TB-01: no
-	// Host interrupt exists in this skeleton, and TB-14 owns those durations.
-	MentionInterruptGrace string `json:"mention_interrupt_grace"`
-	MentionKillGrace      string `json:"mention_kill_grace"`
-	SkillAdaptation       string `json:"skill_adaptation"`
-	TaskContextMonitoring            string `json:"task_context_monitoring"`
-	TestFeedbackSink                 string `json:"test_feedback_sink"`
+	Strategy                       string `json:"strategy"`
+	InitialSkillSnapshot           string `json:"initial_skill_snapshot"`
+	SkillFeedbackPersistence       string `json:"skill_feedback_persistence"`
+	MaxGraphStepsPerEpisode        int    `json:"max_graph_steps_per_episode"`
+	MaxOffersPerAgentPerCheckpoint int    `json:"max_offers_per_agent_per_checkpoint"`
+	MaxMemoryTurnsPerEpisode       int    `json:"max_memory_turns_per_episode"`
+	MentionInterruptGrace          string `json:"mention_interrupt_grace"`
+	MentionKillGrace               string `json:"mention_kill_grace"`
+	SkillAdaptation                string `json:"skill_adaptation"`
+	TaskContextMonitoring          string `json:"task_context_monitoring"`
+	TestFeedbackSink               string `json:"test_feedback_sink"`
 }
 
 func defaultGraphBatchFrozenConfig() graphBatchFrozenConfig {
@@ -44,8 +44,8 @@ func defaultGraphBatchFrozenConfig() graphBatchFrozenConfig {
 		MaxGraphStepsPerEpisode:        defaultMaxGraphStepsPerEpisode,
 		MaxOffersPerAgentPerCheckpoint: defaultMaxOffersPerAgentPerCheckpoint,
 		MaxMemoryTurnsPerEpisode:       defaultMaxMemoryTurnsPerEpisode,
-		MentionInterruptGrace:          "uncomposed_tb01",
-		MentionKillGrace:               "uncomposed_tb01",
+		MentionInterruptGrace:          graphBatchMentionInterruptGrace,
+		MentionKillGrace:               graphBatchMentionKillGrace,
 		SkillAdaptation:                "optional",
 		TaskContextMonitoring:          "opening_only",
 		TestFeedbackSink:               "trace_only",
@@ -73,9 +73,9 @@ type graphBatchFailureAccounting struct {
 	ProtocolErrors        int `json:"protocol_errors"`
 }
 
-// graphBatchAttemptArtifact is the standalone attempt artifact for the
-// skeleton. It is intentionally separate from attemptRecord until TB-14 wires
-// canonical Host/GMS execution into the runner artifact pipeline.
+// graphBatchAttemptArtifact is the standalone empty-graph attempt artifact.
+// The canonical pipeline records a separate graphBatchPipelineResult; this
+// type stays isolated from the legacy attemptRecord schema.
 type graphBatchAttemptArtifact struct {
 	Strategy               string                      `json:"strategy"`
 	InitialSkillSnapshot   graphBatchEvaluationGraph   `json:"initial_skill_snapshot"`
