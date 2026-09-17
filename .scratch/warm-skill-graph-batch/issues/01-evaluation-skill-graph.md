@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] 相同 canonical input 重建得到相同 projection digest、节点、边和顺序。
 - [ ] Non-active proposal 在 evaluation scope 可 explore/get，在 Runtime active scope 仍被拒绝。
@@ -13,3 +13,6 @@
 - [ ] 删除 projection 后可从 canonical fixture 重建为 byte-equivalent view。
 
 ## Comments
+模块：`graph-memory-service/internal/skillevolution/evaluationgraph/`（包 `evaluationgraph`）。
+
+验证：`GOCACHE=/tmp/wsgb-pf01-go-cache $HOME/go/bin/go test ./internal/skillevolution/evaluationgraph/`；`GOCACHE=/tmp/wsgb-pf01-go-cache $HOME/go/bin/go test ./internal/skillevolution/projector/`。
