@@ -40,16 +40,16 @@ func TestGraphBatchStrategyDispatchTable(t *testing.T) {
 	}
 }
 
-func TestGraphBatchRunArmFailsClosedBeforeLegacyComposition(t *testing.T) {
+func TestGraphBatchRunArmDoesNotFallThroughToLegacyComposition(t *testing.T) {
 	called := false
 	err := runArm(context.Background(), armConfig{arm: graphBatchStrategyID}, func(attemptRecord) {
 		called = true
 	})
-	if err == nil || !strings.Contains(err.Error(), "execution is not composed") {
-		t.Fatalf("runArm error = %v; want an uncomposed graph-batch error", err)
+	if err != nil {
+		t.Fatalf("empty composed graph-batch runArm = %v", err)
 	}
 	if called {
-		t.Fatal("uncomposed graph batch must not emit a legacy attempt record")
+		t.Fatal("composed graph batch must not emit a legacy attempt record")
 	}
 }
 
