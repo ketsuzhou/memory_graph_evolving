@@ -177,10 +177,13 @@ func (l *Launcher) StartExactSession(ctx context.Context, profile domain.AgentPr
 	return controller, nil
 }
 
-// argv builds the documented flag sequence. Ordinary keeps Pi's full coding
-// tool surface; the Memory Agent additionally disables built-in tools, skills,
-// prompt templates, and context files, and restricts --tools to the fixed
-// Room + Memory surface.
+// argv builds the documented flag sequence. Ordinary keeps Pi's coding tool
+// surface (--tools / built-ins unchanged) so the task agent can still write
+// and exec; both profiles disable skill discovery and ambient prompt/context
+// files. That is benchmark hygiene: ~/.pi/agent/skills and any future files
+// along ~/.pi or cwd must not enter the prompt. The measured face is the
+// GMS pipeline (plus, for ordinary, Pi coding tools). Memory additionally
+// disables built-in tools and restricts --tools to the Room + Memory surface.
 func (l *Launcher) argv(profile domain.AgentProfile) []string {
 	memoryProfile := profile.Kind == domain.ProfileMemory || !profile.BuiltinToolsEnabled
 	args := []string{"--mode", "rpc", "--session-dir", l.config.SessionDir, "--provider", l.config.Provider, "--model", l.config.Model}
@@ -196,8 +199,9 @@ func (l *Launcher) argv(profile domain.AgentProfile) []string {
 		if len(tools) == 0 {
 			tools = MemoryAgentToolSurface()
 		}
-		args = append(args, "--tools", strings.Join(tools, ","), "--no-skills", "--no-prompt-templates", "--no-context-files")
+		args = append(args, "--tools", strings.Join(tools, ","))
 	}
+	args = append(args, "--no-skills", "--no-prompt-templates", "--no-context-files")
 	args = append(args, "--no-approve")
 	return args
 }
