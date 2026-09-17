@@ -173,6 +173,9 @@ func batchArmEpisodes(config armConfig, episodes []manifestEpisode) []manifestEp
 // empty train phase: it is the official Vanilla baseline shape, test tasks
 // only, each in its own throwaway spaces with recall always empty.
 func runParallelSkillStrategyBatch(ctx context.Context, config armConfig, tenantID, workDir, extensionPath string, familyOrder []string, emit func(attemptRecord)) error {
+	if config.arm == graphBatchStrategyID {
+		return fmt.Errorf("legacy warm-skill-batch coordinator must not run %s", graphBatchStrategyID)
+	}
 	ledger := map[string][]skillProposal{}
 	sequence := 0
 	batchEpisodes := batchArmEpisodes(config, config.episodes)

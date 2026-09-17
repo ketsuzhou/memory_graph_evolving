@@ -43,14 +43,17 @@ import (
 	"river2.dev/graph-memory-service/internal/skillevolution/activation"
 	"river2.dev/graph-memory-service/internal/skillevolution/armc"
 	"river2.dev/graph-memory-service/internal/skillevolution/artifact"
+	"river2.dev/graph-memory-service/internal/skillevolution/batchconsolidation"
 	"river2.dev/graph-memory-service/internal/skillevolution/candidate"
 	"river2.dev/graph-memory-service/internal/skillevolution/compositehandoff"
+	"river2.dev/graph-memory-service/internal/skillevolution/evaluationfreeze"
 	"river2.dev/graph-memory-service/internal/skillevolution/ledger"
 	"river2.dev/graph-memory-service/internal/skillevolution/materializationread"
 	"river2.dev/graph-memory-service/internal/skillevolution/policyactivation"
 	"river2.dev/graph-memory-service/internal/skillevolution/probation"
 	"river2.dev/graph-memory-service/internal/skillevolution/projector"
 	"river2.dev/graph-memory-service/internal/skillevolution/proposal"
+	"river2.dev/graph-memory-service/internal/skillevolution/rawproposal"
 	skillretrieval "river2.dev/graph-memory-service/internal/skillevolution/retrieval"
 	"river2.dev/graph-memory-service/internal/skillevolution/usageprojection"
 	"river2.dev/graph-memory-service/internal/skillevolution/validation"
@@ -281,14 +284,27 @@ func main() {
 		}
 	}
 
+	// Warm Skill Graph Batch routes (skill_propose / skill_consolidate /
+	// evaluation-freeze / trajectories:register) are always mounted. They
+	// are an independent handler table, not gated behind
+	// GRAPH_MEMORY_SKILL_EVOLUTION_ENABLED and not part of the closed v1
+	// SkillEvolutionRoutes tool set.
+	graphBatchIO, err := newGraphBatchHandler(config.token)
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/", handler)
+	for _, route := range httpapi.GraphBatchRoutes() {
+		mux.Handle(route.Path, graphBatchIO)
+	}
+
 	// GMS-207 closure read route and the GMS-206 tool routes
 	// (memory_explore/memory_expand/skill_get): mounted above the legacy
 	// persistence wrapper (they never mutate the legacy wire-model store)
 	// and below the request logger so every skill-evolution request is
 	// logged.
 	if skillEvolution != nil {
-		mux := http.NewServeMux()
-		mux.Handle("/", handler)
 		mux.Handle(httpapi.SkillEvolutionClosureReadPath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionToolExplorePath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionToolExpandPath, skillEvolution.skillEvolutionIO)
@@ -298,8 +314,8 @@ func main() {
 		mux.Handle(httpapi.SkillEvolutionAdvisoryReadPath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionUsageSummaryReadPath, skillEvolution.skillEvolutionIO)
 		mux.Handle(httpapi.SkillEvolutionCandidateOutcomesReadPath, skillEvolution.skillEvolutionIO)
-		handler = mux
 	}
+	handler = mux
 	handler = httpapi.RequestLogger(eventLog)(handler)
 	eventLog.Log("server_start", bootFields)
 
@@ -601,6 +617,47 @@ func (p projectionWatermark) ProjectionWatermark(ctx context.Context) (map[strin
 	}
 	doc, _, _ := p.svc.Watermark()
 	return doc, doc != nil
+}
+
+// newGraphBatchHandler always constructs the Warm Skill Graph Batch
+// authorities (rawproposal + batchconsolidation + evaluationfreeze) over a
+// dedicated ledger store/manager. The stack is independent of the legacy
+// projector / Arm C worker and is mounted regardless of
+// GRAPH_MEMORY_SKILL_EVOLUTION_ENABLED.
+func newGraphBatchHandler(token string) (http.Handler, error) {
+	confDir, err := contract.DefaultConformanceDir()
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: %w", err)
+	}
+	policy, err := contract.LoadSystemReasonPolicy(filepath.Join(confDir, "policy"))
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: load reason policy: %w", err)
+	}
+	registry := &ledger.ContractReasonRegistry{Policy: policy}
+	store, err := ledger.NewMemoryStore(registry)
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: new ledger store: %w", err)
+	}
+	manager, err := ledger.NewManager(store, registry)
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: new transaction manager: %w", err)
+	}
+	source := rawproposal.NewMemoryTrajectorySource()
+	proposals, err := rawproposal.NewService(source, manager)
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: raw proposal service: %w", err)
+	}
+	consolidate, err := batchconsolidation.NewService(proposals, store, manager)
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: consolidation service: %w", err)
+	}
+	freeze, err := evaluationfreeze.NewService(proposals, store)
+	if err != nil {
+		return nil, fmt.Errorf("graph batch: evaluation freeze: %w", err)
+	}
+	return httpapi.NewGraphBatchHandler(httpapi.GraphBatchDependencies{
+		Token: token, Proposals: proposals, Consolidate: consolidate, Freeze: freeze, Source: source,
+	}), nil
 }
 
 // newProjectorWorker wires the stack; any wiring failure is fatal

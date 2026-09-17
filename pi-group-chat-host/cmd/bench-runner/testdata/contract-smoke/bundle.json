@@ -1,0 +1,236 @@
+{
+  "schema_version": "warm-skill-graph-batch.contract-smoke.v1",
+  "contract_id": "warm-skill-graph-batch.system-contract",
+  "strategy": "warm-skill-graph-batch",
+  "contract_status": "incomplete",
+  "commands": [
+    "GOCACHE=/tmp/wsgb-tb16-go-cache $HOME/go/bin/go test ./cmd/bench-runner/ -count=1 -run TestGraphBatchContractSmoke",
+    "GOCACHE=/tmp/wsgb-tb16-go-cache $HOME/go/bin/go test ./... -count=1",
+    "GOCACHE=/tmp/wsgb-tb16-go-cache $HOME/go/bin/go test -race ./internal/pi/sessionctrl/ ./internal/directedoffer/ ./internal/effectsinterrupt/ ./cmd/bench-runner/ -count=1"
+  ],
+  "versions": {
+    "contract": "0.1.0",
+    "go": "go1.26.1",
+    "pi_required": "0.85.1",
+    "smoke_schema": "warm-skill-graph-batch.contract-smoke.v1",
+    "strategy": "warm-skill-graph-batch"
+  },
+  "frozen_config": {
+    "strategy": "warm-skill-graph-batch",
+    "initial_skill_snapshot": "empty",
+    "skill_feedback_persistence": "train_only",
+    "max_graph_steps_per_episode": 12,
+    "max_offers_per_agent_per_checkpoint": 3,
+    "max_memory_turns_per_episode": 6,
+    "mention_interrupt_grace": "50ms",
+    "mention_kill_grace": "50ms",
+    "skill_adaptation": "optional",
+    "task_context_monitoring": "opening_only",
+    "test_feedback_sink": "trace_only"
+  },
+  "manifest": {
+    "digest": "sha256:5cb88ccdc6d2340ff59f7cb92d262f1208a8e8beeec826cda4758397ecf940af",
+    "projection_digest": "sha256:95899cb76f121fbea42a08a89119fcf5149e7cb8abcc514cd862d020491863ca",
+    "ledger_digest": "sha256:a82d504d909b9df139fa7fca23030036f91878506c5ad4f9f164742eaca04926",
+    "skill_refs": [
+      "skill://evaluation/generic@1",
+      "skill://evaluation/specialized@1"
+    ],
+    "test_attempt_ids": [
+      "test-a",
+      "test-b"
+    ]
+  },
+  "body_digests": [
+    {
+      "skill_reference": "skill://evaluation/generic@1",
+      "resolved_digest": "sha256:4494781f4443b760861bd0e8c690c79dca5ef5e98d9536d4edb3cd14f45bea54",
+      "served_digest": "sha256:4494781f4443b760861bd0e8c690c79dca5ef5e98d9536d4edb3cd14f45bea54",
+      "kind": "original"
+    },
+    {
+      "skill_reference": "skill://evaluation/specialized@1",
+      "resolved_digest": "sha256:2356ceca308f3a7a1b20fd06bf8a1778138dc0e2e635536858483334c63f9dc6",
+      "served_digest": "sha256:2356ceca308f3a7a1b20fd06bf8a1778138dc0e2e635536858483334c63f9dc6",
+      "kind": "original"
+    }
+  ],
+  "assertions": [
+    {
+      "id": 1,
+      "name": "01_task_and_memory_parallel",
+      "status": "pass",
+      "evidence": {
+        "both_running_before_settle": true,
+        "entered_running": 2,
+        "memory_terminal": "no_candidate_from_empty_graph",
+        "task_context_monitoring": "opening_only",
+        "task_status": "completed"
+      }
+    },
+    {
+      "id": 2,
+      "name": "02_structured_mention_exact_session_abort_resume",
+      "status": "pass",
+      "evidence": {
+        "abort_count": 1,
+        "continuation_of": "seg-task-open",
+        "deliveries": 1,
+        "resume_count": 1,
+        "segment_reason": "DIRECTED_MENTION",
+        "session_file": "/sessions/exact-task.jsonl",
+        "session_id": "exact-session-id",
+        "used_continue_flag": false,
+        "used_resume_flag": false
+      }
+    },
+    {
+      "id": 3,
+      "name": "03_resolved_body_digest_matches_served",
+      "status": "pass",
+      "evidence": {
+        "captured_digest": "sha256:2356ceca308f3a7a1b20fd06bf8a1778138dc0e2e635536858483334c63f9dc6",
+        "generic_resolved": "sha256:4494781f4443b760861bd0e8c690c79dca5ef5e98d9536d4edb3cd14f45bea54",
+        "generic_served": "sha256:4494781f4443b760861bd0e8c690c79dca5ef5e98d9536d4edb3cd14f45bea54",
+        "specialized_resolved": "sha256:2356ceca308f3a7a1b20fd06bf8a1778138dc0e2e635536858483334c63f9dc6",
+        "specialized_served": "sha256:2356ceca308f3a7a1b20fd06bf8a1778138dc0e2e635536858483334c63f9dc6"
+      }
+    },
+    {
+      "id": 4,
+      "name": "04_accepted_rejected_with_reason",
+      "status": "pass",
+      "evidence": {
+        "accepted": "accepted",
+        "reason": "too generic for this failure",
+        "reason_code": "too_generic",
+        "rejected": "rejected"
+      }
+    },
+    {
+      "id": 5,
+      "name": "05_rejected_triggers_next_graph_exploration",
+      "status": "pass",
+      "evidence": {
+        "action": "explore_guarded_descendant",
+        "first_offer": "skill://evaluation/generic@1",
+        "next_offer": "skill://evaluation/specialized@1",
+        "next_query": "specialized_descendant:skill://evaluation/generic@1",
+        "next_seeds": [
+          "skill://evaluation/specialized@1"
+        ],
+        "reason_code": "too_generic"
+      }
+    },
+    {
+      "id": 6,
+      "name": "06_same_agent_no_overlapping_pi_run",
+      "status": "pass",
+      "evidence": {
+        "first_settled_before_second": true,
+        "overlapping": false,
+        "second_running_while_first": false
+      }
+    },
+    {
+      "id": 7,
+      "name": "07_effects_unknown_fail_closed",
+      "status": "pass",
+      "evidence": {
+        "fail_closed": true,
+        "kept_attempt_id": "held-out-effects-attempt-1",
+        "next_attempt_id": "held-out-effects-attempt-2",
+        "outcome": "effects_unknown",
+        "pass_at_1": "0/1",
+        "resumed": false
+      }
+    },
+    {
+      "id": 8,
+      "name": "08_diagnosis_proposal_keeps_exact_evidence_lineage",
+      "status": "pass",
+      "evidence": {
+        "content_digest": "sha256:8a680bbcf084479a5dfff9757dfe42695863f446e2584fe06763e355b2a50ad2",
+        "proposal_id": "raw-proposal-traj-smoke-00001",
+        "source_checkpoint_id": "checkpoint-traj-smoke",
+        "source_evidence_refs": [
+          "evidence-traj-smoke"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "name": "09_consolidation_covers_complete_source_ids",
+      "status": "pass",
+      "evidence": {
+        "complete_ids": true,
+        "decision_id": "decision-retain-raw-proposal-traj-a-00001",
+        "family_proposal_ids": [
+          "raw-proposal-traj-a-00001",
+          "raw-proposal-traj-b-00001"
+        ],
+        "source_proposal_ids": [
+          "raw-proposal-traj-a-00001",
+          "raw-proposal-traj-b-00001"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "name": "10_held_out_feedback_does_not_enter_frozen_graph",
+      "status": "pass",
+      "evidence": {
+        "graph_error": "evaluation graph: held-out feedback is not projection input",
+        "graph_rejects_held_out": true,
+        "retrieval_keys_stable": true,
+        "test_a_feedback_trace": true,
+        "test_feedback_sink": "trace_only"
+      }
+    },
+    {
+      "id": 11,
+      "name": "11_all_tests_use_same_manifest",
+      "status": "pass",
+      "evidence": {
+        "all_same": true,
+        "held_out_traces": 2,
+        "manifest_digest": "sha256:ac27111b447a45caef61a895f48e28db224b38b1906cc5cd726798e8b79b2dd2",
+        "test_attempts": 2
+      }
+    },
+    {
+      "id": 12,
+      "name": "12_primary_metric_uses_full_preregistered_denominator",
+      "status": "pass",
+      "evidence": {
+        "denominator": 3,
+        "pairings": 3,
+        "passed": 1,
+        "rate": "1/3",
+        "tasks": [
+          "task-pass",
+          "task-timeout",
+          "task-fail"
+        ]
+      }
+    }
+  ],
+  "pi_probe": {
+    "status": "unavailable",
+    "binary": "/home/zhoujie22/.npm-global/bin/pi",
+    "required_version": "0.85.1",
+    "aborted": false,
+    "settled": false,
+    "used_resume_flag": false,
+    "used_continue_flag": false,
+    "detail": "PI_VERSION_MISMATCH: /home/zhoujie22/.npm-global/bin/pi reports \"0.84.2\", want exactly \"0.85.1\""
+  },
+  "known_limitations": [
+    "generation-0 empty graph: train episodes inherit no Skill feedback",
+    "task_context_monitoring=opening_only: Memory Explore Agent does not re-judge mid-task context",
+    "protocol token/time unmatched: memory, interrupt, and Skill-tool token and wall-clock costs are not matched across arms",
+    "test feedback is trace_only and never writes back to the trainable graph",
+    "crash uncertainty fail closed: inconsistent process state is not auto-recovered",
+    "contract smoke Host session seams stay scripted until real Pi 0.85.1 abort/resume is proven; diagnosis/consolidation/freeze production path is GMS HTTP"
+  ]
+}

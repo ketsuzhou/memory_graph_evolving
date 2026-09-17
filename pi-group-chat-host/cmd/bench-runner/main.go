@@ -172,6 +172,7 @@ type attemptRecord struct {
 	Role            string            `json:"role,omitempty"`
 	Split           string            `json:"split,omitempty"`
 	Arm             string            `json:"arm"`
+	DeliveryClass   string            `json:"delivery_class,omitempty"`
 	RoomID          string            `json:"room_id,omitempty"` // warm-skill test episodes: frozen-state room differs per episode
 	MemoryPolicy    string            `json:"memory_policy"`
 	Seed            int               `json:"seed"`
@@ -259,10 +260,12 @@ type attemptRecord struct {
 type skillStrategy string
 
 const (
-	skillStrategyBatch     skillStrategy = "batch"
-	skillStrategyReplay    skillStrategy = "task_replay"
-	skillStrategyOnline    skillStrategy = "online"
-	skillStrategyContinual skillStrategy = "continual"
+	skillStrategyBatch      skillStrategy = "batch" // legacy/broken-delivery
+	skillStrategyGraphBatch skillStrategy = "graph_batch"
+	legacyBrokenDelivery    = "legacy/broken-delivery"
+	skillStrategyReplay     skillStrategy = "task_replay"
+	skillStrategyOnline     skillStrategy = "online"
+	skillStrategyContinual  skillStrategy = "continual"
 )
 
 // skillStrategyFor maps runner arms to their experiment protocol. warm-skill
@@ -270,7 +273,10 @@ const (
 func skillStrategyFor(arm string) (skillStrategy, bool) {
 	switch arm {
 	case "warm-skill", "warm-skill-batch":
+		// Retained to reproduce batch-6. Delivery is legacy/broken-delivery.
 		return skillStrategyBatch, true
+	case graphBatchStrategyID:
+		return skillStrategyGraphBatch, true
 	case "warm-skill-replay":
 		return skillStrategyReplay, true
 	case "warm-skill-online":
@@ -283,6 +289,20 @@ func skillStrategyFor(arm string) (skillStrategy, bool) {
 }
 
 func isSkillArm(arm string) bool { _, ok := skillStrategyFor(arm); return ok }
+
+func skillDeliveryClass(arm string) string {
+	strategy, ok := skillStrategyFor(arm)
+	if !ok {
+		return ""
+	}
+	if strategy == skillStrategyBatch {
+		return legacyBrokenDelivery
+	}
+	if strategy == skillStrategyGraphBatch {
+		return graphBatchAuthorityGMS
+	}
+	return string(strategy)
+}
 
 // usesIsolatedTaskRooms reports whether the arm gives every task its own
 // throwaway GMS spaces: the skill strategies, whose only cross-task channel
@@ -313,7 +333,7 @@ func main() {
 	gmsBinary := flag.String("gms-binary", "", "graph-memory-server binary; the runner spawns one single-tenant instance per arm (required for multi-arm runs)")
 	gmsURL := flag.String("gms-url", "", "pre-existing graph-memory-service base URL (single-arm runs only)")
 	gmsToken := flag.String("gms-token", "", "token for the pre-existing graph-memory-service")
-	piBinary := flag.String("pi-binary", "", "Pi RPC binary path, version 0.84.3 (required)")
+	piBinary := flag.String("pi-binary", "", "Pi RPC binary path, version 0.85.1 (required)")
 	provider := flag.String("provider", "", "Pi provider name (required)")
 	model := flag.String("model", "", "Pi model id (required)")
 	arms := flag.String("arms", "warm,cold", "comma-separated arms to run")
@@ -419,7 +439,7 @@ func main() {
 	}
 	for _, arm := range armList {
 		if arm != "warm" && arm != "cold" && arm != "warm-ma" && arm != "reset" && !isSkillArm(arm) {
-			fatal("unknown arm %q: only warm, cold, warm-ma, reset, warm-skill, warm-skill-batch, warm-skill-replay, warm-skill-online, and warm-skill-continual exist", arm)
+			fatal("unknown arm %q: only warm, cold, warm-ma, reset, warm-skill, warm-skill-batch, warm-skill-graph-batch, warm-skill-replay, warm-skill-online, and warm-skill-continual exist", arm)
 		}
 		policy := "read_write"
 		if arm == "cold" {
@@ -490,6 +510,10 @@ type armConfig struct {
 	userSimModel     string
 	sidecarURL       string
 	armBReporter     *armBReporter
+	// graphBatch is the TB-14 composition runtime. It is required when the
+	// arm has episodes: the new strategy must not fall through to the
+	// legacy runner-local []skillProposal pipeline.
+	graphBatch *graphBatchRuntime
 }
 
 // gmsInstance is one arm-private graph-memory-service process. The service is
@@ -570,6 +594,10 @@ func (instance *gmsInstance) stop() {
 }
 
 func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) error {
+	strategy, skillArm := skillStrategyFor(config.arm)
+	if skillArm && strategy == skillStrategyGraphBatch {
+		return runGraphBatchArm(ctx, config, emit)
+	}
 	tenantID := sanitizeID(config.evaluationID) + "-" + config.arm + "-t"
 	client := memoryclient.NewClient(config.gmsURL, config.gmsToken, &http.Client{Timeout: 10 * time.Second}, 1<<20)
 	var summary *c3ArmSummary
@@ -614,7 +642,6 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 	}
 
 	familyOrder := familySequence(config.episodes)
-	strategy, skillArm := skillStrategyFor(config.arm)
 	var grants []string
 	// Warm-skill freeze semantics: every test episode gets its own fresh room
 	// with throwaway spaces, so test evidence never touches the train spaces
@@ -870,6 +897,7 @@ func runArm(ctx context.Context, config armConfig, emit func(attemptRecord)) err
 				Role:            episode.Role,
 				Split:           episode.Split,
 				Arm:             config.arm,
+				DeliveryClass:   skillDeliveryClass(config.arm),
 				RoomID:          episodeRoomID,
 				MemoryPolicy:    config.policy,
 				Seed:            config.seed,
