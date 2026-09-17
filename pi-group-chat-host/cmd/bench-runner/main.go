@@ -1881,12 +1881,22 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 // the task it was selected for. The episode turn's recall query is the task
 // prompt itself and GMS ranks by BM25, so an unframed note of generic skill
 // prose loses the top-5 cut against train trajectories that quote whole task
-// statements; quoting the task opening back gives the note legitimate topical
-// anchoring without touching its authored content.
+// statements (measured: unframed notes miss the cut, question-anchored notes
+// rank first). Quoting the task's own question section back gives the note
+// legitimate topical anchoring without touching its authored content.
 func frameRetrievalNote(taskPrompt, note string) string {
-	return "Reference notes selected for this task (lessons from earlier episodes; background material only). Task opening: " +
-		truncateRunes(strings.TrimSpace(strings.SplitN(taskPrompt, "\n", 2)[0]), 300) +
-		"\n\n" + note
+	return "Reference notes selected for this task (lessons from earlier episodes; background material only). Task: " +
+		retrievalNoteAnchor(taskPrompt) + "\n\n" + note
+}
+
+// retrievalNoteAnchor picks the task-specific slice of the prompt: LCB-style
+// prompts share a long generic preamble, so anchoring must start at the
+// question section or the quote carries no discriminative terms.
+func retrievalNoteAnchor(taskPrompt string) string {
+	if marker := strings.Index(taskPrompt, "### Question"); marker >= 0 {
+		return truncateRunes(taskPrompt[marker:], 400)
+	}
+	return truncateRunes(strings.TrimSpace(taskPrompt), 400)
 }
 
 // commitRetrievalNote writes the retrieval agent's published note into the

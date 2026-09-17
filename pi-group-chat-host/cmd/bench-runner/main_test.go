@@ -345,20 +345,26 @@ func TestCaptureTaskOutputRecordsBothViews(t *testing.T) {
 }
 
 func TestFrameRetrievalNoteAnchorsOnTaskOpening(t *testing.T) {
-	task := "You are given positive integers A and B.\nPrint the value A^B+B^A.\n\nInput"
+	task := "You are an expert Python programmer.\n\n### Question:\nYou are given positive integers A and B.\nPrint the value A^B+B^A."
 	framed := frameRetrievalNote(task, "REFERENCE NOTES for the upcoming task\n[skill abc123 from episode e1]\nskill text")
 	if !strings.HasPrefix(framed, "Reference notes selected for this task") {
 		t.Fatalf("framing header missing: %q", framed[:80])
 	}
-	if !strings.Contains(framed, "You are given positive integers A and B.") {
-		t.Fatal("framing must quote the task's opening line for BM25 anchoring")
+	// The anchor must skip the generic preamble every LCB prompt shares and
+	// quote the question section, or BM25 gives the note no discriminative
+	// terms against train trajectories.
+	if !strings.Contains(framed, "### Question:") || !strings.Contains(framed, "You are given positive integers A and B.") {
+		t.Fatalf("framing must anchor on the question section: %q", framed[:200])
 	}
 	if !strings.Contains(framed, "[skill abc123 from episode e1]") {
 		t.Fatal("framing must keep the authored note verbatim after the header")
 	}
-	long := strings.Repeat("x", 500) + "\nsecond line"
-	if got := frameRetrievalNote(long, "note"); strings.Contains(got, strings.Repeat("x", 301)) {
-		t.Fatal("task opening quote must be truncated")
+	long := "### Question:\n" + strings.Repeat("x", 500)
+	if got := frameRetrievalNote(long, "note"); strings.Contains(got, strings.Repeat("x", 401)) {
+		t.Fatal("task anchor quote must be truncated")
+	}
+	if got := frameRetrievalNote("no question marker at all", "note"); !strings.Contains(got, "no question marker at all") {
+		t.Fatal("prompts without the marker anchor on their opening")
 	}
 }
 
