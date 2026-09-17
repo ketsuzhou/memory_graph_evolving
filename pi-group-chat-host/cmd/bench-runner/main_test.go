@@ -344,6 +344,24 @@ func TestCaptureTaskOutputRecordsBothViews(t *testing.T) {
 	}
 }
 
+func TestFrameRetrievalNoteAnchorsOnTaskOpening(t *testing.T) {
+	task := "You are given positive integers A and B.\nPrint the value A^B+B^A.\n\nInput"
+	framed := frameRetrievalNote(task, "REFERENCE NOTES for the upcoming task\n[skill abc123 from episode e1]\nskill text")
+	if !strings.HasPrefix(framed, "Reference notes selected for this task") {
+		t.Fatalf("framing header missing: %q", framed[:80])
+	}
+	if !strings.Contains(framed, "You are given positive integers A and B.") {
+		t.Fatal("framing must quote the task's opening line for BM25 anchoring")
+	}
+	if !strings.Contains(framed, "[skill abc123 from episode e1]") {
+		t.Fatal("framing must keep the authored note verbatim after the header")
+	}
+	long := strings.Repeat("x", 500) + "\nsecond line"
+	if got := frameRetrievalNote(long, "note"); strings.Contains(got, strings.Repeat("x", 301)) {
+		t.Fatal("task opening quote must be truncated")
+	}
+}
+
 func TestCapConsolidatedSkillsDropsTail(t *testing.T) {
 	consolidated := make([]skillProposal, 5)
 	for index := range consolidated {

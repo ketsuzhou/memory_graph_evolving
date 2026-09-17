@@ -1867,7 +1867,7 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 			input.record.SkillRetrievalCount = len(fingerprints)
 			// Only the note becomes recallable in the task room; the scratch
 			// room's own evidence (the prompt included) is never drained.
-			if err := commitRetrievalNote(ctx, config, input.sharedSpaceID, input.family, input.episodeID, *reply); err != nil {
+			if err := commitRetrievalNote(ctx, config, input.sharedSpaceID, input.family, input.episodeID, frameRetrievalNote(input.taskPrompt, *reply)); err != nil {
 				return err
 			}
 		}
@@ -1875,6 +1875,18 @@ func runRetrievalTurn(ctx context.Context, session *runtime.Session, input retri
 	fmt.Printf("[%s] retrieval %04d recall=%s(%d) %s count=%d\n",
 		config.arm, input.sequence, turn.Recall.State, len(turn.Recall.Citations), input.record.SkillRetrievalStatus, input.record.SkillRetrievalCount)
 	return nil
+}
+
+// frameRetrievalNote prefixes the retrieval agent's note with the opening of
+// the task it was selected for. The episode turn's recall query is the task
+// prompt itself and GMS ranks by BM25, so an unframed note of generic skill
+// prose loses the top-5 cut against train trajectories that quote whole task
+// statements; quoting the task opening back gives the note legitimate topical
+// anchoring without touching its authored content.
+func frameRetrievalNote(taskPrompt, note string) string {
+	return "Reference notes selected for this task (lessons from earlier episodes; background material only). Task opening: " +
+		truncateRunes(strings.TrimSpace(strings.SplitN(taskPrompt, "\n", 2)[0]), 300) +
+		"\n\n" + note
 }
 
 // commitRetrievalNote writes the retrieval agent's published note into the
