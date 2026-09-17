@@ -594,11 +594,29 @@ func TestStreamPromptsDropSplitClaims(t *testing.T) {
 	if strings.Contains(retr, "A test task is about to start") {
 		t.Error("stream retrieval prompt must not claim the upcoming task is a test task")
 	}
-	if !strings.Contains(retr, "The next task of the ongoing stream") || !strings.Contains(retr, "@task-agent @memory-agent") || !strings.Contains(retr, "NO_SKILL_APPLICABLE") {
+	if !strings.Contains(retr, "The next task of the ongoing stream") || !strings.Contains(retr, "REFERENCE NOTES") || !strings.Contains(retr, "NO_SKILL_APPLICABLE") {
 		t.Error("stream retrieval prompt must keep the room conventions")
 	}
 	if strings.Contains(retr, "upcoming test task") {
 		t.Error("stream retrieval prompt must not label the upcoming task section as test")
+	}
+}
+
+func TestRetrievalPromptPublishesUnaddressedReferenceNotes(t *testing.T) {
+	// The published note is recalled into the task agent's context; an
+	// addressed note reads as an instruction to it and hijacks its turn
+	// (observed 2/3 in the smoke run). The publish format must be
+	// unaddressed, de-imperative reference material.
+	for name, head := range map[string]string{"batch": retrievalPromptHead, "stream": streamRetrievalPromptHead} {
+		if strings.Contains(head, "@task-agent") || strings.Contains(head, "@memory-agent") {
+			t.Errorf("%s retrieval prompt must not instruct addressing teammates", name)
+		}
+		if !strings.Contains(head, "REFERENCE NOTES for the upcoming task") {
+			t.Errorf("%s retrieval prompt must set the REFERENCE NOTES header", name)
+		}
+		if !strings.Contains(head, "not addressed to any agent") {
+			t.Errorf("%s retrieval prompt must label the note as unaddressed background", name)
+		}
 	}
 }
 
