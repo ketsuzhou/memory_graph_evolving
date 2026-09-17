@@ -663,31 +663,70 @@ type CorpusResult struct {
 }
 
 // DefaultConformanceDir locates the shared FND-001 conformance corpus:
-// RSIH_CONFORMANCE_DIR overrides, otherwise the directory is resolved
-// relative to the GMS repository root (../specs/rsi-harness-skill-evolution/
-// conformance). Repository-local expectation copies are forbidden (§16.5).
+// RSIH_CONFORMANCE_DIR overrides, otherwise the directory is resolved by
+// walking from the working directory and the executable, looking for
+// specs/rsi-harness-skill-evolution/conformance (including the
+// memory_graph_evolving/ and GMS-module-sibling layouts). Repository-local
+// expectation copies are forbidden (§16.5).
 func DefaultConformanceDir() (string, error) {
-	if dir := os.Getenv(ConformanceDirEnvVar); dir != "" {
+	if dir := strings.TrimSpace(os.Getenv(ConformanceDirEnvVar)); dir != "" {
 		return dir, nil
 	}
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("contract: cannot determine working directory: %w", err)
+	var starts []string
+	if wd, err := os.Getwd(); err == nil && wd != "" {
+		starts = append(starts, wd)
 	}
+	if exe, err := os.Executable(); err == nil && exe != "" {
+		starts = append(starts, filepath.Dir(exe))
+	}
+	var last error
+	for _, start := range starts {
+		dir, err := locateConformanceDir(start)
+		if err == nil {
+			return dir, nil
+		}
+		last = err
+	}
+	if last == nil {
+		last = fmt.Errorf("no search root")
+	}
+	return "", fmt.Errorf("contract: cannot locate the GMS repository root (go.mod); set %s: %w", ConformanceDirEnvVar, last)
+}
+
+func locateConformanceDir(start string) (string, error) {
+	dir := start
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			candidate := filepath.Join(filepath.Dir(dir), defaultSpecRelToParent)
-			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+		for _, candidate := range conformanceDirCandidates(dir) {
+			if isConformanceDir(candidate) {
 				return candidate, nil
 			}
-			return "", fmt.Errorf("contract: default conformance directory %s not found next to repo %s; set %s", candidate, dir, ConformanceDirEnvVar)
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("contract: cannot locate the GMS repository root (go.mod); set %s", ConformanceDirEnvVar)
+			return "", fmt.Errorf("conformance corpus not found upward from %s", start)
 		}
 		dir = parent
 	}
+}
+
+func conformanceDirCandidates(dir string) []string {
+	out := []string{
+		filepath.Join(dir, defaultSpecRelToParent),
+		filepath.Join(dir, "memory_graph_evolving", defaultSpecRelToParent),
+	}
+	if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+		out = append(out, filepath.Join(filepath.Dir(dir), defaultSpecRelToParent))
+	}
+	return out
+}
+
+func isConformanceDir(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil || !info.IsDir() {
+		return false
+	}
+	_, err = os.Stat(filepath.Join(path, "manifest.json"))
+	return err == nil
 }
 
 // RunCorpus walks every manifest case under root, derives each outcome

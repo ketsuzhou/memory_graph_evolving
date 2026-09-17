@@ -546,17 +546,26 @@ func startGMS(binary, stateDir string, cutBindings []string) (*gmsInstance, erro
 	if err != nil {
 		return nil, fmt.Errorf("create gms log: %w", err)
 	}
+	conformanceDir, err := resolveGMSConformanceDir(binary)
+	if err != nil {
+		logFile.Close()
+		return nil, fmt.Errorf("graph-memory-service conformance dir: %w", err)
+	}
 	args := []string{binary,
 		"-addr", fmt.Sprintf("127.0.0.1:%d", port),
 		"-token", token,
 		"-state", statePath,
+		"-conformance-dir", conformanceDir,
 	}
 	for _, binding := range cutBindings {
 		// Room→space deployment binding for room-scoped consolidation cuts:
 		// without it the freezer fails closed and no freeze can be admitted.
 		args = append(args, "-cut-room-space", binding)
 	}
-	process, err := os.StartProcess(binary, args, &os.ProcAttr{Files: []*os.File{os.Stdin, logFile, logFile}})
+	process, err := os.StartProcess(binary, args, &os.ProcAttr{
+		Env:   withGMSConformanceEnv(os.Environ(), conformanceDir),
+		Files: []*os.File{os.Stdin, logFile, logFile},
+	})
 	if err != nil {
 		logFile.Close()
 		return nil, fmt.Errorf("start graph-memory-service: %w", err)

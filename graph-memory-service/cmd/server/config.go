@@ -45,6 +45,10 @@ type serverConfig struct {
 	// PG-50A consolidation-cut composition wiring.
 	cutRoomSpaces  []string
 	cutEventSecret string
+
+	// conformanceDir pins the shared FND-001 corpus so graph-batch can start
+	// when the process cwd is outside the repository tree.
+	conformanceDir string
 }
 
 type roomSpaceBindingsValue struct {
@@ -128,6 +132,7 @@ func parseServerConfig(args []string, getenv func(string) string) (serverConfig,
 	// (e.g. -cut-room-space room-a=space1,space2) and the signed-event secret.
 	flags.Var(&roomSpaceBindings, "cut-room-space", "room=space1,space2 deployment binding (repeatable)")
 	flags.StringVar(&config.cutEventSecret, "cut-event-secret", getenv("GRAPH_MEMORY_CUT_EVENT_SECRET"), "HMAC secret for signed cut webhook notifications")
+	flags.StringVar(&config.conformanceDir, "conformance-dir", firstNonEmptyEnv(getenv, "GRAPH_MEMORY_CONFORMANCE_DIR", "RSIH_CONFORMANCE_DIR"), "shared FND-001 conformance corpus (graph-batch policy/schema)")
 	config.cutEventSecret = strings.TrimSpace(config.cutEventSecret)
 	if err := flags.Parse(args); err != nil {
 		return config, fmt.Errorf("server configuration: %w", err)
@@ -136,6 +141,7 @@ func parseServerConfig(args []string, getenv func(string) string) (serverConfig,
 		return config, fmt.Errorf("server configuration: unexpected positional arguments")
 	}
 	config.cutRoomSpaces = roomSpaceBindings.values
+	config.conformanceDir = strings.TrimSpace(config.conformanceDir)
 
 	config.token = strings.TrimSpace(config.token)
 	config.embeddingBaseURL = strings.TrimSpace(config.embeddingBaseURL)
@@ -220,6 +226,15 @@ func envOr(getenv func(string) string, name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func firstNonEmptyEnv(getenv func(string) string, names ...string) string {
+	for _, name := range names {
+		if value := strings.TrimSpace(getenv(name)); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func envDuration(getenv func(string) string, name string, fallback time.Duration) (time.Duration, error) {
