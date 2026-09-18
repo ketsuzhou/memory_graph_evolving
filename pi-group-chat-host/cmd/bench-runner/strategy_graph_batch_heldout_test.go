@@ -90,6 +90,11 @@ func TestProductionHeldOutSkipRecallOfferAndDisposition(t *testing.T) {
 		if record.Disposition != "accepted" {
 			t.Fatalf("disposition = %q reason=%q", record.Disposition, record.DispositionReason)
 		}
+		if record.FinalOutput == nil || !strings.Contains(*record.FinalOutput, "RESUME_FINAL") {
+			t.Fatalf("offer-then-resume must take settle last assistant as final_output, got %v", record.FinalOutput)
+		}
+	} else if record.FinalOutput == nil || !strings.Contains(*record.FinalOutput, "THROUGH_FINAL") {
+		t.Fatalf("no-resume settle must take last assistant as final_output, got %v", record.FinalOutput)
 	}
 	output := ""
 	if record.FinalCodeOutput != nil {
@@ -101,7 +106,7 @@ func TestProductionHeldOutSkipRecallOfferAndDisposition(t *testing.T) {
 	for _, entry := range record.Transcript {
 		output += "\n" + entry.Content
 	}
-	if !strings.Contains(output, "TASK_COMPLETE") && !strings.Contains(output, "print(320)") {
+	if !strings.Contains(output, "TASK_COMPLETE") && !strings.Contains(output, "print(320)") && !strings.Contains(output, "THROUGH_FINAL") && !strings.Contains(output, "print(330)") {
 		t.Fatalf("missing task solution: final=%v graded=%v", record.FinalOutput, record.FinalCodeOutput)
 	}
 	if !strings.Contains(output, "SKILL_ACCEPTED") || !strings.Contains(output, "@"+graphBatchMemoryAgentID) {
@@ -109,6 +114,21 @@ func TestProductionHeldOutSkipRecallOfferAndDisposition(t *testing.T) {
 	}
 	if !record.NamedInReasoning {
 		t.Fatalf("accepted skill was not named in reasoning")
+	}
+}
+
+func TestLastAssistantFromExactSessionFileUsesLastAssistantText(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "task.jsonl")
+	content := "{\"type\":\"message\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"prompt\"}]}}\n" +
+		"{\"type\":\"message\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"private\"},{\"type\":\"text\",\"text\":\"first\"}]}}\n" +
+		"{\"type\":\"message\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"All test cases pass. Here's the final solution:\\n```python\\nprint(1)\\n```\"}]}}\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := lastAssistantFromExactSessionFile(path)
+	if !strings.Contains(got, "All test cases pass") || !strings.Contains(got, "print(1)") {
+		t.Fatalf("last assistant = %q", got)
 	}
 }
 
@@ -159,6 +179,9 @@ func TestProductionHeldOutDeclinedHasNoOfferOrFence(t *testing.T) {
 	if len(record.Offers) != 0 || len(record.Served) != 0 || record.Disposition != "" {
 		t.Fatalf("declined path must skip offer/fence: offers=%#v served=%#v disposition=%q", record.Offers, record.Served, record.Disposition)
 	}
+	if record.FinalOutput == nil || !strings.Contains(*record.FinalOutput, "THROUGH_FINAL") {
+		t.Fatalf("no-offer through-path must take settle last assistant as final_output, got %v", record.FinalOutput)
+	}
 }
 
 func writeGraphBatchFakePi(t *testing.T, skillRef, selection string) string {
@@ -202,8 +225,18 @@ if len(sys.argv) > 1 and sys.argv[1] == "--version":
     raise SystemExit(0)
 if "--resume" in sys.argv or "--continue" in sys.argv:
     raise SystemExit("forbidden interactive resume flag")
+session_path = None
+if "--session" in sys.argv:
+    session_path = sys.argv[sys.argv.index("--session") + 1]
 frames = json.load(open("` + framePath + `"))
 aborted = False
+
+def write_assistant(text):
+    if not session_path:
+        return
+    rec = {"type": "message", "message": {"role": "assistant", "content": [{"type": "text", "text": text}]}}
+    with open(session_path, "a") as fh:
+        fh.write(json.dumps(rec) + "\n")
 
 def emit(key, req_id):
     for frame in frames[key]:
@@ -215,6 +248,8 @@ def emit(key, req_id):
 def idle_settle():
     time.sleep(0.5)
     if not aborted:
+        fence = chr(96) * 3
+        write_assistant("THROUGH_FINAL\n" + fence + "python\nprint(330)\n" + fence)
         print(json.dumps({"type": "agent_end", "messages": [], "willRetry": False}), flush=True)
         print(json.dumps({"type": "agent_settled"}), flush=True)
 
@@ -240,6 +275,8 @@ for line in sys.stdin:
         emit("retr", req_id)
         continue
     if "Directed skill offers" in message:
+        fence = chr(96) * 3
+        write_assistant("RESUME_FINAL\n" + fence + "python\nprint(320)\n" + fence + "\nTASK_COMPLETE")
         emit("task", req_id)
         continue
     print(json.dumps({"id": req_id, "type": "response", "command": "prompt", "success": True}), flush=True)
