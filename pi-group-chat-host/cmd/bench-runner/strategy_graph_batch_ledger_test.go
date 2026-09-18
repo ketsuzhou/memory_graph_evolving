@@ -53,8 +53,23 @@ func TestParseGraphBatchSkillSelections(t *testing.T) {
 	if !strings.Contains(graphBatchRetrievalPromptHead, "directed offer") {
 		t.Fatal("graph-batch retrieval prompt must say Host will direct the offer")
 	}
+	if strings.Contains(graphBatchRetrievalPromptHead, "the trigger must match the task's shape") {
+		t.Fatal("graph-batch retrieval must not require exact trigger match")
+	}
+	if !strings.Contains(graphBatchRetrievalPromptHead, "candidate nomination") {
+		t.Fatal("graph-batch retrieval must say selection is a nomination, not a verdict")
+	}
+	if !strings.Contains(graphBatchRetrievalPromptHead, "skill_feedback") || !strings.Contains(graphBatchRetrievalPromptHead, "normal signal") {
+		t.Fatal("graph-batch retrieval must defer applicability to the task agent's accept/reject fence")
+	}
+	if !strings.Contains(graphBatchRetrievalPromptHead, "completely unrelated") {
+		t.Fatal("graph-batch retrieval must reserve NO_SKILL for complete unrelatedness")
+	}
 	if !strings.Contains(retrievalPromptHead, "background material only, not addressed to any agent") {
 		t.Fatal("legacy retrieval prompt must stay unchanged")
+	}
+	if !strings.Contains(retrievalPromptHead, "the trigger must match the task's shape") {
+		t.Fatal("legacy retrieval prompt must keep its exact-match selection rule")
 	}
 }
 
