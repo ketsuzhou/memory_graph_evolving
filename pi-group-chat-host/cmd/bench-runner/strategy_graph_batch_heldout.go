@@ -327,113 +327,138 @@ func runGraphBatchParallelHeldOut(ctx context.Context, req graphBatchParallelReq
 	}
 	coord := agentrun.New(effectsinterrupt.Policy{InterruptGrace: req.InterruptWait, KillGrace: req.InterruptWait})
 	barrier := newGraphBatchStartBarrier(2)
-	var (
-		memOutcome graphBatchMemoryOutcome
-		taskErr    error
-		taskDone   = make(chan struct{})
-		memDone    = make(chan struct{})
-	)
+	memResult := make(chan graphBatchMemoryOutcome, 1)
+	taskResult := make(chan error, 1)
 	go func() {
-		defer close(memDone)
+		var outcome graphBatchMemoryOutcome
 		_ = coord.Run(ctx, graphBatchMemoryAgentID, func() error {
 			if err := barrier.Enter(ctx); err != nil {
-				memOutcome = graphBatchMemoryOutcome{Status: "error", Err: err}
+				outcome = graphBatchMemoryOutcome{Status: "error", Err: err}
 				return err
 			}
-			memOutcome = req.Memory(ctx)
-			return memOutcome.Err
+			outcome = req.Memory(ctx)
+			return outcome.Err
 		})
+		memResult <- outcome
 	}()
 	go func() {
-		defer close(taskDone)
-		taskErr = coord.Run(ctx, graphBatchTaskAgentID, func() error {
+		taskResult <- coord.Run(ctx, graphBatchTaskAgentID, func() error {
 			if err := barrier.Enter(ctx); err != nil {
 				return err
 			}
 			return req.Task.Start(ctx)
 		})
 	}()
+	var memOutcome graphBatchMemoryOutcome
 	select {
-	case <-memDone:
+	case memOutcome = <-memResult:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 	req.Record.StartOverlap = barrier.Released()
+
+	var (
+		taskErr    error
+		taskWaited bool
+	)
+	waitTask := func() error {
+		if taskWaited {
+			return taskErr
+		}
+		select {
+		case taskErr = <-taskResult:
+			taskWaited = true
+			return taskErr
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	noteTaskFailure := func(err error) {
+		if err == nil {
+			return
+		}
+		req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", "task", truncate(err.Error(), 4000)
+	}
 
 	var protocol *graphBatchSkillProtocol
 	switch {
 	case memOutcome.Err != nil:
 		req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", "infrastructure", truncate("skill retrieval turn: "+memOutcome.Err.Error(), 4000)
 		_ = req.Task.Abort(ctx)
-		<-taskDone
+		_ = waitTask()
 		return nil
 	case memOutcome.Status != "published" || len(memOutcome.Selections) == 0:
 		req.Record.DeliveryStatus = deliveryStatusDeclined
-		<-taskDone
+		_ = waitTask()
 	default:
 		select {
 		case <-req.Task.EnteredRunning():
-		case <-taskDone:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-		if taskErr != nil && !req.Task.Running() {
-			req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", "task", truncate(taskErr.Error(), 4000)
-			<-taskDone
-			break
-		}
-		if !req.Task.Running() {
-			req.Record.DeliveryStatus = deliveryStatusTaskFinishedFirst
-			<-taskDone
-			break
-		}
-		if req.Task.UnprovenMutating() {
-			waitCtx, cancel := context.WithTimeout(ctx, req.InterruptWait)
-			waitUnprovenMutating(waitCtx, req.Task)
-			cancel()
-		}
-		if req.Task.UnprovenMutating() {
-			req.Record.DeliveryStatus = deliveryStatusEffectsUnknown
-			req.Record.EffectsUnknown = true
-			req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", deliveryStatusEffectsUnknown, effectsinterrupt.ErrEffectsUnknown.Error()
-			_ = req.Task.Abort(ctx)
-			<-taskDone
-			break
-		}
-		assembly, err := assembleDirectedSkillOffer(req.AttemptID, memOutcome.Selections)
-		if err != nil {
-			return err
-		}
-		resumePrompt := graphBatchTaskUptakePrompt(assembly, "")
-		extension := ""
-		if req.PrepareOffer != nil {
-			extension, protocol, err = req.PrepareOffer(assembly)
+			if !req.Task.Running() {
+				if err := waitTask(); err != nil {
+					noteTaskFailure(err)
+				} else {
+					req.Record.DeliveryStatus = deliveryStatusTaskFinishedFirst
+				}
+				break
+			}
+			if req.Task.UnprovenMutating() {
+				waitCtx, cancel := context.WithTimeout(ctx, req.InterruptWait)
+				waitUnprovenMutating(waitCtx, req.Task)
+				cancel()
+			}
+			if req.Task.UnprovenMutating() {
+				req.Record.DeliveryStatus = deliveryStatusEffectsUnknown
+				req.Record.EffectsUnknown = true
+				req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", deliveryStatusEffectsUnknown, effectsinterrupt.ErrEffectsUnknown.Error()
+				_ = req.Task.Abort(ctx)
+				_ = waitTask()
+				break
+			}
+			assembly, err := assembleDirectedSkillOffer(req.AttemptID, memOutcome.Selections)
 			if err != nil {
 				return err
 			}
-		} else {
-			protocol = newGraphBatchSkillProtocol(assembly.Offers)
+			resumePrompt := graphBatchTaskUptakePrompt(assembly, "")
+			extension := ""
+			if req.PrepareOffer != nil {
+				extension, protocol, err = req.PrepareOffer(assembly)
+				if err != nil {
+					return err
+				}
+			} else {
+				protocol = newGraphBatchSkillProtocol(assembly.Offers)
+			}
+			req.Task.BindResume(protocol, resumePrompt, extension)
+			req.Record.Offers = offerAttemptsFromAssembly(assembly)
+			if err := coord.AttachOffer(parallelTaskBinding(req, req.Task.Session()), req.Task); err != nil {
+				return fmt.Errorf("attach exact task session: %w", err)
+			}
+			published, err := publishDirectedSkillOffer(ctx, coord.Offers(), req.RoomID, req.AttemptID, assembly)
+			if err != nil {
+				return fmt.Errorf("publish directed offer: %w", err)
+			}
+			if len(published.Deliveries) != 1 || published.Deliveries[0].AgentID != graphBatchTaskAgentID {
+				return fmt.Errorf("directed offer must create exactly one task-agent delivery, got %#v", published.Deliveries)
+			}
+			if published.Segment.Reason == "" && !req.Task.Running() {
+				req.Record.DeliveryStatus = deliveryStatusTaskFinishedFirst
+			} else {
+				req.Record.DeliveryStatus = deliveryStatusDelivered
+				req.Record.ContinuationOf = published.Segment.ContinuationOf
+				req.Record.SegmentReason = published.Segment.Reason
+			}
+			_ = waitTask()
+		case err := <-taskResult:
+			taskWaited = true
+			taskErr = err
+			if err != nil {
+				noteTaskFailure(err)
+			} else {
+				req.Record.DeliveryStatus = deliveryStatusTaskFinishedFirst
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
-		req.Task.BindResume(protocol, resumePrompt, extension)
-		req.Record.Offers = offerAttemptsFromAssembly(assembly)
-		if err := coord.AttachOffer(parallelTaskBinding(req, req.Task.Session()), req.Task); err != nil {
-			return fmt.Errorf("attach exact task session: %w", err)
-		}
-		published, err := publishDirectedSkillOffer(ctx, coord.Offers(), req.RoomID, req.AttemptID, assembly)
-		if err != nil {
-			return fmt.Errorf("publish directed offer: %w", err)
-		}
-		if len(published.Deliveries) != 1 || published.Deliveries[0].AgentID != graphBatchTaskAgentID {
-			return fmt.Errorf("directed offer must create exactly one task-agent delivery, got %#v", published.Deliveries)
-		}
-		if published.Segment.Reason == "" && !req.Task.Running() {
-			req.Record.DeliveryStatus = deliveryStatusTaskFinishedFirst
-		} else {
-			req.Record.DeliveryStatus = deliveryStatusDelivered
-			req.Record.ContinuationOf = published.Segment.ContinuationOf
-			req.Record.SegmentReason = published.Segment.Reason
-		}
-		<-taskDone
 	}
 
 	obs := req.Task.Observation()
@@ -448,6 +473,9 @@ func runGraphBatchParallelHeldOut(ctx context.Context, req graphBatchParallelReq
 	if req.Task.RecallLeaked() {
 		req.Record.Status, req.Record.FailureKind, req.Record.Error = "failed", "infrastructure", "task prompt contained Memory from earlier sessions"
 		return nil
+	}
+	if !taskWaited {
+		_ = waitTask()
 	}
 	if req.Record.Status == "" {
 		if taskErr != nil {
