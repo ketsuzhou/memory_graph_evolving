@@ -207,7 +207,10 @@ func (p *productionGraphBatchHeldOut) runProductionRetrieval(ctx context.Context
 		return nil
 	}
 	record.SkillRetrievalText = reply
-	selections := parseGraphBatchSkillSelections(*reply, p.ledger)
+	selections, unresolved := parseGraphBatchNominations(*reply, p.ledger)
+	if len(unresolved) > 0 {
+		record.SkillRetrievalUnresolved = unresolved
+	}
 	if len(selections) == 0 {
 		record.SkillRetrievalStatus = "declined"
 		return nil
@@ -215,11 +218,11 @@ func (p *productionGraphBatchHeldOut) runProductionRetrieval(ctx context.Context
 	offers := make([]skillOfferAttempt, 0, len(selections))
 	fingerprints := make([]string, 0, len(selections))
 	for _, selection := range selections {
-		skill, ok := p.ledger.lookup(selection.SkillReference)
+		skill, ok, leftover := p.ledger.resolveNomination(selection.SkillReference, selection.SHA256)
 		if !ok {
-			skill, ok = p.ledger.lookup(selection.SHA256)
-		}
-		if !ok {
+			if leftover != "" {
+				record.SkillRetrievalUnresolved = append(record.SkillRetrievalUnresolved, leftover)
+			}
 			continue
 		}
 		fingerprints = append(fingerprints, skill.SHA256)

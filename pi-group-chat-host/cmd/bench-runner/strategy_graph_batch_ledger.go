@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -129,18 +130,229 @@ func (l *pinnedLedger) asSkillProposals() []skillProposal {
 }
 
 func (l *pinnedLedger) lookup(refOrSHA string) (pinnedSkill, bool) {
+	skill, ok, _ := l.resolveNomination(refOrSHA)
+	return skill, ok
+}
+
+// resolveNomination maps one memory-authored citation onto the pinned 16-skill
+// ledger. Priority: exact skill_reference, unique sha256 prefix (≥8 hex),
+// unique entry id (03 / pin0917-03), unique normalized name. Ambiguous or
+// zero matches stay unresolved so the Host can audit the raw token.
+func (l *pinnedLedger) resolveNomination(raws ...string) (pinnedSkill, bool, string) {
 	if l == nil {
-		return pinnedSkill{}, false
+		return pinnedSkill{}, false, firstNonEmptyRaw(raws)
 	}
-	if skill, ok := l.ByRef[strings.TrimSpace(refOrSHA)]; ok {
-		return skill, true
+	tokens := compactNominationRaws(raws)
+	if len(tokens) == 0 {
+		return pinnedSkill{}, false, ""
 	}
-	key := strings.TrimPrefix(strings.TrimSpace(refOrSHA), "sha256:")
-	if skill, ok := l.BySHA256[key]; ok {
-		return skill, true
+	if skill, ok, amb := l.matchExactReference(tokens); ok {
+		return skill, true, ""
+	} else if amb {
+		return pinnedSkill{}, false, strings.Join(tokens, " ")
 	}
-	if n, err := strconv.Atoi(strings.TrimSpace(refOrSHA)); err == nil && n >= 1 && n <= len(l.Skills) {
-		return l.Skills[n-1], true
+	if skill, ok, amb := l.matchUniqueSHA256Prefix(tokens); ok {
+		return skill, true, ""
+	} else if amb {
+		return pinnedSkill{}, false, strings.Join(tokens, " ")
 	}
-	return pinnedSkill{}, false
+	if skill, ok, amb := l.matchUniqueEntry(tokens); ok {
+		return skill, true, ""
+	} else if amb {
+		return pinnedSkill{}, false, strings.Join(tokens, " ")
+	}
+	if skill, ok, amb := l.matchUniqueName(tokens); ok {
+		return skill, true, ""
+	} else if amb {
+		return pinnedSkill{}, false, strings.Join(tokens, " ")
+	}
+	return pinnedSkill{}, false, strings.Join(tokens, " ")
+}
+
+func (l *pinnedLedger) matchExactReference(tokens []string) (pinnedSkill, bool, bool) {
+	var hit pinnedSkill
+	found := 0
+	for _, token := range tokens {
+		if skill, ok := l.ByRef[strings.TrimSpace(token)]; ok {
+			if found == 0 {
+				hit = skill
+			} else if skill.SkillReference != hit.SkillReference {
+				return pinnedSkill{}, false, true
+			}
+			found++
+		}
+	}
+	return hit, found > 0, false
+}
+
+func (l *pinnedLedger) matchUniqueSHA256Prefix(tokens []string) (pinnedSkill, bool, bool) {
+	var hit pinnedSkill
+	found := 0
+	for _, hexDigest := range nominationHexTokens(tokens) {
+		if len(hexDigest) < 8 {
+			continue
+		}
+		var matched []pinnedSkill
+		if skill, ok := l.BySHA256[hexDigest]; ok {
+			matched = append(matched, skill)
+		} else {
+			for _, skill := range l.Skills {
+				if strings.HasPrefix(skill.SHA256, hexDigest) {
+					matched = append(matched, skill)
+				}
+			}
+		}
+		if len(matched) > 1 {
+			return pinnedSkill{}, false, true
+		}
+		if len(matched) == 1 {
+			if found == 0 {
+				hit = matched[0]
+			} else if matched[0].SkillReference != hit.SkillReference {
+				return pinnedSkill{}, false, true
+			}
+			found++
+		}
+	}
+	return hit, found > 0, false
+}
+
+var pin0917EntryRE = regexp.MustCompile(`(?i)pin0917-0*([0-9]{1,2})`)
+
+func (l *pinnedLedger) matchUniqueEntry(tokens []string) (pinnedSkill, bool, bool) {
+	seen := map[int]bool{}
+	var indexes []int
+	add := func(n int) {
+		if n < 1 || n > len(l.Skills) || seen[n] {
+			return
+		}
+		seen[n] = true
+		indexes = append(indexes, n)
+	}
+	for _, token := range tokens {
+		for _, match := range pin0917EntryRE.FindAllStringSubmatch(token, -1) {
+			n, err := strconv.Atoi(match[1])
+			if err == nil {
+				add(n)
+			}
+		}
+		if trimmed := strings.TrimSpace(token); pin0917EntryRE.FindString(trimmed) == "" {
+			if n, err := strconv.Atoi(trimmed); err == nil {
+				add(n)
+			}
+		}
+	}
+	if len(indexes) > 1 {
+		return pinnedSkill{}, false, true
+	}
+	if len(indexes) == 1 {
+		return l.Skills[indexes[0]-1], true, false
+	}
+	return pinnedSkill{}, false, false
+}
+
+func (l *pinnedLedger) matchUniqueName(tokens []string) (pinnedSkill, bool, bool) {
+	seen := map[string]pinnedSkill{}
+	for _, token := range tokens {
+		candidates := []string{token, lastSkillPathSegment(token)}
+		for _, candidate := range candidates {
+			key := normalizeSkillName(candidate)
+			if key == "" {
+				continue
+			}
+			for _, skill := range l.Skills {
+				if normalizeSkillName(skill.Name) == key {
+					seen[skill.SkillReference] = skill
+				}
+			}
+		}
+	}
+	if len(seen) > 1 {
+		return pinnedSkill{}, false, true
+	}
+	for _, skill := range seen {
+		return skill, true, false
+	}
+	return pinnedSkill{}, false, false
+}
+
+func compactNominationRaws(raws []string) []string {
+	out := make([]string, 0, len(raws))
+	seen := map[string]bool{}
+	for _, raw := range raws {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" || seen[trimmed] {
+			continue
+		}
+		seen[trimmed] = true
+		out = append(out, trimmed)
+	}
+	return out
+}
+
+func firstNonEmptyRaw(raws []string) string {
+	for _, raw := range raws {
+		if trimmed := strings.TrimSpace(raw); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func nominationHexTokens(tokens []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(value string) {
+		hexDigest := nominationHex(value)
+		if hexDigest == "" || seen[hexDigest] {
+			return
+		}
+		seen[hexDigest] = true
+		out = append(out, hexDigest)
+	}
+	for _, token := range tokens {
+		add(token)
+		if at := strings.LastIndex(token, "@"); at >= 0 && at+1 < len(token) {
+			add(token[at+1:])
+		}
+	}
+	return out
+}
+
+func nominationHex(raw string) string {
+	value := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(raw), "sha256:"))
+	if len(value) < 8 {
+		return ""
+	}
+	for _, r := range value {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return ""
+		}
+	}
+	return value
+}
+
+func lastSkillPathSegment(raw string) string {
+	value := strings.TrimSpace(raw)
+	if i := strings.Index(value, "://"); i >= 0 {
+		value = value[i+3:]
+	}
+	if at := strings.LastIndex(value, "@"); at >= 0 {
+		value = value[:at]
+	}
+	if slash := strings.LastIndex(value, "/"); slash >= 0 {
+		value = value[slash+1:]
+	}
+	return value
+}
+
+func normalizeSkillName(value string) string {
+	var builder strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(value)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			builder.WriteRune(r)
+		}
+	}
+	return builder.String()
 }
