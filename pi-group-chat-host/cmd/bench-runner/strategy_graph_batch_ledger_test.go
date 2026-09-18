@@ -73,6 +73,80 @@ func TestParseGraphBatchSkillSelections(t *testing.T) {
 	}
 }
 
+func TestResolvePinnedNominationFourFormsAndRejects(t *testing.T) {
+	t.Parallel()
+	ledger, err := loadPinned0917Ledger()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	skill14 := ledger.Skills[13]
+	skill4 := ledger.Skills[3]
+	skill3 := ledger.Skills[2]
+
+	exact, ok, leftover := ledger.resolveNomination(skill14.SkillReference)
+	if !ok || exact.SkillReference != skill14.SkillReference || leftover != "" {
+		t.Fatalf("exact ref = %#v ok=%v leftover=%q", exact, ok, leftover)
+	}
+	prefix, ok, leftover := ledger.resolveNomination(skill14.SHA256[:12])
+	if !ok || prefix.SkillReference != skill14.SkillReference {
+		t.Fatalf("sha256 prefix = %#v ok=%v leftover=%q want %s", prefix, ok, leftover, skill14.SkillReference)
+	}
+	entry, ok, leftover := ledger.resolveNomination("03")
+	if !ok || entry.SkillReference != skill3.SkillReference {
+		t.Fatalf("entry 03 = %#v ok=%v leftover=%q want %s", entry, ok, leftover, skill3.SkillReference)
+	}
+	entryPin, ok, leftover := ledger.resolveNomination("pin0917-03")
+	if !ok || entryPin.SkillReference != skill3.SkillReference {
+		t.Fatalf("entry pin0917-03 = %#v ok=%v leftover=%q want %s", entryPin, ok, leftover, skill3.SkillReference)
+	}
+	entryURI, ok, leftover := ledger.resolveNomination("skill://evaluation/4@pin0917-04", "83f3c1fc4f22")
+	if !ok || entryURI.SkillReference != skill4.SkillReference {
+		t.Fatalf("entry uri = %#v ok=%v leftover=%q want %s", entryURI, ok, leftover, skill4.SkillReference)
+	}
+	named, ok, leftover := ledger.resolveNomination("Verify-Expectations-Before-Modifying-Code")
+	if !ok || named.SkillReference != skill3.SkillReference {
+		t.Fatalf("name = %#v ok=%v leftover=%q want %s", named, ok, leftover, skill3.SkillReference)
+	}
+
+	if skill, ok, leftover := ledger.resolveNomination("skill://evaluation/missing@1", "ffffffff"); ok || leftover == "" {
+		t.Fatalf("zero match must stay unresolved: %#v ok=%v leftover=%q", skill, ok, leftover)
+	}
+
+	dup := &pinnedLedger{
+		Skills: []pinnedSkill{
+			{SkillReference: "skill://evaluation/pin0917-01@1", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Name: "Foo-Bar", ID: "pin0917-01"},
+			{SkillReference: "skill://evaluation/pin0917-02@1", SHA256: "aaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Name: "foo_bar", ID: "pin0917-02"},
+		},
+		ByRef:    map[string]pinnedSkill{},
+		BySHA256: map[string]pinnedSkill{},
+	}
+	for _, skill := range dup.Skills {
+		dup.ByRef[skill.SkillReference] = skill
+		dup.BySHA256[skill.SHA256] = skill
+	}
+	if skill, ok, leftover := dup.resolveNomination("", "aaaaaaaa"); ok || leftover == "" {
+		t.Fatalf("ambiguous sha256 prefix must reject: %#v ok=%v leftover=%q", skill, ok, leftover)
+	}
+	if skill, ok, leftover := dup.resolveNomination("FOO_BAR"); ok || leftover == "" {
+		t.Fatalf("ambiguous name must reject: %#v ok=%v leftover=%q", skill, ok, leftover)
+	}
+
+	smoke14 := "SKILL_SELECTION\nskill_id: skill://evaluation/pin0917-14@9e9f60ee3752\nsha256: 9e9f60ee3752\ntrigger: After implementing the core algorithm\n"
+	got, unresolved := parseGraphBatchNominations(smoke14, ledger)
+	if len(unresolved) != 0 || len(got) != 1 || got[0].SkillReference != skill14.SkillReference {
+		t.Fatalf("smoke abc320 parse = %#v unresolved=%v", got, unresolved)
+	}
+	smoke4 := "SKILL_SELECTION\nskill_id: skill://evaluation/4@pin0917-04\nsha256: 83f3c1fc4f22\ntrigger: Task allows modifying one element\n"
+	got, unresolved = parseGraphBatchNominations(smoke4, ledger)
+	if len(unresolved) != 0 || len(got) != 1 || got[0].SkillReference != skill4.SkillReference {
+		t.Fatalf("smoke 3423 parse = %#v unresolved=%v", got, unresolved)
+	}
+	got, unresolved = parseGraphBatchNominations("SKILL_SELECTION\nskill_id: skill://evaluation/missing@1\nsha256: ffffffffdeadbeef\ntrigger: none\n", ledger)
+	if len(got) != 0 || len(unresolved) != 1 {
+		t.Fatalf("zero-match parse = %#v unresolved=%v", got, unresolved)
+	}
+}
+
 func TestPartitionAttachesEpisodeToHeldOut(t *testing.T) {
 	t.Parallel()
 	_, heldOut := partitionGraphBatchEpisodes([]manifestEpisode{

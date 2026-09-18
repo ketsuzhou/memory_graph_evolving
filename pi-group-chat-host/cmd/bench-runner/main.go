@@ -219,8 +219,9 @@ type attemptRecord struct {
 	SkillRetrievalStatus string  `json:"skill_retrieval_status,omitempty"` // published | declined | no_reply
 	SkillRetrievalCount  int     `json:"skill_retrieval_count,omitempty"`  // fingerprints the agent quoted
 	SkillRetrievalSHA256 string  `json:"skill_retrieval_sha256,omitempty"` // comma-joined quoted fingerprints
-	SkillRetrievalText   *string `json:"skill_retrieval_text,omitempty"`   // the verbatim published note
-	SkillRetrievalRecall string  `json:"skill_retrieval_recall,omitempty"` // retrieval turn's own recall state
+	SkillRetrievalText       *string  `json:"skill_retrieval_text,omitempty"`       // the verbatim published note
+	SkillRetrievalUnresolved []string `json:"skill_retrieval_unresolved,omitempty"` // raw refs that failed ledger resolve
+	SkillRetrievalRecall     string   `json:"skill_retrieval_recall,omitempty"`     // retrieval turn's own recall state
 	// Arm B telemetry is deliberately outside the grading bridge. Reporting
 	// failures are observable but never change status, output, or local-ledger authority.
 	SkillEvolutionInteractionReports  int `json:"skill_evolution_interaction_reports,omitempty"`
