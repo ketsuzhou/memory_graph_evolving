@@ -82,7 +82,7 @@ func (p *productionGraphBatchHeldOut) Execute(ctx context.Context, digest string
 	roomID, shared, private, memoryPrivate := warmSkillIsolatedRoom(episode.FamilyID, spec.Sequence, episode.Split)
 	episodeDir := filepath.Join(workDir, "episodes", fmt.Sprintf("%04d-%s", spec.Sequence, sanitizeID(episode.EpisodeID)))
 	record := attemptRecord{
-		RunID: fmt.Sprintf("%s:%s:%d:%s", p.config.evaluationID, episode.TaskID, p.config.seed, p.config.arm),
+		RunID:        fmt.Sprintf("%s:%s:%d:%s", p.config.evaluationID, episode.TaskID, p.config.seed, p.config.arm),
 		EvaluationID: p.config.evaluationID, Benchmark: episode.Benchmark, Domain: episode.Domain,
 		TaskID: episode.TaskID, EpisodeID: episode.EpisodeID, FamilyID: episode.FamilyID,
 		Role: episode.Role, Split: episode.Split, Arm: p.config.arm, DeliveryClass: graphBatchAuthorityGMS,
@@ -486,19 +486,25 @@ func runGraphBatchParallelHeldOut(ctx context.Context, req graphBatchParallelReq
 	}
 	req.Record.RecallState = "skipped"
 	req.Record.RecallCitations = 0
+	settleText := strings.TrimSpace(req.Task.Observation().LastAssistantText)
 	messages := req.Task.VisibleMessages()
 	if protocol != nil {
 		messages = protocol.PublishFeedback(messages)
 	}
+	if settleText != "" {
+		messages = append(messages, runtime.VisibleMessage{AuthorID: graphBatchTaskAgentID, Content: settleText})
+	}
 	req.Record.Transcript = roomTranscript(messages)
 	capture := captureTaskOutput(req.Record.WorkDir, messages)
 	req.Record.FinalCodeOutput = capture.graded
-	if capture.final != nil {
+	if settleText != "" {
+		req.Record.FinalOutput = &settleText
+	} else if capture.final != nil {
 		req.Record.FinalOutput = capture.final
 	}
 	namedText := ""
-	if capture.final != nil {
-		namedText = *capture.final
+	if req.Record.FinalOutput != nil {
+		namedText = *req.Record.FinalOutput
 	}
 	for _, entry := range req.Record.Transcript {
 		namedText += "\n" + entry.Content
@@ -611,6 +617,8 @@ type productionTaskExactSession struct {
 	entered         chan struct{}
 	enterOnce       sync.Once
 	consumedSettled chan struct{}
+	settled         bool
+	lastAssistant   string
 }
 
 func newProductionTaskExactSession(cfg productionTaskConfig) (*productionTaskExactSession, error) {
@@ -686,8 +694,13 @@ func (s *productionTaskExactSession) Observation() directedoffer.SessionObservat
 		phase = directedoffer.PhaseRunning
 	} else if s.resumeCount > 0 {
 		phase = directedoffer.PhaseResumed
+	} else if s.settled {
+		phase = directedoffer.PhaseSettled
 	}
-	return directedoffer.SessionObservation{Phase: phase, Session: s.session, AbortCount: s.abortCount, ResumeCount: s.resumeCount}
+	return directedoffer.SessionObservation{
+		Phase: phase, Session: s.session, AbortCount: s.abortCount, ResumeCount: s.resumeCount,
+		LastAssistantText: s.lastAssistant,
+	}
 }
 func (s *productionTaskExactSession) Start(ctx context.Context) error {
 	if err := s.launch(ctx, s.baseExt, 1); err != nil {
@@ -698,10 +711,7 @@ func (s *productionTaskExactSession) Start(ctx context.Context) error {
 	}
 	s.enterOnce.Do(func() { close(s.entered) })
 	s.setRunning(true)
-	err := s.waitSettled(ctx)
-	s.waitConsumed(ctx)
-	s.setRunning(false)
-	return err
+	return s.finishGeneration(ctx)
 }
 func (s *productionTaskExactSession) Abort(ctx context.Context) error {
 	s.mu.Lock()
@@ -713,7 +723,9 @@ func (s *productionTaskExactSession) Abort(ctx context.Context) error {
 	}
 	return ctrl.Abort(ctx)
 }
-func (s *productionTaskExactSession) WaitSettled(ctx context.Context) error { return s.waitSettled(ctx) }
+func (s *productionTaskExactSession) WaitSettled(ctx context.Context) error {
+	return s.waitSettled(ctx)
+}
 func (s *productionTaskExactSession) Resume(ctx context.Context, req directedoffer.ResumeRequest) error {
 	if req.Session.File != s.session.File || req.Session.ID != s.session.ID {
 		return errors.New("directed offer: resume must use the stored exact session file and id")
@@ -742,10 +754,23 @@ func (s *productionTaskExactSession) Resume(ctx context.Context, req directedoff
 		return err
 	}
 	s.setRunning(true)
+	return s.finishGeneration(ctx)
+}
+func (s *productionTaskExactSession) finishGeneration(ctx context.Context) error {
 	err := s.waitSettled(ctx)
 	s.waitConsumed(ctx)
+	s.observeLastAssistant()
 	s.setRunning(false)
 	return err
+}
+func (s *productionTaskExactSession) observeLastAssistant() {
+	text := lastAssistantFromExactSessionFile(s.session.File)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if text != "" {
+		s.lastAssistant = text
+	}
+	s.settled = true
 }
 func (s *productionTaskExactSession) Close() error { return s.closeCtrl() }
 func (s *productionTaskExactSession) launch(ctx context.Context, extension string, generation uint64) error {
@@ -849,7 +874,12 @@ func (s *productionTaskExactSession) handleEvent(event sessionctrl.Event) {
 	s.mu.Unlock()
 	switch frame.Type {
 	case "agent_settled":
+		text := lastAssistantFromExactSessionFile(s.session.File)
 		s.mu.Lock()
+		if text != "" {
+			s.lastAssistant = text
+		}
+		s.settled = true
 		if s.consumedSettled != nil {
 			select {
 			case <-s.consumedSettled:
@@ -887,6 +917,49 @@ func (s *productionTaskExactSession) handleEvent(event sessionctrl.Event) {
 			s.mu.Unlock()
 		}
 	}
+}
+
+func lastAssistantFromExactSessionFile(path string) string {
+	if strings.TrimSpace(path) == "" {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	type sessionEntry struct {
+		Type    string `json:"type"`
+		Message struct {
+			Role    string `json:"role"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	last := ""
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var entry sessionEntry
+		if json.Unmarshal([]byte(line), &entry) != nil || entry.Message.Role != "assistant" {
+			continue
+		}
+		if entry.Type != "" && entry.Type != "message" {
+			continue
+		}
+		var text []string
+		for _, part := range entry.Message.Content {
+			if part.Type == "text" && strings.TrimSpace(part.Text) != "" {
+				text = append(text, part.Text)
+			}
+		}
+		if value := strings.TrimSpace(strings.Join(text, "\n")); value != "" {
+			last = value
+		}
+	}
+	return last
 }
 
 func isMutatingExactTool(name string) bool {

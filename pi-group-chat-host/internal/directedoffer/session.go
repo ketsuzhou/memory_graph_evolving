@@ -36,14 +36,15 @@ type ResumeRequest struct {
 
 // SessionObservation is a point-in-time view of a scripted exact session.
 type SessionObservation struct {
-	Phase          Phase
-	Session        sessionctrl.Session
-	AbortCount     int
-	ResumeCount    int
-	Injected       []QueuedMessage
-	CompletedTools []ToolResult
-	ReplayedTools  []ToolResult
-	LastResume     ResumeRequest
+	Phase             Phase
+	Session           sessionctrl.Session
+	AbortCount        int
+	ResumeCount       int
+	Injected          []QueuedMessage
+	CompletedTools    []ToolResult
+	ReplayedTools     []ToolResult
+	LastResume        ResumeRequest
+	LastAssistantText string
 }
 
 // ExactSession is the fake/scripted exact-session seam. Later tickets may
